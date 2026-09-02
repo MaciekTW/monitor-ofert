@@ -1,0 +1,9 @@
+__pycache__/
+*.pyc
+*.csv
+
+# Local working copies of the shipped data (unpacked from the .gz files)
+oferty.db
+data.html
+*.db-journal
+*.db-wal
