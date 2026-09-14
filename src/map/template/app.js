@@ -161,6 +161,7 @@ function currentFilter(){
 }
 const SORTS = {
   "new": (a,b) => new Date(b.c || b.fs || 0) - new Date(a.c || a.fs || 0),
+  "old": (a,b) => new Date(a.c || a.fs || 8.64e15) - new Date(b.c || b.fs || 8.64e15),
   "pm-asc": (a,b) => (a.pm ?? 9e9) - (b.pm ?? 9e9),
   "pm-desc": (a,b) => (b.pm ?? -1) - (a.pm ?? -1),
   "p-asc": (a,b) => (a.p ?? 9e9) - (b.p ?? 9e9),
