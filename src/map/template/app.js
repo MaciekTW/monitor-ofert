@@ -183,6 +183,9 @@ const SORTS = {
   "a-desc": (a,b) => (b.a ?? -1) - (a.a ?? -1),
   "a-asc": (a,b) => (a.a ?? 9e9) - (b.a ?? 9e9),
   "drop": (a,b) => b._drop - a._drop,
+  // przy tej samej liczbie zmian wyżej te, których cena zmieniła się ostatnio
+  "changes": (a,b) => (b.h?.length ?? 0) - (a.h?.length ?? 0)
+    || (b.h?.at(-1)[0] ?? "").localeCompare(a.h?.at(-1)[0] ?? ""),
 };
 let filtered = [], shown = 0;
 const CHUNK = 80;
@@ -311,8 +314,15 @@ function openDetail(id, fromMap){
   let hist = "";
   if(o.h){
     const td = "border-b border-dashed border-line py-1";
-    hist = `<div><h3 class="my-2 text-base font-bold">Historia cen</h3>
-      <table class="w-full text-[13px]">` + o.h.map((x,i) => {
+    const first = o.h[0][1], last = o.h[o.h.length-1][1], d = last - first;
+    const pct = Math.abs(d) / first * 100;
+    const total = d === 0 ? "" :
+      `<small class="text-[12.5px] font-semibold ${d > 0 ? "text-bad" : "text-good"}">
+        ${d > 0 ? "+" : "−"}${fmtP(Math.abs(d))}
+        (${d > 0 ? "+" : "−"}${pct < .05 ? "<0,1" : pct.toFixed(1).replace(".", ",")}%)</small>`;
+    hist = `<div><h3 class="my-2 flex items-baseline justify-between text-base font-bold">Historia cen ${total}</h3>
+      <div id="pchart" class="relative cursor-pointer select-none" title="Kliknij, żeby pokazać wszystkie zmiany"></div>
+      <table id="ptable" hidden class="mt-2 w-full text-[13px]">` + o.h.map((x,i) => {
       const prev = i ? o.h[i-1][1] : null;
       const diff = prev == null ? "" :
         `<span class="${x[1] > prev ? "text-bad" : "text-good"}">
@@ -340,8 +350,71 @@ function openDetail(id, fromMap){
     th.querySelectorAll("img").forEach(x => x.classList.remove("on"));
     e.target.classList.add("on");
   });
+  if(o.h) renderPriceChart($("#pchart"), o.h);
   $("#detail").classList.add("open");
   $("#backdrop").classList.add("open");
+}
+// wykres schodkowy historii ceny: oś czasu według dat, ostatnia cena dociągnięta
+// do chwili wygenerowania pliku; kliknięcie rozwija tabelkę ze wszystkimi zmianami
+function renderPriceChart(el, h){
+  const W = el.clientWidth, H = 110, pad = {l:4, r:4, t:18, b:18};
+  const day = s => Date.parse(s + "T00:00:00Z") / 864e5;
+  const xs = h.map(x => day(x[0])), t0 = xs[0];
+  const t1 = Math.max(day(META.gen.slice(0,10)), xs[xs.length-1] + 1);
+  const ps = h.map(x => x[1]);
+  let lo = Math.min(...ps), hi = Math.max(...ps);
+  // minimalna rozpiętość osi 3% ceny — zmiana o 1 zł nie może wyglądać jak przepaść
+  if(hi - lo < hi * .03){ const m = (hi + lo) / 2, s = hi * .015; lo = m - s; hi = m + s; }
+  const X = t => pad.l + (t - t0) / (t1 - t0) * (W - pad.l - pad.r);
+  const Y = p => pad.t + (hi - p) / (hi - lo) * (H - pad.t - pad.b);
+  const fmtK = v => v >= 1e6 ? (v/1e6).toFixed(2).replace(".", ",") + " mln" : Math.round(v/1000) + " tys.";
+  const fmtD = s => s.slice(8,10) + "." + s.slice(5,7);
+
+  const first = ps[0], last = ps[ps.length-1];
+  const col = last < first ? "var(--color-good)" : last > first ? "var(--color-bad)" : "var(--color-mut)";
+  const line = h.map((x,i) => i ? `H${X(xs[i])}V${Y(x[1])}` : `M${X(xs[0])},${Y(x[1])}`).join("") + `H${X(t1)}`;
+  const dots = h.map((x,i) => {
+    const c = !i ? "var(--color-mut)" : x[1] < ps[i-1] ? "var(--color-good)" : "var(--color-bad)";
+    return `<circle cx="${X(xs[i])}" cy="${Y(x[1])}" r="3.2" fill="#fff" stroke="${c}" stroke-width="2"/>`;
+  }).join("");
+  el.innerHTML = `<svg width="${W}" height="${H}" class="block overflow-visible">
+    <defs><linearGradient id="pgrad" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0" stop-color="${col}" stop-opacity=".18"/>
+      <stop offset="1" stop-color="${col}" stop-opacity="0"/></linearGradient></defs>
+    <line x1="${pad.l}" x2="${W-pad.r}" y1="${H-pad.b}" y2="${H-pad.b}" stroke="var(--color-line)"/>
+    <path d="${line}V${H-pad.b}H${X(t0)}Z" fill="url(#pgrad)"/>
+    <path d="${line}" fill="none" stroke="${col}" stroke-width="2" stroke-linejoin="round"/>
+    ${dots}
+    <text x="${X(t0)}" y="${Y(first) - 7}" font-size="11" fill="var(--color-mut)">${fmtK(first)}</text>
+    <text x="${W-pad.r}" y="${Y(last) - 7}" font-size="11" font-weight="700" fill="var(--color-ink)"
+      text-anchor="end">${fmtK(last)}</text>
+    <text x="${pad.l}" y="${H-3}" font-size="10.5" fill="var(--color-mut)">${fmtD(h[0][0])}</text>
+    <text x="${W-pad.r}" y="${H-3}" font-size="10.5" fill="var(--color-mut)" text-anchor="end">
+      teraz · pokaż zmiany (${h.length}) ▾</text>
+    <line id="pxh" y1="${pad.t-6}" y2="${H-pad.b}" stroke="var(--color-mut)" stroke-dasharray="2 2" visibility="hidden"/>
+  </svg>
+  <div id="ptip" hidden class="pointer-events-none absolute -translate-x-1/2 -translate-y-[120%] rounded-md
+    bg-ink px-1.5 py-0.5 text-xs whitespace-nowrap text-white"></div>`;
+
+  const xh = $("#pxh"), tip = $("#ptip"), label = el.querySelector("text:last-of-type");
+  el.onmousemove = e => {
+    const sx = e.clientX - el.getBoundingClientRect().left;
+    const t = Math.min(t1, Math.max(t0, t0 + (sx - pad.l) / (W - pad.l - pad.r) * (t1 - t0)));
+    let k = 0;
+    xs.forEach((x,i) => { if(x <= t) k = i; });
+    xh.setAttribute("x1", X(t)); xh.setAttribute("x2", X(t));
+    xh.setAttribute("visibility", "visible");
+    tip.textContent = `${fmtD(new Date(t * 864e5).toISOString())} · ${fmtP(ps[k])}`;
+    tip.style.left = X(t) + "px";
+    tip.style.top = Y(ps[k]) + "px";
+    tip.hidden = false;
+  };
+  el.onmouseleave = () => { xh.setAttribute("visibility", "hidden"); tip.hidden = true; };
+  el.onclick = () => {
+    const tb = $("#ptable");
+    tb.hidden = !tb.hidden;
+    label.textContent = `teraz · ${tb.hidden ? "pokaż" : "ukryj"} zmiany (${h.length}) ${tb.hidden ? "▾" : "▴"}`;
+  };
 }
 function closeDetail(){
   $("#detail").classList.remove("open");
