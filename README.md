@@ -90,7 +90,7 @@ gunzip -k data.html.gz     # -> data.html  (70 MB)
   listings (13 217 Otodom, 2 410 OLX), 14 832 of them still active, plus
   15 763 price-history rows. Tables: `offers`, `price_history`, `meta`.
 - **`data.html.gz`** — the generated map: one self-contained HTML file
-  (Leaflet is inlined, no CDN needed) with all listings plotted and filters
+  (Leaflet and Apache ECharts are inlined, no CDN needed) with all listings plotted and filters
   for price, area, rooms, floor and district. Open it in a browser.
 
 You can regenerate the HTML from the database at any time:

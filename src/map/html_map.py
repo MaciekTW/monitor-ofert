@@ -1,12 +1,13 @@
 # -*- coding: utf-8 -*-
 """
 Interaktywna mapa HTML — generuje pojedynczy, samowystarczalny plik HTML
-z mapą (Leaflet), listą i filtrami aktywnych ofert zapisanych w bazie.
+z mapą (Leaflet), listą i filtrami aktywnych ofert zapisanych w bazie
+oraz drugą zakładką z historią rynku (liczba ofert, ceny i ich zmiany w czasie).
 
 Wygląd i logika strony są w katalogu template/ (szablon Jinja2 index.html
-oraz style.css, app.js i krakow_boundary.js wklejane do niego bez zmian).
+oraz style.css, app.js, history.js i krakow_boundary.js wklejane do niego bez zmian).
 Zewnętrzne biblioteki
-(Leaflet, Tailwind CSS w wersji przeglądarkowej) leżą w katalogu deps/
+(Leaflet, Apache ECharts, Tailwind CSS w wersji przeglądarkowej) leżą w katalogu deps/
 w głównym katalogu repozytorium.
 """
 
@@ -84,6 +85,48 @@ def photo_urls(raw_offer: dict, max_photos: int = 8) -> list[str]:
             continue
         urls.append(link.replace("{width}", "1000").replace("{height}", "700"))
     return urls
+
+
+def market_history(con: sqlite3.Connection) -> dict:
+    """Dane dla zakładki z historią rynku: lista skanów i kompaktowy opis
+    każdej oferty (także wycofanych) z numerami skanów zamiast dat.
+
+    Baza nie ma osobnego logu skanów, ale każdy skan zapisuje ten sam znacznik
+    czasu w first_seen, last_seen i price_history.ts — zbiór tych wartości to
+    lista skanów. Oferta była aktywna we wszystkich skanach od first_seen do
+    last_seen, a cena w danym skanie to ostatni wpis historii nie późniejszy."""
+    scans = sorted(
+        ts
+        for (ts,) in con.execute(
+            "SELECT first_seen FROM offers UNION SELECT last_seen FROM offers UNION SELECT ts FROM price_history"
+        )
+        if ts
+    )
+    idx = {ts: i for i, ts in enumerate(scans)}
+    prices: dict[str, list] = {}
+    for offer_uid, ts, price in con.execute("SELECT offer_uid, ts, price FROM price_history ORDER BY ts"):
+        if ts in idx and price is not None:
+            prices.setdefault(offer_uid, []).append([idx[ts], price])
+
+    rows = []
+    query = "SELECT uid, source, market, district, business, area, first_seen, last_seen, active FROM offers"
+    for uid, source, market, district, business, area, first_seen, last_seen, active in con.execute(query):
+        if first_seen not in idx or last_seen not in idx:
+            continue
+        rows.append(
+            [
+                source,
+                market,
+                district,
+                business,
+                area,
+                idx[first_seen],
+                idx[last_seen],
+                active,
+                prices.get(uid, []),
+            ]
+        )
+    return {"scans": scans, "offers": rows}
 
 
 def export_html(con: sqlite3.Connection, path: str) -> None:
@@ -171,7 +214,7 @@ def export_html(con: sqlite3.Connection, path: str) -> None:
         "total": len(offers),
     }
 
-    page = make_env().get_template("index.html").render(meta=meta, offers=offers)
+    page = make_env().get_template("index.html").render(meta=meta, offers=offers, hist=market_history(con))
     with open(path, "w", encoding="utf-8") as f:
         f.write(page)
     size_mb = len(page.encode("utf-8")) / 1_048_576

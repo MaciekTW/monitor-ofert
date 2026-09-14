@@ -14,11 +14,17 @@
 <header class="flex flex-wrap items-center gap-3.5 border-b border-line bg-white px-3.5 py-2">
  <div><h1 id="hd" class="text-base font-bold whitespace-nowrap">Oferty OLX</h1>
   <div id="hdsub" class="text-xs text-mut"></div></div>
+ <nav id="tabs" class="flex gap-1 rounded-lg bg-page p-1">
+  <button class="tab on" data-tab="map">Mapa ofert</button>
+  <button class="tab" data-tab="hist">Historia rynku</button>
+ </nav>
+ <div id="mapctl" class="contents">
  <input id="q" type="search" placeholder="Szukaj: np. balkon, garaż, Ruczaj…"
   class="field max-w-[460px] min-w-[180px] flex-1 rounded-lg bg-[#fbfcfd] px-3">
  <label class="chk"><input type="checkbox" id="qdesc" checked> szukaj też w opisach</label>
+ </div>
 </header>
-<div class="flex flex-col desk:min-h-0 desk:flex-1 desk:flex-row">
+<div id="tab-map" class="flex flex-col desk:min-h-0 desk:flex-1 desk:flex-row">
  <aside id="filters" class="order-2 overflow-y-auto border-t border-line bg-white p-3
    desk:order-none desk:w-63 desk:min-w-63 desk:border-t-0 desk:border-r">
   <div id="stats" class="mb-3 grid grid-cols-2 gap-1.5"></div>
@@ -84,6 +90,40 @@
   <div id="cards" class="flex-1 overflow-y-auto"></div>
  </aside>
 </div>
+<main id="tab-hist" hidden class="desk:min-h-0 desk:flex-1 desk:overflow-y-auto">
+ <div class="mx-auto max-w-[1280px] px-4 py-4">
+  <div class="mb-3 flex flex-wrap items-end gap-3">
+   <div><h3 class="f-title">Portal</h3><div class="flex gap-1.5" id="hportals">
+    <button class="chip on" data-s="olx">OLX</button>
+    <button class="chip on" data-s="otodom">Otodom</button></div></div>
+   <div><h3 class="f-title">Rynek</h3><select id="hmarket" class="field w-auto!">
+    <option value="">wszystkie</option><option>Pierwotny</option><option>Wtórny</option></select></div>
+   <div><h3 class="f-title">Sprzedający</h3><select id="hseller" class="field w-auto!">
+    <option value="">wszyscy</option><option value="0">osoba prywatna</option>
+    <option value="1">firma / deweloper</option></select></div>
+   <div><h3 class="f-title">Dzielnica</h3><select id="hdistrict" class="field w-auto! max-w-60">
+    <option value="">wszystkie</option></select></div>
+   <p id="hnote" class="ml-auto self-center text-xs text-mut"></p>
+  </div>
+  <div id="htiles" class="mb-4 grid grid-cols-[repeat(auto-fit,minmax(160px,1fr))] gap-2"></div>
+  <div class="grid grid-cols-[minmax(0,1fr)] gap-4 desk:grid-cols-[repeat(2,minmax(0,1fr))]">
+   <section class="hcard"><h2 class="hc-title">Aktywne oferty</h2>
+    <p class="hc-sub">liczba ofert widocznych na portalach w każdym skanie</p><div id="c-active" class="h-[250px]"></div></section>
+   <section class="hcard"><h2 class="hc-title">Nowe i wycofane oferty</h2>
+    <p class="hc-sub" id="c-flow-sub"></p><div id="c-flow" class="h-[250px]"></div></section>
+   <section class="hcard"><h2 class="hc-title">Mediana ceny za m²</h2>
+    <p class="hc-sub">wśród ofert aktywnych w danym skanie — zależy też od tego, jakie oferty akurat wiszą</p>
+    <div id="c-ppm" class="h-[250px]"></div></section>
+   <section class="hcard"><h2 class="hc-title">Mediana ceny</h2>
+    <p class="hc-sub">wśród ofert aktywnych w danym skanie</p><div id="c-price" class="h-[250px]"></div></section>
+   <section class="hcard desk:col-span-2"><h2 class="hc-title">Zmiany cen</h2>
+    <p class="hc-sub">liczba obniżek i podwyżek wykrytych danego dnia</p><div id="c-changes" class="h-[250px]"></div></section>
+  </div>
+  <section class="hcard mt-4"><h2 class="hc-title">Dzielnice</h2>
+   <p class="hc-sub">stan z ostatniego skanu w porównaniu z pierwszym; kliknij nagłówek, żeby posortować</p>
+   <div class="overflow-x-auto"><table id="hdist" class="w-full text-[13px] tabular-nums"></table></div></section>
+ </div>
+</main>
 <div id="backdrop" class="pointer-events-none fixed inset-0 z-1100 bg-[rgba(15,22,33,.35)] opacity-0 transition-opacity
   shown:pointer-events-auto shown:opacity-100"></div>
 <section id="detail" class="fixed top-0 right-0 z-1200 flex h-full w-[min(600px,100vw)] translate-x-[calc(100%+20px)] flex-col
@@ -92,10 +132,15 @@
    bg-[rgba(20,28,40,.55)] text-[17px] text-white">✕</button>
  <div id="dbody" class="overflow-y-auto px-4.5 py-4"></div></section>
 <script>{{ include_raw("js/leaflet.js") }}</script>
+<script>{{ include_raw("js/echarts.min.js") }}</script>
+<script>{{ include_raw("js/echarts-langPL.js") }}</script>
 <script id="meta" type="application/json">{{ meta | tojson }}</script>
 <script id="data" type="application/json">{{ offers | tojson }}</script>
+<script id="histdata" type="application/json">{{ hist | tojson }}</script>
 <script>{{ include_raw("krakow_boundary.js") }}</script>
 <script>
 {{ include_raw("app.js") }}</script>
+<script>
+{{ include_raw("history.js") }}</script>
 </body>
 </html>

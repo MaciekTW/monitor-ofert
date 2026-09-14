@@ -57,6 +57,22 @@
         @apply ml-1.5 inline-block rounded px-1.5 align-[1px] text-[10.5px] font-bold;
     }
 
+    .tab {
+        @apply cursor-pointer rounded-md px-3 py-1 text-[13px] font-semibold text-mut hover:text-ink on:bg-white on:text-ink on:shadow-[0_1px_3px_rgba(0,0,0,.12)];
+    }
+
+    .hcard {
+        @apply min-w-0 rounded-xl border border-line bg-white p-3.5;
+    }
+
+    .hc-title {
+        @apply text-[15px] font-bold;
+    }
+
+    .hc-sub {
+        @apply mb-2 text-xs text-mut;
+    }
+
     .noimg {
         @apply flex h-[70px] w-[92px] shrink-0 items-center justify-center rounded-md bg-[#eef0f4] text-[22px] text-[#b6bdc9];
     }
