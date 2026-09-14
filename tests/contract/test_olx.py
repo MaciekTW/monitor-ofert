@@ -21,8 +21,13 @@ ID_KEYS = ("category_id", "region_id", "city_id")
 
 
 def offers_query(**extra) -> dict:
-    return {**KRAKOW, "offset": 0, "limit": m.PAGE_LIMIT,
-            "sort_by": "created_at:desc", **extra}
+    return {
+        **KRAKOW,
+        "offset": 0,
+        "limit": m.PAGE_LIMIT,
+        "sort_by": "created_at:desc",
+        **extra,
+    }
 
 
 @pytest.fixture(scope="module")
@@ -41,6 +46,7 @@ def offers(offers_page) -> list[dict]:
 
 # ------------------------------------------------ wykrywanie parametrów wyszukiwania
 
+
 def test_search_page_html_contains_search_ids():
     """resolve_api_params: identyfikatory wyszukane regexem w HTML wyników."""
     resp = fetch(m.OlxSource.default_url, as_json=False)
@@ -57,13 +63,13 @@ def test_search_page_html_contains_search_ids():
 
 # ------------------------------------------------------------ endpoint ofert
 
+
 def test_offers_endpoint_returns_full_page(offers_page, offers):
     """Paginacja zakłada, że strona, która nie jest ostatnia, ma co najmniej
     PAGE_LIMIT ofert (krótsza = koniec wyników). OLX dokłada do PAGE_LIMIT
     ofert organicznych kilka promowanych — ich indeksy są w metadata.source."""
     organic = dig(offers_page, "metadata.source.organic")
-    assert len(organic) == m.PAGE_LIMIT, \
-        f"ofert organicznych {len(organic)}, oczekiwano {m.PAGE_LIMIT}"
+    assert len(organic) == m.PAGE_LIMIT, f"ofert organicznych {len(organic)}, oczekiwano {m.PAGE_LIMIT}"
     assert len(offers) >= m.PAGE_LIMIT
 
 
@@ -71,8 +77,9 @@ def test_offers_metadata_reports_count(offers_page):
     """reported_count czyta liczbę wyników z metadata."""
     meta = dig(offers_page, "metadata")
     counts = {k: meta.get(k) for k in ("total_elements", "visible_total_count", "total")}
-    assert any(isinstance(v, int) and v > 0 for v in counts.values()), \
+    assert any(isinstance(v, int) and v > 0 for v in counts.values()), (
         f"brak dodatniej liczby wyników w metadata: {counts}"
+    )
 
 
 def organic_ids(page: dict) -> set:
@@ -94,8 +101,10 @@ def test_offers_offset_returns_next_page(offers_page):
 def test_offers_price_filter_is_applied():
     """Dzielenie na przedziały cen opiera się na filter_float_price:from/to."""
     lo, hi = 400_000, 500_000
-    resp = fetch(m.API_OFFERS, params=offers_query(**{
-        "filter_float_price:from": lo, "filter_float_price:to": hi}))
+    resp = fetch(
+        m.API_OFFERS,
+        params=offers_query(**{"filter_float_price:from": lo, "filter_float_price:to": hi}),
+    )
     assert resp.status_code == 200
     data = dig(resp.json(), "data")
     assert data, "filtr cen zwrócił pustą listę"
@@ -106,9 +115,9 @@ def test_offers_price_filter_is_applied():
 
 # ---------------------------------------------------- pola oferty (parse_offer_olx)
 
+
 def params_of(offer: dict) -> dict:
-    return {p["key"]: p.get("value") for p in offer.get("params") or []
-            if isinstance(p, dict) and "key" in p}
+    return {p["key"]: p.get("value") for p in offer.get("params") or [] if isinstance(p, dict) and "key" in p}
 
 
 def test_offer_core_fields(offers):
@@ -118,58 +127,82 @@ def test_offer_core_fields(offers):
     assert_all(offers, lambda o: isinstance(o.get("params"), list), "params (lista)")
     assert_all(offers, lambda o: "business" in o, "business")
     assert_all(offers, lambda o: isinstance(o.get("created_time"), str), "created_time")
-    assert_some(offers, lambda o: isinstance(o.get("last_refresh_time"), str),
-                "last_refresh_time")
+    assert_some(
+        offers,
+        lambda o: isinstance(o.get("last_refresh_time"), str),
+        "last_refresh_time",
+    )
 
 
 def test_offer_price_param(offers):
     def ok(o):
         price = params_of(o).get("price")
-        return (isinstance(price, dict) and "value" in price
-                and "currency" in price and "negotiable" in price)
+        return isinstance(price, dict) and "value" in price and "currency" in price and "negotiable" in price
+
     assert_all(offers, ok, "params[key=price] z value/currency/negotiable")
-    assert_some(offers, lambda o: isinstance(params_of(o)["price"]["value"], (int, float)),
-                "liczbowa cena w params.price.value")
+    assert_some(
+        offers,
+        lambda o: isinstance(params_of(o)["price"]["value"], (int, float)),
+        "liczbowa cena w params.price.value",
+    )
 
 
 @pytest.mark.parametrize("key", ["m", "price_per_m", "rooms", "floor_select", "market"])
 def test_offer_detail_params(offers, key):
     """Parametry ogłoszenia mają postać {key, label}."""
-    assert_some(offers,
-                lambda o: isinstance(params_of(o).get(key), dict)
-                and {"key", "label"} <= set(params_of(o)[key]),
-                f"params[key={key}] z polami key/label")
+    assert_some(
+        offers,
+        lambda o: isinstance(params_of(o).get(key), dict) and {"key", "label"} <= set(params_of(o)[key]),
+        f"params[key={key}] z polami key/label",
+    )
 
 
 def test_offer_area_is_numeric(offers):
-    assert_some(offers, lambda o: m.to_float((params_of(o).get("m") or {}).get("key")),
-                "params.m.key da się zamienić na liczbę (metraż)")
+    assert_some(
+        offers,
+        lambda o: m.to_float((params_of(o).get("m") or {}).get("key")),
+        "params.m.key da się zamienić na liczbę (metraż)",
+    )
 
 
 def test_offer_location(offers):
-    assert_all(offers, lambda o: isinstance(dig(o, "location.city.name"), str),
-               "location.city.name")
-    assert_all(offers, lambda o: m.slugify(o["location"]["city"]["name"]) == "krakow",
-               "oferty z Krakowa (check_city)")
-    assert_some(offers,
-                lambda o: isinstance((o["location"].get("district") or {}).get("name"), str),
-                "location.district.name")
+    assert_all(
+        offers,
+        lambda o: isinstance(dig(o, "location.city.name"), str),
+        "location.city.name",
+    )
+    assert_all(
+        offers,
+        lambda o: m.slugify(o["location"]["city"]["name"]) == "krakow",
+        "oferty z Krakowa (check_city)",
+    )
+    assert_some(
+        offers,
+        lambda o: isinstance((o["location"].get("district") or {}).get("name"), str),
+        "location.district.name",
+    )
 
 
 def test_offer_map(offers):
     def ok(o):
         node = o.get("map") or {}
         return all(isinstance(node.get(k), (int, float)) for k in ("lat", "lon", "radius"))
+
     assert_some(offers, ok, "map.lat/lon/radius")
 
 
 def test_offer_photos_and_description(offers):
     """Używane przez mapę HTML: zdjęcia z szablonem rozmiaru i opis."""
+
     def photo_ok(o):
         photos = o.get("photos") or []
         return bool(photos) and all(
-            "{width}" in p.get("link", "") and "{height}" in p.get("link", "")
-            for p in photos)
+            "{width}" in p.get("link", "") and "{height}" in p.get("link", "") for p in photos
+        )
+
     assert_some(offers, photo_ok, "photos[].link z {width} i {height}")
-    assert_some(offers, lambda o: isinstance(o.get("description"), str) and o["description"],
-                "description")
+    assert_some(
+        offers,
+        lambda o: isinstance(o.get("description"), str) and o["description"],
+        "description",
+    )

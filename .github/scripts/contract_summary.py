@@ -43,8 +43,10 @@ def main(report_path: str) -> int:
     if failed:
         lines.append(f"❌ **{len(failed)} niezgodności z kontraktem**")
     elif not passed:
-        lines.append("⚠️ **Nic nie zostało sprawdzone** — wszystkie testy pominięte "
-                     "(najpewniej portale zablokowały zapytania z runnera).")
+        lines.append(
+            "⚠️ **Nic nie zostało sprawdzone** — wszystkie testy pominięte "
+            "(najpewniej portale zablokowały zapytania z runnera)."
+        )
     elif skipped:
         lines.append(f"⚠️ Kontrakty zgodne, ale {len(skipped)} testów pominięto.")
     else:
@@ -52,8 +54,7 @@ def main(report_path: str) -> int:
 
     lines += ["", "| Plik | ✅ | ❌ | ⏭️ |", "| --- | --: | --: | --: |"]
     for module, counts in sorted(per_file.items()):
-        lines.append(f"| `{module}` | {counts['passed']} | {counts['failed']} "
-                     f"| {counts['skipped']} |")
+        lines.append(f"| `{module}` | {counts['passed']} | {counts['failed']} | {counts['skipped']} |")
 
     for title, items in (("Niezgodności", failed), ("Pominięte", skipped)):
         if items:

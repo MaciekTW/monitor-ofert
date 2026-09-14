@@ -67,45 +67,66 @@ from map.html_map import export_html
 # zanim w ogóle spojrzy na nagłówki. Zwykłe `requests` zostaje jako zapasowe.
 try:
     from curl_cffi import requests  # pip install curl_cffi
+
     IMPERSONATE = True
 except ImportError:
     IMPERSONATE = False
     try:
         import requests
     except ImportError:
-        sys.exit("Brakuje biblioteki HTTP. Zainstaluj:  pip install curl_cffi\n"
-                 "(zadziała też samo 'pip install requests', ale bywa częściej "
-                 "blokowane przez OLX)")
+        sys.exit(
+            "Brakuje biblioteki HTTP. Zainstaluj:  pip install curl_cffi\n"
+            "(zadziała też samo 'pip install requests', ale bywa częściej "
+            "blokowane przez OLX)"
+        )
 
 # klasy wyjątków sieciowych różnią się między requests a curl_cffi
-NETWORK_ERRORS = tuple(dict.fromkeys(filter(None, (
-    getattr(getattr(requests, "exceptions", None), "RequestException", None),
-    getattr(requests, "RequestsError", None),
-)))) or (OSError,)
+NETWORK_ERRORS = tuple(
+    dict.fromkeys(
+        filter(
+            None,
+            (
+                getattr(getattr(requests, "exceptions", None), "RequestException", None),
+                getattr(requests, "RequestsError", None),
+            ),
+        )
+    )
+) or (OSError,)
 
 # ---------------------------------------------------------------- konfiguracja
 
 DEFAULT_DB = "oferty.db"
-LEGACY_DB = "olx_oferty.db"   # nazwa bazy ze starszych wersji skryptu
+LEGACY_DB = "olx_oferty.db"  # nazwa bazy ze starszych wersji skryptu
 
 API_OFFERS = "https://www.olx.pl/api/v1/offers/"
 
-PAGE_LIMIT = 50        # maks. liczba ofert na jedno zapytanie API
-SEGMENT_MAX = 1000     # głębiej niż ~1000 wyników jedno zapytanie nie sięga
+PAGE_LIMIT = 50  # maks. liczba ofert na jedno zapytanie API
+SEGMENT_MAX = 1000  # głębiej niż ~1000 wyników jedno zapytanie nie sięga
 MIN_PRICE_STEP = 1000  # nie dziel przedziałów cen drobniej niż co 1000 zł
-LIST_CAP = 30          # maks. liczba pozycji wypisywanych w każdej sekcji raportu
+LIST_CAP = 30  # maks. liczba pozycji wypisywanych w każdej sekcji raportu
 
 # Używane tylko, gdy brak curl_cffi. Aktualizuj co kilka miesięcy — mocno
 # przestarzała wersja Chrome w User-Agencie sama w sobie wygląda podejrzanie.
-UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-      "(KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36")
+UA = (
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36"
+)
 SEC_CH_UA = '"Chromium";v="152", "Google Chrome";v="152", "Not_A Brand";v="24"'
 
 # segmenty ścieżki URL, które NIE są nazwą miasta (do wykrycia miasta w adresie)
 NON_CITY_SEGMENTS = {
-    "nieruchomosci", "mieszkania", "domy", "dzialki", "biura-lokale",
-    "garaze-parkingi", "stancje-pokoje", "hale-magazyny", "pozostale",
-    "sprzedaz", "wynajem", "zamiana",
+    "nieruchomosci",
+    "mieszkania",
+    "domy",
+    "dzialki",
+    "biura-lokale",
+    "garaze-parkingi",
+    "stancje-pokoje",
+    "hale-magazyny",
+    "pozostale",
+    "sprzedaz",
+    "wynajem",
+    "zamiana",
 }
 
 if IMPERSONATE:
@@ -116,13 +137,15 @@ if IMPERSONATE:
     session.headers.update({"Accept-Language": "pl-PL,pl;q=0.9,en;q=0.5"})
 else:
     session = requests.Session()
-    session.headers.update({
-        "User-Agent": UA,
-        "Accept-Language": "pl-PL,pl;q=0.9,en;q=0.5",
-        "sec-ch-ua": SEC_CH_UA,
-        "sec-ch-ua-mobile": "?0",
-        "sec-ch-ua-platform": '"Windows"',
-    })
+    session.headers.update(
+        {
+            "User-Agent": UA,
+            "Accept-Language": "pl-PL,pl;q=0.9,en;q=0.5",
+            "sec-ch-ua": SEC_CH_UA,
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": '"Windows"',
+        }
+    )
 
 # Nagłówki dobrane do rodzaju zapytania. Interfejs API ma dostawać takie,
 # jakie wysyła strona OLX pobierająca dane w tle (fetch/cors), a zwykłe
@@ -165,6 +188,7 @@ etap, bo skrypt nie musi wtedy pobierać strony wyników.
 
 
 # ------------------------------------------------------------------- narzędzia
+
 
 def log(msg: str = "", err: bool = False) -> None:
     print(msg, file=sys.stderr if err else sys.stdout, flush=True)
@@ -216,8 +240,14 @@ def warm_up(url: str) -> None:
         pass  # rozgrzewka tylko zwiększa szanse — bez niej też próbujemy
 
 
-def http_get(url: str, params: dict | None = None, as_json: bool = True,
-             retries: int = 4, timeout: int = 30, headers: dict | None = None):
+def http_get(
+    url: str,
+    params: dict | None = None,
+    as_json: bool = True,
+    retries: int = 4,
+    timeout: int = 30,
+    headers: dict | None = None,
+):
     """GET z ponawianiem przy 403/429/5xx i czytelnym komunikatem przy blokadzie."""
     if headers is None:
         headers = JSON_HEADERS if as_json else HTML_HEADERS
@@ -245,12 +275,15 @@ def http_get(url: str, params: dict | None = None, as_json: bool = True,
                 continue
             src = source_for(url)
             portal = src.label if src else "Serwis"
-            hint = ("" if IMPERSONATE else
-                    "\nNajskuteczniejsza poprawka: zainstaluj bibliotekę curl_cffi "
-                    "(pip install curl_cffi) — skrypt sam ją wykryje i będzie "
-                    "przedstawiał się serwerowi jak prawdziwa przeglądarka, "
-                    "również na poziomie połączenia TLS, po którym serwisy "
-                    "rozpoznają boty niezależnie od nagłówków.")
+            hint = (
+                ""
+                if IMPERSONATE
+                else "\nNajskuteczniejsza poprawka: zainstaluj bibliotekę curl_cffi "
+                "(pip install curl_cffi) — skrypt sam ją wykryje i będzie "
+                "przedstawiał się serwerowi jak prawdziwa przeglądarka, "
+                "również na poziomie połączenia TLS, po którym serwisy "
+                "rozpoznają boty niezależnie od nagłówków."
+            )
             raise RuntimeError(
                 f"{portal} odrzucił zapytanie (HTTP 403) — serwis uznał je za "
                 "automatyczne. Odczekaj kilkanaście minut do godziny i spróbuj "
@@ -262,13 +295,12 @@ def http_get(url: str, params: dict | None = None, as_json: bool = True,
         try:
             return r.json()
         except ValueError:
-            raise RuntimeError(
-                f"Odpowiedź z {url} nie jest poprawnym JSON-em — OLX mógł zmienić API."
-            )
+            raise RuntimeError(f"Odpowiedź z {url} nie jest poprawnym JSON-em — OLX mógł zmienić API.")
     raise RuntimeError(f"Nie udało się pobrać {url} ({last_exc})")
 
 
 # ------------------------------------------- adres wyszukiwania → parametry API
+
 
 def parse_search_url(url: str):
     """Rozbija adres wyszukiwania OLX na ścieżkę SEO, parametry i slug miasta."""
@@ -277,7 +309,7 @@ def parse_search_url(url: str):
     extra: dict[str, str] = {}
     clean_segments = []
     for seg in segments:
-        if seg.startswith("q-"):                    # fraza wyszukiwania w ścieżce
+        if seg.startswith("q-"):  # fraza wyszukiwania w ścieżce
             extra["q"] = seg[2:].replace("-", " ")
         else:
             clean_segments.append(seg)
@@ -323,6 +355,7 @@ def resolve_api_params(url: str, overrides: dict) -> tuple[dict, str | None]:
 
 # ------------------------------------------------------------ pobieranie ofert
 
+
 def api_page(params: dict, offset: int, delay: float) -> dict:
     query = dict(params)
     query["offset"] = offset
@@ -345,8 +378,9 @@ def reported_count(params: dict, delay: float) -> int:
     data = http_get(API_OFFERS, params=query)
     pause(delay)
     meta = data.get("metadata") or {}
-    counts = [meta[k] for k in ("total_elements", "visible_total_count", "total")
-              if isinstance(meta.get(k), int)]
+    counts = [
+        meta[k] for k in ("total_elements", "visible_total_count", "total") if isinstance(meta.get(k), int)
+    ]
     if counts:
         return max(counts)
     return len(data.get("data") or [])
@@ -370,8 +404,7 @@ def check_city(offers: list, city_slug: str | None) -> None:
         top = Counter(cities).most_common(1)[0][0]
         raise RuntimeError(
             f"Pobrane oferty pochodzą głównie z lokalizacji „{top}”, a nie "
-            f"„{city_slug}” — parametry wyszukiwania zostały źle rozpoznane.\n"
-            + DEVTOOLS_HELP
+            f"„{city_slug}” — parametry wyszukiwania zostały źle rozpoznane.\n" + DEVTOOLS_HELP
         )
 
 
@@ -388,7 +421,7 @@ def fetch_all_olx(params: dict, city_slug: str | None, delay: float) -> list[dic
     base["sort_by"] = params.get("sort_by", "created_at:desc")
     lo = int(to_float(params.get("filter_float_price:from")) or 0)
     hi_raw = to_float(params.get("filter_float_price:to"))
-    hi = int(hi_raw) if hi_raw else None        # None = bez górnej granicy cen
+    hi = int(hi_raw) if hi_raw else None  # None = bez górnej granicy cen
 
     collected: dict[int, dict] = {}
     state = {"city_checked": False}
@@ -431,10 +464,11 @@ def fetch_all_olx(params: dict, city_slug: str | None, delay: float) -> list[dic
             if crawl(query):
                 return
             if not splittable:
-                rng = (f"{fmt_price(a)}–{fmt_price(b)}" if b is not None
-                       else f"od {fmt_price(a)}")
-                log(f"\n  ! Przedział {rng} ma więcej ofert, niż OLX pozwala "
-                    f"pobrać (~{SEGMENT_MAX}) — część z niego pominięto.")
+                rng = f"{fmt_price(a)}–{fmt_price(b)}" if b is not None else f"od {fmt_price(a)}"
+                log(
+                    f"\n  ! Przedział {rng} ma więcej ofert, niż OLX pozwala "
+                    f"pobrać (~{SEGMENT_MAX}) — część z niego pominięto."
+                )
                 return
             # deklaracja była zaniżona, a crawl uciął → mimo wszystko dzielimy
         # Za dużo wyników → tniemy przedział cen na pół. Granice celowo
@@ -445,26 +479,27 @@ def fetch_all_olx(params: dict, city_slug: str | None, delay: float) -> list[dic
             segment(a, mid)
             segment(mid, b)
         else:
-            pivot = max(a * 2, a + 500_000)     # otwarty koniec: rosnący pivot
+            pivot = max(a * 2, a + 500_000)  # otwarty koniec: rosnący pivot
             segment(a, pivot)
             segment(pivot, None)
 
     count = reported_count(params, delay)
     if count >= SEGMENT_MAX:
-        log(f"OLX deklaruje „ponad {SEGMENT_MAX}” ogłoszeń (dokładnej liczby "
-            f"powyżej limitu nie zdradza) — pobieram partiami wg przedziałów cen.")
+        log(
+            f"OLX deklaruje „ponad {SEGMENT_MAX}” ogłoszeń (dokładnej liczby "
+            f"powyżej limitu nie zdradza) — pobieram partiami wg przedziałów cen."
+        )
         segment(lo, hi)
     else:
         log(f"W tym wyszukiwaniu jest łącznie ok. {count} ogłoszeń.")
         if not crawl(dict(params, sort_by=base["sort_by"])):
-            segment(lo, hi)     # deklaracja okazała się zaniżona
+            segment(lo, hi)  # deklaracja okazała się zaniżona
     print()
     log(f"Pobrano łącznie {len(collected)} unikalnych ofert.")
     return list(collected.values())
 
 
-def fetch_new_quick_olx(params: dict, known_ids: set, city_slug: str | None,
-                    delay: float) -> list[dict]:
+def fetch_new_quick_olx(params: dict, known_ids: set, city_slug: str | None, delay: float) -> list[dict]:
     """Szybki tryb: idzie od najnowszych i kończy, gdy trafi na same znane oferty."""
     query = dict(params)
     query["sort_by"] = "created_at:desc"
@@ -480,14 +515,17 @@ def fetch_new_quick_olx(params: dict, known_ids: set, city_slug: str | None,
         if not city_checked:
             check_city(batch, city_slug)
             city_checked = True
-        page_new = [o for o in batch
-                    if o.get("id") is not None
-                    and o["id"] not in known_ids and o["id"] not in seen]
+        page_new = [
+            o for o in batch if o.get("id") is not None and o["id"] not in known_ids and o["id"] not in seen
+        ]
         seen.update(o["id"] for o in page_new)
         fresh.extend(page_new)
-        print(f"\r  Sprawdzono {offset + len(batch)} najnowszych ofert, "
-              f"nowych: {len(fresh)}...", end="", flush=True)
-        if not page_new:          # cała strona to już znane oferty → koniec
+        print(
+            f"\r  Sprawdzono {offset + len(batch)} najnowszych ofert, nowych: {len(fresh)}...",
+            end="",
+            flush=True,
+        )
+        if not page_new:  # cała strona to już znane oferty → koniec
             break
         if len(batch) < PAGE_LIMIT:
             break
@@ -498,19 +536,24 @@ def fetch_new_quick_olx(params: dict, known_ids: set, city_slug: str | None,
 
 # ---------------------------------------------------------------------- otodom
 
-OTO_LIMIT = 72                # tyle ofert na stronę pozwala ustawić Otodom
+OTO_LIMIT = 72  # tyle ofert na stronę pozwala ustawić Otodom
 OTO_DETAIL_KEYS = ("description", "createdAt", "market", "advertType")
 
 
 def next_data(html: str) -> dict:
     """Wyciąga JSON __NEXT_DATA__ (Otodom to aplikacja Next.js —
     wszystkie dane strony siedzą w tym jednym znaczniku)."""
-    m = re.search(r'<script id="__NEXT_DATA__" type="application/json"[^>]*>'
-                  r'(.*?)</script>', html, re.S)
+    m = re.search(
+        r'<script id="__NEXT_DATA__" type="application/json"[^>]*>'
+        r"(.*?)</script>",
+        html,
+        re.S,
+    )
     if not m:
         raise RuntimeError(
             "Strona Otodom nie zawiera danych __NEXT_DATA__ — serwis mógł "
-            "zmienić strukturę albo zwrócił stronę blokady.")
+            "zmienić strukturę albo zwrócił stronę blokady."
+        )
     return json.loads(m.group(1))
 
 
@@ -542,8 +585,7 @@ def otodom_page(base_url: str, extra: dict, delay: float) -> tuple[list, int, in
     pause(delay)
     data = next_data(html)
     props = (data.get("props") or {}).get("pageProps") or {}
-    items = _oto_flatten(((props.get("data") or {}).get("searchAds") or {})
-                         .get("items"))
+    items = _oto_flatten(((props.get("data") or {}).get("searchAds") or {}).get("items"))
     listing = (props.get("tracking") or {}).get("listing") or {}
     pages = listing.get("page_count") or 0
     total = listing.get("result_count") or 0
@@ -575,8 +617,7 @@ def fetch_all_otodom(url: str, delay: float) -> list[dict]:
             got += len(items)
             for it in items:
                 collected[it["id"]] = it
-            print(f"\r  [Otodom] pobrano {len(collected)} ofert...", end="",
-                  flush=True)
+            print(f"\r  [Otodom] pobrano {len(collected)} ofert...", end="", flush=True)
         # niepełny segment = serwis pokazał mniej stron, niż ma wyników
         return total, (total == 0 or got >= total * 0.9)
 
@@ -598,8 +639,10 @@ def fetch_all_otodom(url: str, delay: float) -> list[dict]:
             segment(a, mid)
             segment(mid, b)
         else:
-            log(f"\n  ! [Otodom] przedział {fmt_price(a)}–{fmt_price(b)} ma "
-                f"{total} ofert — nie wszystkie dało się pobrać.")
+            log(
+                f"\n  ! [Otodom] przedział {fmt_price(a)}–{fmt_price(b)} ma "
+                f"{total} ofert — nie wszystkie dało się pobrać."
+            )
 
     segment(lo, hi)
     print()
@@ -612,16 +655,17 @@ def fetch_new_quick_otodom(url: str, known_ids: set, delay: float) -> list[dict]
     fresh, seen = [], set()
     page = 1
     while True:
-        items, pages, _ = otodom_page(
-            url, {"by": "LATEST", "direction": "DESC", "page": page}, delay)
+        items, pages, _ = otodom_page(url, {"by": "LATEST", "direction": "DESC", "page": page}, delay)
         if not items:
             break
-        page_new = [it for it in items
-                    if it["id"] not in known_ids and it["id"] not in seen]
+        page_new = [it for it in items if it["id"] not in known_ids and it["id"] not in seen]
         seen.update(it["id"] for it in page_new)
         fresh.extend(page_new)
-        print(f"\r  [Otodom] sprawdzono {page} str., nowych: {len(fresh)}...",
-              end="", flush=True)
+        print(
+            f"\r  [Otodom] sprawdzono {page} str., nowych: {len(fresh)}...",
+            end="",
+            flush=True,
+        )
         if not page_new or page >= pages:
             break
         page += 1
@@ -637,28 +681,28 @@ def fetch_otodom_detail(offer_url: str, delay: float) -> dict | None:
     try:
         html = http_get(offer_url, as_json=False)
     except (RuntimeError,) + NETWORK_ERRORS:
-        return None            # oferta mogła właśnie zniknąć — trudno
+        return None  # oferta mogła właśnie zniknąć — trudno
     pause(delay)
     try:
-        ad = ((next_data(html).get("props") or {}).get("pageProps") or {})\
-            .get("ad") or {}
+        ad = ((next_data(html).get("props") or {}).get("pageProps") or {}).get("ad") or {}
     except (RuntimeError, ValueError):
         return None
     slim = {k: ad.get(k) for k in OTO_DETAIL_KEYS if ad.get(k) is not None}
-    coords = ((ad.get("location") or {}).get("coordinates") or {})
+    coords = (ad.get("location") or {}).get("coordinates") or {}
     if coords.get("latitude") is not None:
-        slim["coordinates"] = {"latitude": coords.get("latitude"),
-                               "longitude": coords.get("longitude")}
-    geo = ((ad.get("location") or {}).get("reverseGeocoding") or {})\
-        .get("locations") or []
+        slim["coordinates"] = {
+            "latitude": coords.get("latitude"),
+            "longitude": coords.get("longitude"),
+        }
+    geo = ((ad.get("location") or {}).get("reverseGeocoding") or {}).get("locations") or []
     for node in geo:
         if isinstance(node, dict) and node.get("locationLevel") == "district":
             slim["district"] = node.get("name")
             break
     target = ad.get("target") or {}
-    target_slim = {k: target.get(k) for k in
-                   ("Rent", "Floor_no", "Rooms_num", "Build_year")
-                   if target.get(k) is not None}
+    target_slim = {
+        k: target.get(k) for k in ("Rent", "Floor_no", "Rooms_num", "Build_year") if target.get(k) is not None
+    }
     if target_slim:
         slim["target"] = target_slim
     images = []
@@ -679,25 +723,36 @@ def enrich_otodom(items: list[dict], have_detail: set, delay: float) -> None:
     if not todo:
         return
     est = int(len(todo) * (delay + 0.35) / 60) + 1
-    log(f"[Otodom] dociągam szczegóły {len(todo)} ofert "
-        f"(współrzędne i opisy — ok. {est} min)...")
+    log(f"[Otodom] dociągam szczegóły {len(todo)} ofert (współrzędne i opisy — ok. {est} min)...")
     for done, item in enumerate(todo, 1):
         slug = item.get("slug")
         if slug:
-            detail = fetch_otodom_detail(
-                f"https://www.otodom.pl/pl/oferta/{slug}", delay)
+            detail = fetch_otodom_detail(f"https://www.otodom.pl/pl/oferta/{slug}", delay)
             if detail:
                 item["_ad"] = detail
         print(f"\r  [Otodom] szczegóły {done}/{len(todo)}...", end="", flush=True)
     print()
 
 
-_OTO_ROOMS = {"ONE": "1 pokój", "TWO": "2 pokoje", "THREE": "3 pokoje",
-              "FOUR": "4 pokoje", "FIVE": "5 pokoi", "SIX": "6 pokoi",
-              "SEVEN": "7 pokoi", "EIGHT": "8 pokoi", "NINE": "9 pokoi",
-              "TEN": "10 pokoi", "MORE": "10+ pokoi"}
-_OTO_MARKET = {"primary": "Pierwotny", "secondary": "Wtórny",
-               "PRIMARY": "Pierwotny", "SECONDARY": "Wtórny"}
+_OTO_ROOMS = {
+    "ONE": "1 pokój",
+    "TWO": "2 pokoje",
+    "THREE": "3 pokoje",
+    "FOUR": "4 pokoje",
+    "FIVE": "5 pokoi",
+    "SIX": "6 pokoi",
+    "SEVEN": "7 pokoi",
+    "EIGHT": "8 pokoi",
+    "NINE": "9 pokoi",
+    "TEN": "10 pokoi",
+    "MORE": "10+ pokoi",
+}
+_OTO_MARKET = {
+    "primary": "Pierwotny",
+    "secondary": "Wtórny",
+    "PRIMARY": "Pierwotny",
+    "SECONDARY": "Wtórny",
+}
 
 
 def _oto_floor(value) -> str | None:
@@ -749,15 +804,14 @@ def parse_offer_otodom(item: dict) -> dict:
         m = re.search(r"\d+", str(target.get("Rooms_num") or ""))
         if m:
             n = int(m.group())
-            rooms = "1 pokój" if n == 1 else (f"{n} pokoje" if n < 5
-                                              else f"{n} pokoi")
+            rooms = "1 pokój" if n == 1 else (f"{n} pokoje" if n < 5 else f"{n} pokoi")
 
     loc = item.get("location") or {}
     city = district = None
     addr = loc.get("address") or {}
     if isinstance(addr.get("city"), dict):
         city = addr["city"].get("name")
-    for node in ((loc.get("reverseGeocoding") or {}).get("locations") or []):
+    for node in (loc.get("reverseGeocoding") or {}).get("locations") or []:
         if isinstance(node, dict) and node.get("locationLevel") == "district":
             district = node.get("name")
             break
@@ -796,6 +850,7 @@ def parse_offer_otodom(item: dict) -> dict:
 
 
 # ----------------------------------------------------- interpretacja ofert OLX
+
 
 def parse_offer_olx(offer: dict) -> dict:
     """Wyciąga z surowego JSON-a oferty pola, które trzymamy w bazie."""
@@ -861,10 +916,29 @@ def parse_offer_olx(offer: dict) -> dict:
 
 # ------------------------------------------------------------------------ baza
 
-OFFER_COLUMNS = ("uid", "source", "id", "url", "title", "price", "currency",
-                 "negotiable", "area", "price_per_m", "rooms", "floor", "market",
-                 "city", "district", "business", "created_at", "last_refresh",
-                 "lat", "lon", "map_radius")
+OFFER_COLUMNS = (
+    "uid",
+    "source",
+    "id",
+    "url",
+    "title",
+    "price",
+    "currency",
+    "negotiable",
+    "area",
+    "price_per_m",
+    "rooms",
+    "floor",
+    "market",
+    "city",
+    "district",
+    "business",
+    "created_at",
+    "last_refresh",
+    "lat",
+    "lon",
+    "map_radius",
+)
 
 
 def init_schema(con: sqlite3.Connection) -> None:
@@ -921,26 +995,30 @@ def migrate_db(con: sqlite3.Connection) -> None:
             f"INSERT INTO offers(uid, source, {', '.join(old_cols)}, "
             f"first_seen, last_seen, active, raw) "
             f"SELECT 'olx:' || id, 'olx', {', '.join(old_cols)}, "
-            f"first_seen, last_seen, active, raw FROM offers_v1")
+            f"first_seen, last_seen, active, raw FROM offers_v1"
+        )
         con.execute(
             "INSERT INTO price_history(offer_uid, ts, price) "
-            "SELECT 'olx:' || offer_id, ts, price FROM price_history_v1")
+            "SELECT 'olx:' || offer_id, ts, price FROM price_history_v1"
+        )
         con.executescript("DROP TABLE offers_v1; DROP TABLE price_history_v1;")
         con.commit()
     rows = con.execute(
-        "SELECT uid, raw FROM offers WHERE lat IS NULL AND raw IS NOT NULL "
-        "AND source = 'olx'").fetchall()
+        "SELECT uid, raw FROM offers WHERE lat IS NULL AND raw IS NOT NULL AND source = 'olx'"
+    ).fetchall()
     filled = 0
     for uid, raw in rows:
         try:
-            map_node = (json.loads(raw).get("map") or {})
+            map_node = json.loads(raw).get("map") or {}
         except (ValueError, AttributeError):
             continue
         lat, lon = to_float(map_node.get("lat")), to_float(map_node.get("lon"))
         if lat is None or lon is None:
             continue
-        con.execute("UPDATE offers SET lat = ?, lon = ?, map_radius = ? WHERE uid = ?",
-                    (lat, lon, to_float(map_node.get("radius")) or 0, uid))
+        con.execute(
+            "UPDATE offers SET lat = ?, lon = ?, map_radius = ? WHERE uid = ?",
+            (lat, lon, to_float(map_node.get("radius")) or 0, uid),
+        )
         filled += 1
     if filled:
         con.commit()
@@ -950,22 +1028,23 @@ def migrate_db(con: sqlite3.Connection) -> None:
     if meta_get(con, "fix:otodom_created_at") is None:
         fixed = 0
         for uid, created, raw in con.execute(
-                "SELECT uid, created_at, raw FROM offers "
-                "WHERE source = 'otodom' AND raw IS NOT NULL").fetchall():
+            "SELECT uid, created_at, raw FROM offers WHERE source = 'otodom' AND raw IS NOT NULL"
+        ).fetchall():
             try:
                 item = json.loads(raw)
             except ValueError:
                 continue
             value = _oto_created_at(item, item.get("_ad") or {})
             if value != created:
-                con.execute("UPDATE offers SET created_at = ? WHERE uid = ?",
-                            (value, uid))
+                con.execute("UPDATE offers SET created_at = ? WHERE uid = ?", (value, uid))
                 fixed += 1
         meta_set(con, "fix:otodom_created_at", "1")
         con.commit()
         if fixed:
-            log(f"(poprawiono datę dodania {fixed} ofert Otodom — wcześniej "
-                "zapisywana była data ostatniego odświeżenia)")
+            log(
+                f"(poprawiono datę dodania {fixed} ofert Otodom — wcześniej "
+                "zapisywana była data ostatniego odświeżenia)"
+            )
 
 
 def meta_get(con: sqlite3.Connection, key: str):
@@ -977,8 +1056,7 @@ def meta_set(con: sqlite3.Connection, key: str, value: str) -> None:
     con.execute("INSERT OR REPLACE INTO meta(key, value) VALUES (?, ?)", (key, value))
 
 
-def sync(con: sqlite3.Connection, records: list[tuple[dict, dict]],
-         full_scan_sources: set) -> dict:
+def sync(con: sqlite3.Connection, records: list[tuple[dict, dict]], full_scan_sources: set) -> dict:
     """Zapisuje pobrane oferty i zwraca różnice względem poprzedniego stanu.
 
     records: pary (rozparsowana_oferta, surowy_json_dict).
@@ -989,36 +1067,37 @@ def sync(con: sqlite3.Connection, records: list[tuple[dict, dict]],
 
     new, price_changes, returned = [], [], []
     fetched_uids: set = set()
-    update_cols = [c for c in OFFER_COLUMNS[1:]
-                   if c not in ("lat", "lon", "map_radius")]
+    update_cols = [c for c in OFFER_COLUMNS[1:] if c not in ("lat", "lon", "map_radius")]
 
     for o, raw in records:
         if o["id"] is None:
             continue
         fetched_uids.add(o["uid"])
-        row = con.execute(
-            "SELECT price, active, raw FROM offers WHERE uid = ?",
-            (o["uid"],)).fetchone()
+        row = con.execute("SELECT price, active, raw FROM offers WHERE uid = ?", (o["uid"],)).fetchone()
         if row is None:
             con.execute(
                 f"INSERT INTO offers({', '.join(OFFER_COLUMNS)}, "
                 f"first_seen, last_seen, active, raw) "
                 f"VALUES ({', '.join('?' * len(OFFER_COLUMNS))}, ?, ?, 1, ?)",
-                tuple(o[c] for c in OFFER_COLUMNS)
-                + (now, now, json.dumps(raw, ensure_ascii=False)))
+                tuple(o[c] for c in OFFER_COLUMNS) + (now, now, json.dumps(raw, ensure_ascii=False)),
+            )
             if o["price"] is not None:
-                con.execute("INSERT INTO price_history VALUES (?, ?, ?)",
-                            (o["uid"], now, o["price"]))
+                con.execute(
+                    "INSERT INTO price_history VALUES (?, ?, ?)",
+                    (o["uid"], now, o["price"]),
+                )
             new.append(o)
         else:
             old_price, was_active, old_raw_txt = row
-            changed = (o["price"] is not None
-                       and (old_price is None
-                            or int(round(o["price"])) != int(round(old_price))))
+            changed = o["price"] is not None and (
+                old_price is None or int(round(o["price"])) != int(round(old_price))
+            )
             if changed:
                 price_changes.append((o, old_price))
-                con.execute("INSERT INTO price_history VALUES (?, ?, ?)",
-                            (o["uid"], now, o["price"]))
+                con.execute(
+                    "INSERT INTO price_history VALUES (?, ?, ?)",
+                    (o["uid"], now, o["price"]),
+                )
             # szczegóły Otodom (_ad: opis, zdjęcia, współrzędne) dociągamy raz —
             # przy zwykłym skanie listy przenosimy je ze starego rekordu
             if o["source"] == "otodom" and "_ad" not in raw and old_raw_txt:
@@ -1035,9 +1114,15 @@ def sync(con: sqlite3.Connection, records: list[tuple[dict, dict]],
                 f"map_radius = COALESCE(?, map_radius), "
                 f"last_seen = ?, active = 1, raw = ? WHERE uid = ?",
                 tuple(o[c] for c in update_cols)
-                + (o["lat"], o["lon"],
-                   o["map_radius"] if o["lat"] is not None else None,
-                   now, json.dumps(raw, ensure_ascii=False), o["uid"]))
+                + (
+                    o["lat"],
+                    o["lon"],
+                    o["map_radius"] if o["lat"] is not None else None,
+                    now,
+                    json.dumps(raw, ensure_ascii=False),
+                    o["uid"],
+                ),
+            )
             if not was_active:
                 returned.append(o)
 
@@ -1045,25 +1130,44 @@ def sync(con: sqlite3.Connection, records: list[tuple[dict, dict]],
     if full_scan_sources and not first_run:
         marks = ", ".join("?" * len(full_scan_sources))
         for row in con.execute(
-                f"SELECT uid, title, price, area, district, url, source "
-                f"FROM offers WHERE active = 1 AND source IN ({marks})",
-                tuple(full_scan_sources)):
+            f"SELECT uid, title, price, area, district, url, source "
+            f"FROM offers WHERE active = 1 AND source IN ({marks})",
+            tuple(full_scan_sources),
+        ):
             if row[0] not in fetched_uids:
-                removed.append(dict(zip(
-                    ("uid", "title", "price", "area", "district", "url",
-                     "source"), row)))
+                removed.append(
+                    dict(
+                        zip(
+                            (
+                                "uid",
+                                "title",
+                                "price",
+                                "area",
+                                "district",
+                                "url",
+                                "source",
+                            ),
+                            row,
+                        )
+                    )
+                )
         for item in removed:
-            con.execute("UPDATE offers SET active = 0 WHERE uid = ?",
-                        (item["uid"],))
+            con.execute("UPDATE offers SET active = 0 WHERE uid = ?", (item["uid"],))
 
     con.commit()
-    return {"first_run": first_run, "new": new, "price_changes": price_changes,
-            "removed": removed, "returned": returned}
+    return {
+        "first_run": first_run,
+        "new": new,
+        "price_changes": price_changes,
+        "removed": removed,
+        "returned": returned,
+    }
 
 
 # ---------------------------------------------------------------------- raport
 
 # ------------------------------------------------------------- źródła danych
+
 
 class Source:
     """Wspólny interfejs źródła ofert.
@@ -1072,10 +1176,10 @@ class Source:
     raport, eksporty) nie zna szczegółów żadnego serwisu — rozmawia z nimi
     wyłącznie przez poniższe metody."""
 
-    name = ""            # klucz źródła: w bazie, w uid ofert i we fladze --source
-    label = ""           # nazwa wyświetlana w komunikatach
+    name = ""  # klucz źródła: w bazie, w uid ofert i we fladze --source
+    label = ""  # nazwa wyświetlana w komunikatach
     domains: tuple = ()  # domeny rozpoznawane w adresach --url
-    default_url = ""     # wyszukiwanie używane, gdy nie podano --url
+    default_url = ""  # wyszukiwanie używane, gdy nie podano --url
 
     def __init__(self, url: str, delay: float):
         self.url = url
@@ -1123,9 +1227,10 @@ class OlxSource(Source):
 
     def prepare(self, con, overrides):
         cached = meta_get(con, f"api_params::{self.url}")
-        if cached is None and not con.execute(
-                "SELECT COUNT(*) FROM meta WHERE key LIKE 'api_params::%'"
-        ).fetchone()[0]:
+        if (
+            cached is None
+            and not con.execute("SELECT COUNT(*) FROM meta WHERE key LIKE 'api_params::%'").fetchone()[0]
+        ):
             # bazy ze starszych wersji trzymały parametry pod wspólnym kluczem
             cached = meta_get(con, "api_params")
             if cached:
@@ -1136,31 +1241,27 @@ class OlxSource(Source):
         else:
             log("Ustalam parametry wyszukiwania...")
             self.params, self.city_slug = resolve_api_params(self.url, overrides)
-        log("Parametry: "
-            + ", ".join(f"{k}={v}" for k, v in sorted(self.params.items())))
+        log("Parametry: " + ", ".join(f"{k}={v}" for k, v in sorted(self.params.items())))
 
     def fetch_all(self):
         return fetch_all_olx(self.params, self.city_slug, self.delay)
 
     def fetch_new(self, known_ids):
-        return fetch_new_quick_olx(self.params, known_ids, self.city_slug,
-                                   self.delay)
+        return fetch_new_quick_olx(self.params, known_ids, self.city_slug, self.delay)
 
     def parse(self, raw):
         return parse_offer_olx(raw)
 
     def save_state(self, con):
         # dopiero po udanym pobraniu — złych parametrów nie chcemy zapamiętać
-        meta_set(con, f"api_params::{self.url}",
-                 json.dumps(self.params, ensure_ascii=False))
+        meta_set(con, f"api_params::{self.url}", json.dumps(self.params, ensure_ascii=False))
 
 
 class OtodomSource(Source):
     name = "otodom"
     label = "Otodom"
     domains = ("otodom.pl",)
-    default_url = ("https://www.otodom.pl/pl/wyniki/sprzedaz/mieszkanie/"
-                   "malopolskie/krakow/krakow/krakow")
+    default_url = "https://www.otodom.pl/pl/wyniki/sprzedaz/mieszkanie/malopolskie/krakow/krakow/krakow"
 
     def fetch_all(self):
         return fetch_all_otodom(self.url, self.delay)
@@ -1169,9 +1270,13 @@ class OtodomSource(Source):
         return fetch_new_quick_otodom(self.url, known_ids, self.delay)
 
     def enrich(self, items, con):
-        have_detail = {row[0] for row in con.execute(
-            "SELECT id FROM offers WHERE source = ? AND lat IS NOT NULL",
-            (self.name,))}
+        have_detail = {
+            row[0]
+            for row in con.execute(
+                "SELECT id FROM offers WHERE source = ? AND lat IS NOT NULL",
+                (self.name,),
+            )
+        }
         enrich_otodom(items, have_detail, self.delay)
 
     def parse(self, raw):
@@ -1218,8 +1323,7 @@ def print_section(title: str, items: list, render) -> None:
 
 def report(result: dict, db_path: str, con: sqlite3.Connection) -> None:
     if result["first_run"]:
-        log(f"\n✔ Pierwsze uruchomienie: zapisano {len(result['new'])} ofert "
-            f"do bazy „{db_path}”.")
+        log(f"\n✔ Pierwsze uruchomienie: zapisano {len(result['new'])} ofert do bazy „{db_path}”.")
         log("  Przy kolejnych uruchomieniach zobaczysz już tylko nowe oferty i zmiany.")
         return
 
@@ -1234,8 +1338,7 @@ def report(result: dict, db_path: str, con: sqlite3.Connection) -> None:
         if old_price and o.get("price"):
             diff = (o["price"] - old_price) / old_price * 100
             pct = f" ({diff:+.1f}%)"
-        log(f"  • {fmt_price(old_price)} → {fmt_price(o.get('price'))}{pct}"
-            f"  {o['title'][:70]}")
+        log(f"  • {fmt_price(old_price)} → {fmt_price(o.get('price'))}{pct}  {o['title'][:70]}")
         log(f"    {offer_details(o)}")
         log(f"    {o.get('url') or ''}")
 
@@ -1261,17 +1364,16 @@ def report(result: dict, db_path: str, con: sqlite3.Connection) -> None:
         print_section("WRÓCIŁY DO SPRZEDAŻY", result["returned"], render_offer)
     if result["removed"]:
         anything = True
-        print_section("ZNIKNĘŁY (sprzedane / wycofane)", result["removed"],
-                      render_removed)
+        print_section("ZNIKNĘŁY (sprzedane / wycofane)", result["removed"], render_removed)
     if not anything:
         log("\nBrak zmian od ostatniego uruchomienia.")
 
-    active, total = con.execute(
-        "SELECT SUM(active), COUNT(*) FROM offers").fetchone()
+    active, total = con.execute("SELECT SUM(active), COUNT(*) FROM offers").fetchone()
     log(f"\nW bazie: {active or 0} aktywnych ofert ({total} łącznie) — plik „{db_path}”.")
 
 
 # ------------------------------------------------------------------ eksport CSV
+
 
 def export_csv(con: sqlite3.Connection, path: str) -> None:
     """Zapis aktywnych ofert do CSV (średnik + BOM → otwiera się wprost w Excelu)."""
@@ -1282,10 +1384,26 @@ def export_csv(con: sqlite3.Connection, path: str) -> None:
         FROM offers WHERE active = 1
         ORDER BY price_per_m IS NULL, price_per_m
     """).fetchall()
-    headers = ("portal", "id", "tytul", "cena", "cena_za_m2", "metraz_m2",
-               "pokoje", "pietro", "rynek", "dzielnica", "miasto", "od_firmy",
-               "do_negocjacji", "szer_geo", "dl_geo",
-               "data_dodania", "pierwszy_raz_widziana", "link")
+    headers = (
+        "portal",
+        "id",
+        "tytul",
+        "cena",
+        "cena_za_m2",
+        "metraz_m2",
+        "pokoje",
+        "pietro",
+        "rynek",
+        "dzielnica",
+        "miasto",
+        "od_firmy",
+        "do_negocjacji",
+        "szer_geo",
+        "dl_geo",
+        "data_dodania",
+        "pierwszy_raz_widziana",
+        "link",
+    )
     with open(path, "w", newline="", encoding="utf-8-sig") as f:
         writer = csv.writer(f, delimiter=";")
         writer.writerow(headers)
@@ -1295,61 +1413,86 @@ def export_csv(con: sqlite3.Connection, path: str) -> None:
 
 # ------------------------------------------------------------------------ main
 
+
 def parse_cli(argv: list[str] | None):
     portals = ", ".join(cls.label for cls in SOURCES.values())
     parser = argparse.ArgumentParser(
         description=f"Monitor ofert nieruchomości z portali: {portals}. "
-                    "Pierwszy raz pobiera wszystko, potem pokazuje tylko "
-                    "nowe oferty i zmiany.",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument("--url", action="append",
-                        help="adres wyszukiwania z obsługiwanego portalu; można "
-                             "podać kilka razy (domyślnie: domyślne wyszukiwanie "
-                             "każdego źródła — mieszkania na sprzedaż w Krakowie)")
-    parser.add_argument("--source", action="append", choices=sorted(SOURCES),
-                        help="zbieraj dane tylko z tego źródła; można podać "
-                             "kilka razy (domyślnie: wszystkie zdefiniowane)")
+        "Pierwszy raz pobiera wszystko, potem pokazuje tylko "
+        "nowe oferty i zmiany.",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    parser.add_argument(
+        "--url",
+        action="append",
+        help="adres wyszukiwania z obsługiwanego portalu; można "
+        "podać kilka razy (domyślnie: domyślne wyszukiwanie "
+        "każdego źródła — mieszkania na sprzedaż w Krakowie)",
+    )
+    parser.add_argument(
+        "--source",
+        action="append",
+        choices=sorted(SOURCES),
+        help="zbieraj dane tylko z tego źródła; można podać kilka razy (domyślnie: wszystkie zdefiniowane)",
+    )
     parser.add_argument("--db", default=DEFAULT_DB, help="plik bazy SQLite")
-    parser.add_argument("--quick", action="store_true",
-                        help="szybki tryb: sprawdza tylko NOWE oferty "
-                             "(bez zmian cen i zniknięć)")
-    parser.add_argument("--export", metavar="PLIK.csv",
-                        help="po zakończeniu zapisz aktywne oferty do pliku CSV")
-    parser.add_argument("--html", metavar="PLIK.html",
-                        help="wygeneruj interaktywną mapę ofert z filtrami "
-                             "(jeden samodzielny plik HTML)")
-    parser.add_argument("--offline", action="store_true",
-                        help="nie odpytuj portali (np. sam eksport CSV/HTML z bazy)")
-    parser.add_argument("--delay", type=float, default=0.6,
-                        help="pauza w sekundach między zapytaniami do portali")
+    parser.add_argument(
+        "--quick",
+        action="store_true",
+        help="szybki tryb: sprawdza tylko NOWE oferty (bez zmian cen i zniknięć)",
+    )
+    parser.add_argument(
+        "--export",
+        metavar="PLIK.csv",
+        help="po zakończeniu zapisz aktywne oferty do pliku CSV",
+    )
+    parser.add_argument(
+        "--html",
+        metavar="PLIK.html",
+        help="wygeneruj interaktywną mapę ofert z filtrami (jeden samodzielny plik HTML)",
+    )
+    parser.add_argument(
+        "--offline",
+        action="store_true",
+        help="nie odpytuj portali (np. sam eksport CSV/HTML z bazy)",
+    )
+    parser.add_argument(
+        "--delay",
+        type=float,
+        default=0.6,
+        help="pauza w sekundach między zapytaniami do portali",
+    )
     parser.add_argument("--category-id", help="ręcznie: id kategorii (tylko OLX)")
     parser.add_argument("--city-id", help="ręcznie: id miasta (tylko OLX)")
     parser.add_argument("--region-id", help="ręcznie: id województwa (tylko OLX)")
-    parser.add_argument("--force", action="store_true",
-                        help="pozwól użyć bazy utworzonej dla innego adresu URL")
+    parser.add_argument(
+        "--force",
+        action="store_true",
+        help="pozwól użyć bazy utworzonej dla innego adresu URL",
+    )
     return parser.parse_args(argv)
 
 
 def select_sources(args) -> list[tuple[type, str]]:
     """Zamienia --url/--source na listę par (klasa_źródła, adres)."""
-    urls = list(dict.fromkeys(
-        args.url or [cls.default_url for cls in SOURCES.values()]))
+    urls = list(dict.fromkeys(args.url or [cls.default_url for cls in SOURCES.values()]))
     chosen = []
     for url in urls:
         cls = source_for(url)
         if cls is None:
-            supported = ", ".join(
-                d for c in SOURCES.values() for d in c.domains)
-            sys.exit(f"Nieobsługiwany adres: {url}\n"
-                     f"Skrypt rozumie wyszukiwania z: {supported}.")
+            supported = ", ".join(d for c in SOURCES.values() for d in c.domains)
+            sys.exit(f"Nieobsługiwany adres: {url}\nSkrypt rozumie wyszukiwania z: {supported}.")
         chosen.append((cls, url))
     if args.source:
         wanted = set(args.source)
         chosen = [(cls, url) for cls, url in chosen if cls.name in wanted]
         if not chosen:
-            sys.exit("Po zawężeniu --source nie został żaden adres do "
-                     "sprawdzenia. Wybrane źródła: " + ", ".join(sorted(wanted))
-                     + ". Sprawdź, czy pasują do adresów podanych w --url.")
+            sys.exit(
+                "Po zawężeniu --source nie został żaden adres do "
+                "sprawdzenia. Wybrane źródła: "
+                + ", ".join(sorted(wanted))
+                + ". Sprawdź, czy pasują do adresów podanych w --url."
+            )
     return chosen
 
 
@@ -1368,31 +1511,34 @@ def check_db_urls(con, db_path: str, urls: list, force: bool) -> list:
     if new == old or force:
         return stored
     if new < old:
-        log("(tym razem sprawdzam tylko część zapisanych wyszukiwań — "
-            "dane pozostałych źródeł zostają w bazie bez zmian)")
+        log(
+            "(tym razem sprawdzam tylko część zapisanych wyszukiwań — "
+            "dane pozostałych źródeł zostają w bazie bez zmian)"
+        )
     elif new > old:
-        log("(rozszerzasz to wyszukiwanie o nowy adres — istniejące "
-            "dane zostają, dojdą oferty z nowego adresu)")
+        log(
+            "(rozszerzasz to wyszukiwanie o nowy adres — istniejące "
+            "dane zostają, dojdą oferty z nowego adresu)"
+        )
     else:
         sys.exit(
             f"Ta baza ({db_path}) była utworzona dla innego wyszukiwania:\n"
-            + "\n".join(f"  {u}" for u in stored) +
-            "\nUżyj osobnego pliku bazy (--db inna_nazwa.db) albo dodaj "
-            "--force, jeśli świadomie zmieniasz wyszukiwanie.")
+            + "\n".join(f"  {u}" for u in stored)
+            + "\nUżyj osobnego pliku bazy (--db inna_nazwa.db) albo dodaj "
+            "--force, jeśli świadomie zmieniasz wyszukiwanie."
+        )
     return stored
 
 
 def collect(source, con, quick: bool) -> tuple[list, bool]:
     """Pobiera oferty z jednego źródła. Zwraca (rekordy, czy_pełny_skan)."""
-    known = {row[0] for row in con.execute(
-        "SELECT id FROM offers WHERE source = ?", (source.name,))}
+    known = {row[0] for row in con.execute("SELECT id FROM offers WHERE source = ?", (source.name,))}
     if quick and known:
         log("Szybki tryb: szukam tylko nowych ofert (od najnowszych)...")
         items, full_scan = source.fetch_new(known), False
     else:
         if quick and not known:
-            log("Pierwszy skan tego źródła — muszę pobrać wszystko "
-                "(--quick zadziała od następnego razu).")
+            log("Pierwszy skan tego źródła — muszę pobrać wszystko (--quick zadziała od następnego razu).")
         items, full_scan = source.fetch_all(), True
     source.enrich(items, con)
     return [(source.parse(it), it) for it in items], full_scan
@@ -1403,19 +1549,21 @@ def main(argv: list[str] | None = None) -> None:
     chosen = select_sources(args)
 
     if not args.offline and not IMPERSONATE:
-        log("Wskazówka: 'pip install curl_cffi' znacząco zmniejsza ryzyko "
-            "blokady HTTP 403 (skrypt użyje tej biblioteki automatycznie).")
+        log(
+            "Wskazówka: 'pip install curl_cffi' znacząco zmniejsza ryzyko "
+            "blokady HTTP 403 (skrypt użyje tej biblioteki automatycznie)."
+        )
 
-    if (args.db == DEFAULT_DB and not os.path.exists(DEFAULT_DB)
-            and os.path.exists(LEGACY_DB)):
+    if args.db == DEFAULT_DB and not os.path.exists(DEFAULT_DB) and os.path.exists(LEGACY_DB):
         os.replace(LEGACY_DB, DEFAULT_DB)
-        log(f"(znalazłem bazę ze starszej wersji skryptu — zmieniam nazwę "
-            f"{LEGACY_DB} → {DEFAULT_DB}, wszystkie dane zostają)")
+        log(
+            f"(znalazłem bazę ze starszej wersji skryptu — zmieniam nazwę "
+            f"{LEGACY_DB} → {DEFAULT_DB}, wszystkie dane zostają)"
+        )
 
     con = init_db(args.db)
     urls = [url for _, url in chosen]
-    stored_urls = [] if args.offline else check_db_urls(
-        con, args.db, urls, args.force)
+    stored_urls = [] if args.offline else check_db_urls(con, args.db, urls, args.force)
 
     if args.offline:
         if args.export:
@@ -1423,12 +1571,17 @@ def main(argv: list[str] | None = None) -> None:
         if args.html:
             export_html(con, args.html)
         if not args.export and not args.html:
-            log("Tryb --offline: nic nie pobrano. Dodaj --export PLIK.csv "
-                "lub --html PLIK.html, aby wyeksportować dane z bazy.")
+            log(
+                "Tryb --offline: nic nie pobrano. Dodaj --export PLIK.csv "
+                "lub --html PLIK.html, aby wyeksportować dane z bazy."
+            )
         return
 
-    overrides = {"category_id": args.category_id,
-                 "city_id": args.city_id, "region_id": args.region_id}
+    overrides = {
+        "category_id": args.category_id,
+        "city_id": args.city_id,
+        "region_id": args.region_id,
+    }
     records: list[tuple[dict, dict]] = []
     full_scan_sources: set = set()
 

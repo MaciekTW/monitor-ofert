@@ -10,7 +10,7 @@ import pytest
 
 import monitor_ofert as m
 
-REQUEST_PAUSE = 1.5   # sekundy między zapytaniami — nie obciążamy portali
+REQUEST_PAUSE = 1.5  # sekundy między zapytaniami — nie obciążamy portali
 
 
 def fetch(url: str, params: dict | None = None, as_json: bool = True):
@@ -24,8 +24,9 @@ def fetch(url: str, params: dict | None = None, as_json: bool = True):
     resp = m.session.get(url, params=params, timeout=30, headers=headers)
     time.sleep(REQUEST_PAUSE * random.uniform(0.9, 1.3))
     if resp.status_code == 403:
-        pytest.skip(f"HTTP 403: {url} — portal odrzucił zapytanie jako "
-                    "automatyczne, kontraktu nie da się sprawdzić")
+        pytest.skip(
+            f"HTTP 403: {url} — portal odrzucił zapytanie jako automatyczne, kontraktu nie da się sprawdzić"
+        )
     return resp
 
 
@@ -37,9 +38,7 @@ def dig(node, path: str):
         if not isinstance(node, dict) or key not in node:
             where = ".".join(walked) or "<korzeń>"
             available = sorted(node)[:40] if isinstance(node, dict) else type(node).__name__
-            raise AssertionError(
-                f"brak klucza „{key}” w {where} (ścieżka {path}); "
-                f"dostępne: {available}")
+            raise AssertionError(f"brak klucza „{key}” w {where} (ścieżka {path}); dostępne: {available}")
         node = node[key]
         walked.append(key)
     return node
@@ -55,5 +54,4 @@ def assert_some(items: list, check, what: str) -> None:
     """Warunek musi być spełniony dla co najmniej jednego elementu listy
     (pola opcjonalne — nie każda oferta je ma, ale gdy nie ma ich żadna,
     portal najpewniej zmienił format)."""
-    assert any(check(item) for item in items), \
-        f"{what}: niespełnione dla żadnego z {len(items)} elementów"
+    assert any(check(item) for item in items), f"{what}: niespełnione dla żadnego z {len(items)} elementów"

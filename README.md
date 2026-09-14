@@ -98,6 +98,15 @@ You can regenerate the HTML from the database at any time:
 uv run monitor_ofert.py --offline --html data.html
 ```
 
+## Formatting
+
+Code is formatted with [ruff](https://docs.astral.sh/ruff/) (installed with
+the dev dependencies):
+
+```bash
+uv run ruff format
+```
+
 ## Tests
 
 `tests/contract/` holds contract tests that send real requests to the OLX and

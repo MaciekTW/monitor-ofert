@@ -1,0 +1,29 @@
+name: Format
+
+# Sprawdza, czy kod jest sformatowany ruffem (uv run ruff format).
+# Nie odpytuje portali, więc może działać przy każdej zmianie.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: format-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ruff-format:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: astral-sh/setup-uv@v10.1.0
+
+      # tylko grupa dev — ruff w wersji z uv.lock, bez zależności aplikacji;
+      # --diff pokazuje w logu, co trzeba poprawić, i kończy się błędem przy zmianach
+      - name: Check formatting
+        run: uv run --locked --only-group dev ruff format --diff
