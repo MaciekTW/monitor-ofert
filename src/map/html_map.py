@@ -5,7 +5,8 @@ z mapą (Leaflet), listą i filtrami aktywnych ofert zapisanych w bazie.
 
 Wygląd i logika strony są w katalogu template/ (szablon Jinja2 index.html
 oraz style.css i app.js wklejane do niego bez zmian). Zewnętrzne biblioteki
-(Leaflet) leżą w katalogu deps/ w głównym katalogu repozytorium.
+(Leaflet, Tailwind CSS w wersji przeglądarkowej) leżą w katalogu deps/
+w głównym katalogu repozytorium.
 """
 
 from __future__ import annotations

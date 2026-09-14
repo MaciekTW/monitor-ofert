@@ -68,11 +68,13 @@ const colorOf = v => v == null ? "#8a93a3"
   : PAL[BR.findIndex(b => v <= b) === -1 ? 4 : BR.findIndex(b => v <= b)];
 const legend = L.control({position:"bottomleft"});
 legend.onAdd = () => {
-  const div = L.DomUtil.create("div","legend");
+  const div = L.DomUtil.create("div",
+    "rounded-lg bg-white px-2.5 py-2 text-[11.5px]/[1.55] shadow-[0_1px_5px_rgba(0,0,0,.25)]");
   div.innerHTML = "<b>cena za m²</b><br>" + PAL.map((c,i)=>{
     const lo = i ? fmtN(BR[i-1]) : null, hi = BR[i] ? fmtN(BR[i]) : null;
     const lbl = i === 0 ? "do " + hi : i === 4 ? "od " + lo : lo + "–" + hi;
-    return `<i style="background:${c}"></i>${lbl}`;
+    return `<i class="mr-1.5 inline-block size-[11px] rounded-full align-[-1px]"
+      style="background:${c}"></i>${lbl}`;
   }).join("<br>");
   return div;
 };
@@ -115,8 +117,9 @@ for(const o of OFFERS){
 }
 $("#districts").innerHTML = Object.entries(districts)
   .sort((a,b) => b[1]-a[1])
-  .map(([d,n]) => `<label><input type="checkbox" class="dbox" value="${esc(d)}"
-     checked> ${esc(d)} <span class="cnt">${n}</span></label>`).join("");
+  .map(([d,n]) => `<label class="flex cursor-pointer items-center gap-1.5 py-0.5">
+     <input type="checkbox" class="dbox" value="${esc(d)}" checked> ${esc(d)}
+     <span class="ml-auto text-[11.5px] text-mut">${n}</span></label>`).join("");
 const num = id => { const v = $(id).value.trim(); return v === "" ? null : +v; };
 function currentFilter(){
   const roomsOn = [...document.querySelectorAll("#rooms .chip.on")]
@@ -186,11 +189,13 @@ function renderStats(){
   const ps = filtered.map(o=>o.p).filter(v=>v!=null);
   const ms = filtered.map(o=>o.pm).filter(v=>v!=null);
   const drops = filtered.filter(o=>o._drop>0).length;
+  const tile = (v, label) => `<div class="rounded-lg bg-acc-soft px-2 py-1.5">
+    <b class="block text-[15px]">${v}</b><span class="text-[11px] text-mut">${label}</span></div>`;
   $("#stats").innerHTML =
-    `<div><b>${filtered.length}</b><span>ofert po filtrach</span></div>` +
-    `<div><b>${fmtN(median(ms))}</b><span>mediana zł/m²</span></div>` +
-    `<div><b>${fmtN(median(ps))}</b><span>mediana ceny [zł]</span></div>` +
-    `<div><b>${drops}</b><span>z obniżką ceny</span></div>`;
+    tile(filtered.length, "ofert po filtrach") +
+    tile(fmtN(median(ms)), "mediana zł/m²") +
+    tile(fmtN(median(ps)), "mediana ceny [zł]") +
+    tile(drops, "z obniżką ceny");
 }
 function renderHisto(){
   const cv = $("#histo"), ctx = cv.getContext("2d");
@@ -222,17 +227,19 @@ function renderHisto(){
 function cardHTML(o){
   const img = o.ph.length
     ? `<img loading="lazy" src="${esc(o.ph[0])}"
+        class="h-[70px] w-[92px] shrink-0 rounded-md bg-[#e8ebf0] object-cover"
         onerror="this.outerHTML='<div class=noimg>🏠</div>'">`
     : `<div class="noimg">🏠</div>`;
-  const badges = (o._new ? `<span class="badge new">NOWA</span>` : "") +
-    (o._drop > 0 ? `<span class="badge drop">-${(o._drop*100).toFixed(0)}%</span>` : "");
+  const badges = (o._new ? `<span class="badge bg-[#e3f4ea] text-good">NOWA</span>` : "") +
+    (o._drop > 0 ? `<span class="badge bg-[#fdecec] text-bad">-${(o._drop*100).toFixed(0)}%</span>` : "");
   const meta = [PORTAL[o.s] || o.s, o.a ? o.a + " m²" : null,
     o.pm ? fmtN(o.pm) + " zł/m²" : null,
     o.r || null, o.d || null].filter(Boolean).join(" · ");
-  return `<div class="card" data-id="${o.id}">${img}<div>
-    <h4>${esc(o.t)}${badges}</h4>
-    <div class="pr">${fmtP(o.p)}</div>
-    <div class="meta">${esc(meta)}</div></div></div>`;
+  return `<div class="card flex cursor-pointer gap-2.5 border-b border-line px-3 py-2.5
+      hover:bg-[#f7f9fc] sel:bg-acc-soft" data-id="${o.id}">${img}<div>
+    <h4 class="mb-0.5 line-clamp-2 text-[13px]/[1.3] font-semibold">${esc(o.t)}${badges}</h4>
+    <div class="text-[14.5px] font-bold">${fmtP(o.p)}</div>
+    <div class="text-xs text-mut">${esc(meta)}</div></div></div>`;
 }
 function renderMore(){
   const slice = filtered.slice(shown, shown + CHUNK);
@@ -241,7 +248,7 @@ function renderMore(){
   $("#cards").insertAdjacentHTML("beforeend", slice.map(cardHTML).join(""));
   if(shown < filtered.length)
     $("#cards").insertAdjacentHTML("beforeend",
-      `<div id="more">… wczytuję (${shown}/${filtered.length})</div>`);
+      `<div id="more" class="p-3 text-center text-mut">… wczytuję (${shown}/${filtered.length})</div>`);
   const m = $("#more");
   if(m) io.observe(m);
 }
@@ -265,11 +272,13 @@ function openDetail(id, fromMap){
   if(!fromMap && o.lat != null)
     map.flyTo([o.lat, o.lon], Math.max(map.getZoom(), 15), {duration:.5});
   // zdjęcia dociągane z serwerów OLX dopiero teraz — na żądanie
-  const gal = o.ph.length ? `<div id="gal">
-      <img class="main" id="gmain" src="${esc(o.ph[0])}"
+  const gal = o.ph.length ? `<div id="gal" class="relative overflow-hidden rounded-[10px] bg-[#0d1117]">
+      <img id="gmain" src="${esc(o.ph[0])}" class="h-80 w-full object-contain"
        onerror="this.closest('#gal').style.display='none'"></div>` +
-    (o.ph.length > 1 ? `<div id="thumbs">` + o.ph.map((u,i) =>
-      `<img src="${esc(u)}" data-i="${i}" class="${i?"":"on"}"
+    (o.ph.length > 1 ? `<div id="thumbs" class="flex gap-1.5 overflow-x-auto px-0.5 pt-2 pb-0.5">` +
+      o.ph.map((u,i) =>
+      `<img src="${esc(u)}" data-i="${i}" class="${i?"":"on"} h-[54px] w-[72px] shrink-0 cursor-pointer
+        rounded-md object-cover opacity-65 on:opacity-100 on:outline-2 on:outline-acc"
         onerror="this.remove()">`).join("") + `</div>` : "")
     : "";
   const grid = [
@@ -282,25 +291,32 @@ function openDetail(id, fromMap){
     ["Dodane", fmtDate(o.c)],
     ["Pierwszy raz widziana", fmtDate(o.fs)],
   ].filter(x => x[1] != null)
-   .map(x => `<div><span>${x[0]}</span><b>${esc(x[1])}</b></div>`).join("");
+   .map(x => `<div><span class="block text-[11.5px] text-mut">${x[0]}</span>
+     <b class="font-semibold">${esc(x[1])}</b></div>`).join("");
   let hist = "";
   if(o.h){
-    hist = `<div id="dhist"><h3>Historia cen</h3><table>` + o.h.map((x,i) => {
+    const td = "border-b border-dashed border-line py-1";
+    hist = `<div><h3 class="my-2 text-base font-bold">Historia cen</h3>
+      <table class="w-full text-[13px]">` + o.h.map((x,i) => {
       const prev = i ? o.h[i-1][1] : null;
       const diff = prev == null ? "" :
-        `<span class="${x[1] > prev ? "up" : "down"}">
+        `<span class="${x[1] > prev ? "text-bad" : "text-good"}">
           ${x[1] > prev ? "▲" : "▼"} ${fmtN(Math.abs(x[1]-prev))}</span> `;
-      return `<tr><td>${esc(x[0])}</td><td>${diff}${fmtP(x[1])}</td></tr>`;
+      return `<tr><td class="${td}">${esc(x[0])}</td>
+        <td class="${td} text-right">${diff}${fmtP(x[1])}</td></tr>`;
     }).join("") + `</table></div>`;
   }
   $("#dbody").innerHTML = gal +
-    `<h2>${esc(o.t)}</h2>
-     <div id="dprice">${fmtP(o.p)}${o.ng ? " <small>do negocjacji</small>" : ""}</div>
-     <div id="dgrid">${grid}</div>` + hist +
-    (o.rad > 0 ? `<div class="approx">📍 Sprzedający podał lokalizację
+    `<h2 class="mt-3 mb-1 text-lg/[1.3] font-bold">${esc(o.t)}</h2>
+     <div class="text-[22px] font-extrabold">${fmtP(o.p)}${o.ng ?
+       ` <small class="text-[13px] font-normal text-mut">do negocjacji</small>` : ""}</div>
+     <div class="my-3 grid grid-cols-2 gap-x-3.5 gap-y-2 rounded-[10px] bg-[#f7f8fa] p-3">${grid}</div>` +
+    hist +
+    (o.rad > 0 ? `<div class="mt-2 text-xs text-mut">📍 Sprzedający podał lokalizację
        przybliżoną (±${fmtN(o.rad)} m) — pinezka wskazuje okolicę.</div>` : "") +
-    (o.dsc ? `<div id="ddesc">${esc(o.dsc)}</div>` : "") +
-    `<a class="olxbtn" href="${esc(o.u)}" target="_blank" rel="noopener">
+    (o.dsc ? `<div class="mt-3 text-[13.5px] whitespace-pre-line">${esc(o.dsc)}</div>` : "") +
+    `<a href="${esc(o.u)}" target="_blank" rel="noopener"
+       class="mt-4 mb-1.5 block rounded-[9px] bg-acc p-3 text-center font-semibold text-white hover:bg-acc/90">
        Otwórz ogłoszenie na ${PORTAL[o.s] || "portalu"} ↗</a>`;
   const th = $("#thumbs");
   if(th) th.addEventListener("click", e => {

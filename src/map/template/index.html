@@ -1,67 +1,73 @@
 <!DOCTYPE html>
-<html lang="pl">
+<html lang="pl" class="desk:h-full">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Oferty OLX — mapa</title>
+<style>body{visibility:hidden}</style>
 <style>{{ include_raw("css/leaflet.css") }}</style>
-<style>
+<style type="text/tailwindcss">
 {{ include_raw("style.css") }}</style>
+<script>{{ include_raw("js/tailwindcss-browser.js") }}</script>
 </head>
-<body>
-<header>
- <div><h1 id="hd">Oferty OLX</h1><div class="sub" id="hdsub"></div></div>
- <input id="q" type="search" placeholder="Szukaj: np. balkon, garaż, Ruczaj…">
+<body class="flex flex-col bg-page font-sans text-sm/[1.45] text-ink desk:h-full">
+<header class="flex flex-wrap items-center gap-3.5 border-b border-line bg-white px-3.5 py-2">
+ <div><h1 id="hd" class="text-base font-bold whitespace-nowrap">Oferty OLX</h1>
+  <div id="hdsub" class="text-xs text-mut"></div></div>
+ <input id="q" type="search" placeholder="Szukaj: np. balkon, garaż, Ruczaj…"
+  class="field max-w-[460px] min-w-[180px] flex-1 rounded-lg bg-[#fbfcfd] px-3">
  <label class="chk"><input type="checkbox" id="qdesc" checked> szukaj też w opisach</label>
 </header>
-<div id="layout">
- <aside id="filters">
-  <div id="stats"></div>
-  <canvas id="histo" title="Rozkład ceny za m² (po filtrach)"></canvas>
-  <div class="f-group"><h3>Cena [zł]</h3>
-   <div class="range"><input id="pmin" type="number" placeholder="od" step="10000">
-    <input id="pmax" type="number" placeholder="do" step="10000"></div></div>
-  <div class="f-group"><h3>Metraż [m²]</h3>
-   <div class="range"><input id="amin" type="number" placeholder="od">
-    <input id="amax" type="number" placeholder="do"></div></div>
-  <div class="f-group"><h3>Cena za m² [zł]</h3>
-   <div class="range"><input id="mmin" type="number" placeholder="od" step="500">
-    <input id="mmax" type="number" placeholder="do" step="500"></div></div>
-  <div class="f-group"><h3>Pokoje</h3><div class="chips" id="rooms">
+<div class="flex flex-col desk:min-h-0 desk:flex-1 desk:flex-row">
+ <aside id="filters" class="order-2 overflow-y-auto border-t border-line bg-white p-3
+   desk:order-none desk:w-63 desk:min-w-63 desk:border-t-0 desk:border-r">
+  <div id="stats" class="mb-3 grid grid-cols-2 gap-1.5"></div>
+  <canvas id="histo" title="Rozkład ceny za m² (po filtrach)" class="mt-0.5 mb-3 h-[74px] w-full"></canvas>
+  <div class="mb-3.5"><h3 class="f-title">Cena [zł]</h3>
+   <div class="flex gap-1.5"><input id="pmin" class="field" type="number" placeholder="od" step="10000">
+    <input id="pmax" class="field" type="number" placeholder="do" step="10000"></div></div>
+  <div class="mb-3.5"><h3 class="f-title">Metraż [m²]</h3>
+   <div class="flex gap-1.5"><input id="amin" class="field" type="number" placeholder="od">
+    <input id="amax" class="field" type="number" placeholder="do"></div></div>
+  <div class="mb-3.5"><h3 class="f-title">Cena za m² [zł]</h3>
+   <div class="flex gap-1.5"><input id="mmin" class="field" type="number" placeholder="od" step="500">
+    <input id="mmax" class="field" type="number" placeholder="do" step="500"></div></div>
+  <div class="mb-3.5"><h3 class="f-title">Pokoje</h3><div class="flex flex-wrap gap-1.5" id="rooms">
    <button class="chip" data-r="1">1</button><button class="chip" data-r="2">2</button>
    <button class="chip" data-r="3">3</button><button class="chip" data-r="4">4+</button>
   </div></div>
-  <div class="f-group"><h3>Portal</h3><div class="chips" id="portals">
+  <div class="mb-3.5"><h3 class="f-title">Portal</h3><div class="flex flex-wrap gap-1.5" id="portals">
    <button class="chip on" data-s="olx">OLX</button>
    <button class="chip on" data-s="otodom">Otodom</button>
   </div></div>
-  <div class="f-group"><h3>Rynek</h3><select id="market">
+  <div class="mb-3.5"><h3 class="f-title">Rynek</h3><select id="market" class="field">
    <option value="">wszystkie</option><option>Pierwotny</option><option>Wtórny</option>
   </select></div>
-  <div class="f-group"><h3>Sprzedający</h3><select id="seller">
+  <div class="mb-3.5"><h3 class="f-title">Sprzedający</h3><select id="seller" class="field">
    <option value="">wszyscy</option><option value="0">osoba prywatna</option>
    <option value="1">firma / deweloper</option>
   </select></div>
-  <div class="f-group"><h3>Dodane</h3><select id="fresh">
+  <div class="mb-3.5"><h3 class="f-title">Dodane</h3><select id="fresh" class="field">
    <option value="">kiedykolwiek</option><option value="1">ostatnie 24 h</option>
    <option value="3">ostatnie 3 dni</option><option value="7">ostatnie 7 dni</option>
    <option value="14">ostatnie 14 dni</option><option value="30">ostatnie 30 dni</option>
   </select></div>
-  <div class="f-group"><h3>Dzielnica</h3>
-   <div><button class="mini" id="dall">wszystkie</button>
+  <div class="mb-3.5"><h3 class="f-title">Dzielnica</h3>
+   <div class="mb-1"><button class="mini" id="dall">wszystkie</button>
     <button class="mini" id="dnone">żadna</button></div>
-   <div id="districts"></div></div>
-  <div class="f-group">
+   <div id="districts" class="max-h-42 overflow-y-auto rounded-md border border-line bg-[#fbfcfd] px-2 py-1.5"></div></div>
+  <div class="mb-3.5 space-y-1">
    <label class="chk"><input type="checkbox" id="onlydrop"> tylko z obniżką ceny</label>
    <label class="chk"><input type="checkbox" id="onlygeo"> tylko z lokalizacją na mapie</label>
    <label class="chk"><input type="checkbox" id="bounds"> zawęź do widocznego obszaru mapy</label>
   </div>
-  <button id="clear">Wyczyść filtry</button>
+  <button id="clear" class="w-full cursor-pointer rounded-lg border border-line bg-white p-2 hover:bg-acc-soft">Wyczyść filtry</button>
  </aside>
- <div id="mapwrap"><div id="map"></div></div>
- <aside id="list">
-  <div id="listhead">
-   <select id="sort">
+ <div class="relative order-1 h-[46vh] desk:order-none desk:h-auto desk:min-w-0 desk:flex-1"><div id="map" class="absolute! inset-0"></div></div>
+ <aside id="list" class="order-3 flex h-[60vh] flex-col bg-white
+   desk:order-none desk:h-auto desk:w-99 desk:min-w-75 desk:border-l desk:border-line">
+  <div class="flex items-center gap-2 border-b border-line px-3 py-2">
+   <select id="sort" class="field">
     <option value="new">najnowsze</option>
     <option value="pm-asc">cena za m² ↑</option>
     <option value="pm-desc">cena za m² ↓</option>
@@ -71,14 +77,18 @@
     <option value="a-asc">metraż ↑</option>
     <option value="drop">największa obniżka</option>
    </select>
-   <span class="n" id="cnt"></span>
+   <span id="cnt" class="text-[12.5px] whitespace-nowrap text-mut"></span>
   </div>
-  <div id="cards"></div>
+  <div id="cards" class="flex-1 overflow-y-auto"></div>
  </aside>
 </div>
-<div id="backdrop"></div>
-<section id="detail"><button id="dclose" title="Zamknij">✕</button>
- <div id="dbody"></div></section>
+<div id="backdrop" class="pointer-events-none fixed inset-0 z-1100 bg-[rgba(15,22,33,.35)] opacity-0 transition-opacity
+  shown:pointer-events-auto shown:opacity-100"></div>
+<section id="detail" class="fixed top-0 right-0 z-1200 flex h-full w-[min(600px,100vw)] translate-x-[calc(100%+20px)] flex-col
+  bg-white shadow-[-8px_0_28px_rgba(15,25,40,.18)] transition-transform duration-200 shown:translate-x-0">
+ <button id="dclose" title="Zamknij" class="absolute top-2.5 right-3 z-5 size-8.5 cursor-pointer rounded-full
+   bg-[rgba(20,28,40,.55)] text-[17px] text-white">✕</button>
+ <div id="dbody" class="overflow-y-auto px-4.5 py-4"></div></section>
 <script>{{ include_raw("js/leaflet.js") }}</script>
 <script id="meta" type="application/json">{{ meta | tojson }}</script>
 <script id="data" type="application/json">{{ offers | tojson }}</script>
