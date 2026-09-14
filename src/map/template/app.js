@@ -79,6 +79,20 @@ legend.onAdd = () => {
   return div;
 };
 legend.addTo(map);
+// granice Krakowa: sam obwód, nieklikalny, żeby nie zasłaniał markerów
+const boundary = L.polygon(KRAKOW_BOUNDARY,
+  {color:"#2563eb", weight:2.5, opacity:.85, fill:false, interactive:false}).addTo(map);
+const boundaryToggle = L.control({position:"topright"});
+boundaryToggle.onAdd = () => {
+  const div = L.DomUtil.create("label",
+    "chk m-0! rounded-lg bg-white px-2.5 py-1.5 text-[12px] shadow-[0_1px_5px_rgba(0,0,0,.25)]");
+  div.innerHTML = '<input type="checkbox" checked> granice Krakowa';
+  L.DomEvent.disableClickPropagation(div);
+  div.querySelector("input").addEventListener("change", e =>
+    e.target.checked ? boundary.addTo(map) : boundary.remove());
+  return div;
+};
+boundaryToggle.addTo(map);
 const layer = L.layerGroup().addTo(map);
 const markers = new Map();
 let selId = null;

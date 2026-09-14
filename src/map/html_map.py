@@ -4,7 +4,8 @@ Interaktywna mapa HTML — generuje pojedynczy, samowystarczalny plik HTML
 z mapą (Leaflet), listą i filtrami aktywnych ofert zapisanych w bazie.
 
 Wygląd i logika strony są w katalogu template/ (szablon Jinja2 index.html
-oraz style.css i app.js wklejane do niego bez zmian). Zewnętrzne biblioteki
+oraz style.css, app.js i krakow_boundary.js wklejane do niego bez zmian).
+Zewnętrzne biblioteki
 (Leaflet, Tailwind CSS w wersji przeglądarkowej) leżą w katalogu deps/
 w głównym katalogu repozytorium.
 """
