@@ -22,7 +22,8 @@ single-file **interactive map** with filters.
   declared in `pyproject.toml` (locked in `uv.lock`):
   - `curl_cffi` mimics a real browser's TLS fingerprint, which is what OLX
     uses to detect scripted requests,
-  - `jinja2` renders the interactive map.
+  - `jinja2` renders the interactive map,
+  - `rich` formats the terminal report (tables, colours, clickable links).
 
 ```bash
 uv sync            # creates .venv and installs the locked dependencies
@@ -34,27 +35,27 @@ uv sync            # creates .venv and installs the locked dependencies
 
 ```bash
 # all sources (OLX + Otodom), default search: flats for sale in Kraków
-uv run monitor_ofert.py
+uv run src/monitor_ofert.py
 
 # a single source
-uv run monitor_ofert.py --source olx
+uv run src/monitor_ofert.py --source olx
 
 # quick mode: only check for NEW listings (skips price/removal detection)
-uv run monitor_ofert.py --quick
+uv run src/monitor_ofert.py --quick
 
 # dump active listings to CSV
-uv run monitor_ofert.py --export oferty.csv
+uv run src/monitor_ofert.py --export oferty.csv
 
 # render the interactive map
-uv run monitor_ofert.py --html mapa.html
+uv run src/monitor_ofert.py --html mapa.html
 
 # your own searches, into a separate database file
-uv run monitor_ofert.py --db tanie.db \
+uv run src/monitor_ofert.py --db tanie.db \
     --url "https://www.olx.pl/nieruchomosci/mieszkania/sprzedaz/krakow/?search[filter_float_price:to]=700000" \
     --url "https://www.otodom.pl/pl/wyniki/sprzedaz/mieszkanie/malopolskie/krakow/krakow/krakow?priceMax=700000"
 
 # no network at all — just export what's already in the database
-uv run monitor_ofert.py --offline --html mapa.html
+uv run src/monitor_ofert.py --offline --html mapa.html
 ```
 
 ### Options
@@ -95,7 +96,7 @@ gunzip -k data.html.gz     # -> data.html  (70 MB)
 You can regenerate the HTML from the database at any time:
 
 ```bash
-uv run monitor_ofert.py --offline --html data.html
+uv run src/monitor_ofert.py --offline --html data.html
 ```
 
 ## Formatting

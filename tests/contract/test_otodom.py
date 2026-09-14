@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """Testy kontraktów Otodom — prawdziwe zapytania do stron, z których
-monitor_ofert.py wyciąga dane __NEXT_DATA__. Sprawdzają, czy strony odpowiadają
+src/monitor_ofert.py wyciąga dane __NEXT_DATA__. Sprawdzają, czy strony odpowiadają
 i czy mają pola, na których opierają się otodom_page, fetch_*_otodom,
 fetch_otodom_detail oraz parse_offer_otodom."""
 

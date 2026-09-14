@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """Testy kontraktów OLX — prawdziwe zapytania do endpointów, z których korzysta
-monitor_ofert.py. Sprawdzają, czy endpointy odpowiadają i czy odpowiedzi mają
+src/monitor_ofert.py. Sprawdzają, czy endpointy odpowiadają i czy odpowiedzi mają
 pola, na których opierają się resolve_api_params, reported_count, fetch_*_olx
 oraz parse_offer_olx."""
 

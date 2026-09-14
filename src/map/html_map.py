@@ -32,7 +32,7 @@ def meta_get(con: sqlite3.Connection, key: str):
 
 
 TEMPLATE_DIR = Path(__file__).parent / "template"
-DEPS_DIR = Path(__file__).parent.parent / "deps"  # np. js/leaflet.js, css/leaflet.css
+DEPS_DIR = Path(__file__).parents[2] / "deps"  # np. js/leaflet.js, css/leaflet.css
 
 
 def make_env() -> Environment:

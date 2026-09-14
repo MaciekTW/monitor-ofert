@@ -9,6 +9,8 @@ dependencies = [
     "curl_cffi>=0.6",
     # szablony interaktywnej mapy HTML (--html)
     "jinja2>=3.0",
+    # czytelny raport ofert w terminalu (tabele, kolory, klikalne linki)
+    "rich>=13",
 ]
 
 [dependency-groups]
@@ -25,5 +27,5 @@ package = false
 line-length = 110
 
 [tool.pytest.ini_options]
-pythonpath = ["."]
+pythonpath = ["src"]
 testpaths = ["tests"]

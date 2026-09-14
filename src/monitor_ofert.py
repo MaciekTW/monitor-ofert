@@ -16,12 +16,12 @@ Kolejne uruchomienia:   pobiera oferty ponownie i pokazuje TYLKO:
                           • ogłoszenia, które wróciły po zniknięciu.
 
 Przykłady użycia:
-    python monitor_ofert.py                      # wszystkie źródła (OLX + Otodom)
-    python monitor_ofert.py --source olx         # tylko jedno źródło
-    python monitor_ofert.py --quick              # szybki tryb: tylko NOWE oferty
-    python monitor_ofert.py --export oferty.csv  # zrzut aktywnych ofert do CSV
-    python monitor_ofert.py --html mapa.html     # interaktywna mapa ofert
-    python monitor_ofert.py --db tanie.db \\
+    python src/monitor_ofert.py                      # wszystkie źródła (OLX + Otodom)
+    python src/monitor_ofert.py --source olx         # tylko jedno źródło
+    python src/monitor_ofert.py --quick              # szybki tryb: tylko NOWE oferty
+    python src/monitor_ofert.py --export oferty.csv  # zrzut aktywnych ofert do CSV
+    python src/monitor_ofert.py --html mapa.html     # interaktywna mapa ofert
+    python src/monitor_ofert.py --db tanie.db \\
         --url "https://www.olx.pl/nieruchomosci/mieszkania/sprzedaz/krakow/?search[filter_float_price:to]=700000" \\
         --url "https://www.otodom.pl/pl/wyniki/sprzedaz/mieszkanie/malopolskie/krakow/krakow/krakow?priceMax=700000"
 
@@ -60,6 +60,7 @@ from datetime import datetime
 from urllib.parse import urlparse, parse_qsl
 
 from map.html_map import export_html
+from terminal_report import report
 
 # curl_cffi (jeśli jest zainstalowane) podszywa się pod prawdziwą przeglądarkę
 # także na poziomie uścisku dłoni TLS — a właśnie po tym "odcisku palca" OLX
@@ -103,7 +104,6 @@ API_OFFERS = "https://www.olx.pl/api/v1/offers/"
 PAGE_LIMIT = 50  # maks. liczba ofert na jedno zapytanie API
 SEGMENT_MAX = 1000  # głębiej niż ~1000 wyników jedno zapytanie nie sięga
 MIN_PRICE_STEP = 1000  # nie dziel przedziałów cen drobniej niż co 1000 zł
-LIST_CAP = 30  # maks. liczba pozycji wypisywanych w każdej sekcji raportu
 
 # Używane tylko, gdy brak curl_cffi. Aktualizuj co kilka miesięcy — mocno
 # przestarzała wersja Chrome w User-Agencie sama w sobie wygląda podejrzanie.
@@ -176,7 +176,7 @@ strukturę strony). Możesz podać je ręcznie:
   3. Przewiń listę ogłoszeń — pojawi się zapytanie w stylu:
        https://www.olx.pl/api/v1/offers/?offset=40&limit=40&category_id=14&region_id=4&city_id=8959&...
   4. Odczytaj z niego identyfikatory i uruchom skrypt np. tak:
-       python monitor_ofert.py --category-id 14 --region-id 4 --city-id 8959
+       python src/monitor_ofert.py --category-id 14 --region-id 4 --city-id 8959
 
 Jeśli powyżej widzisz HTTP 403: OLX rozpoznał zapytanie jako automatyczne.
 Najskuteczniejsza poprawka to instalacja biblioteki curl_cffi:
@@ -1164,8 +1164,6 @@ def sync(con: sqlite3.Connection, records: list[tuple[dict, dict]], full_scan_so
     }
 
 
-# ---------------------------------------------------------------------- raport
-
 # ------------------------------------------------------------- źródła danych
 
 
@@ -1291,85 +1289,7 @@ def source_for(url: str):
     return next((cls for cls in SOURCES.values() if cls.handles(url)), None)
 
 
-# ----------------------------------------------------------------------- raport
-
 PORTAL_NAME = {name: cls.label for name, cls in SOURCES.items()}
-
-
-def offer_details(o: dict) -> str:
-    parts = [fmt_price(o.get("price"))]
-    if o.get("source"):
-        parts.insert(0, PORTAL_NAME.get(o["source"], o["source"]))
-    if o.get("area"):
-        parts.append(f"{o['area']:g} m²")
-    if o.get("price_per_m"):
-        parts.append(f"{int(o['price_per_m'])} zł/m²")
-    if o.get("rooms"):
-        parts.append(str(o["rooms"]))
-    if o.get("district"):
-        parts.append(str(o["district"]))
-    if o.get("business"):
-        parts.append("biuro/deweloper")
-    return " · ".join(parts)
-
-
-def print_section(title: str, items: list, render) -> None:
-    log(f"\n=== {title} ({len(items)}) " + "=" * max(0, 46 - len(title)))
-    for item in items[:LIST_CAP]:
-        render(item)
-    if len(items) > LIST_CAP:
-        log(f"  … i {len(items) - LIST_CAP} kolejnych (pełna lista jest w bazie).")
-
-
-def report(result: dict, db_path: str, con: sqlite3.Connection) -> None:
-    if result["first_run"]:
-        log(f"\n✔ Pierwsze uruchomienie: zapisano {len(result['new'])} ofert do bazy „{db_path}”.")
-        log("  Przy kolejnych uruchomieniach zobaczysz już tylko nowe oferty i zmiany.")
-        return
-
-    def render_offer(o: dict) -> None:
-        log(f"  • {o['title'][:90]}")
-        log(f"    {offer_details(o)}")
-        log(f"    {o.get('url') or ''}")
-
-    def render_change(item) -> None:
-        o, old_price = item
-        pct = ""
-        if old_price and o.get("price"):
-            diff = (o["price"] - old_price) / old_price * 100
-            pct = f" ({diff:+.1f}%)"
-        log(f"  • {fmt_price(old_price)} → {fmt_price(o.get('price'))}{pct}  {o['title'][:70]}")
-        log(f"    {offer_details(o)}")
-        log(f"    {o.get('url') or ''}")
-
-    def render_removed(o: dict) -> None:
-        details = [fmt_price(o.get("price"))]
-        if o.get("source"):
-            details.insert(0, PORTAL_NAME.get(o["source"], o["source"]))
-        if o.get("area"):
-            details.append(f"{o['area']:g} m²")
-        if o.get("district"):
-            details.append(str(o["district"]))
-        log(f"  • {o['title'][:70]} — {' · '.join(details)}")
-
-    anything = False
-    if result["new"]:
-        anything = True
-        print_section("NOWE OGŁOSZENIA", result["new"], render_offer)
-    if result["price_changes"]:
-        anything = True
-        print_section("ZMIANY CEN", result["price_changes"], render_change)
-    if result["returned"]:
-        anything = True
-        print_section("WRÓCIŁY DO SPRZEDAŻY", result["returned"], render_offer)
-    if result["removed"]:
-        anything = True
-        print_section("ZNIKNĘŁY (sprzedane / wycofane)", result["removed"], render_removed)
-    if not anything:
-        log("\nBrak zmian od ostatniego uruchomienia.")
-
-    active, total = con.execute("SELECT SUM(active), COUNT(*) FROM offers").fetchone()
-    log(f"\nW bazie: {active or 0} aktywnych ofert ({total} łącznie) — plik „{db_path}”.")
 
 
 # ------------------------------------------------------------------ eksport CSV
@@ -1601,7 +1521,7 @@ def main(argv: list[str] | None = None) -> None:
     meta_set(con, "last_run", datetime.now().isoformat(timespec="seconds"))
     con.commit()
 
-    report(result, args.db, con)
+    report(result, args.db, con, PORTAL_NAME)
     if args.export:
         export_csv(con, args.export)
     if args.html:
