@@ -7,3 +7,5 @@ oferty.db
 data.html
 *.db-journal
 *.db-wal
+.pytest_cache/
+.venv/

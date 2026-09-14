@@ -1,0 +1,25 @@
+[project]
+name = "monitor-ofert"
+version = "0.1.0"
+description = "Monitor ofert nieruchomości z portali OLX i Otodom: nowe oferty, zmiany cen, zniknięcia, eksport CSV i interaktywna mapa."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    # podszywa się pod przeglądarkę także na poziomie TLS — bez tego OLX odpowiada 403
+    "curl_cffi>=0.6",
+    # szablony interaktywnej mapy HTML (--html)
+    "jinja2>=3.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8",
+]
+
+[tool.uv]
+# aplikacja uruchamiana skryptem, nie paczka do instalacji
+package = false
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]

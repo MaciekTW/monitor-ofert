@@ -17,40 +17,44 @@ single-file **interactive map** with filters.
 
 ## Requirements
 
-- Python 3.8+
-- `pip install curl_cffi` — recommended. It mimics a real browser's TLS
-  fingerprint, which is what OLX uses to detect scripted requests. Plain
-  `pip install requests` also works, but gets blocked (HTTP 403) more often.
+- Python 3.10+
+- [uv](https://docs.astral.sh/uv/) — manages the virtualenv and dependencies
+  declared in `pyproject.toml` (locked in `uv.lock`):
+  - `curl_cffi` mimics a real browser's TLS fingerprint, which is what OLX
+    uses to detect scripted requests,
+  - `jinja2` renders the interactive map.
 
 ```bash
-pip install -r requirements.txt
+uv sync            # creates .venv and installs the locked dependencies
 ```
+
+`uv run` syncs the environment automatically, so the step above is optional.
 
 ## Usage
 
 ```bash
 # all sources (OLX + Otodom), default search: flats for sale in Kraków
-python monitor_ofert.py
+uv run monitor_ofert.py
 
 # a single source
-python monitor_ofert.py --source olx
+uv run monitor_ofert.py --source olx
 
 # quick mode: only check for NEW listings (skips price/removal detection)
-python monitor_ofert.py --quick
+uv run monitor_ofert.py --quick
 
 # dump active listings to CSV
-python monitor_ofert.py --export oferty.csv
+uv run monitor_ofert.py --export oferty.csv
 
 # render the interactive map
-python monitor_ofert.py --html mapa.html
+uv run monitor_ofert.py --html mapa.html
 
 # your own searches, into a separate database file
-python monitor_ofert.py --db tanie.db \
+uv run monitor_ofert.py --db tanie.db \
     --url "https://www.olx.pl/nieruchomosci/mieszkania/sprzedaz/krakow/?search[filter_float_price:to]=700000" \
     --url "https://www.otodom.pl/pl/wyniki/sprzedaz/mieszkanie/malopolskie/krakow/krakow/krakow?priceMax=700000"
 
 # no network at all — just export what's already in the database
-python monitor_ofert.py --offline --html mapa.html
+uv run monitor_ofert.py --offline --html mapa.html
 ```
 
 ### Options
@@ -91,8 +95,27 @@ gunzip -k data.html.gz     # -> data.html  (70 MB)
 You can regenerate the HTML from the database at any time:
 
 ```bash
-python monitor_ofert.py --offline --html data.html
+uv run monitor_ofert.py --offline --html data.html
 ```
+
+## Tests
+
+`tests/contract/` holds contract tests that send real requests to the OLX and
+Otodom endpoints the script depends on, and check that the responses still
+contain the fields the parsers read. They need network access and take about
+a minute (requests are deliberately paced).
+
+```bash
+uv run pytest
+```
+
+If a portal blocks a request (HTTP 403), the affected tests are skipped rather
+than failed — a block says nothing about the contract.
+
+The same tests run daily on GitHub Actions (`.github/workflows/contract-tests.yml`)
+and can be started by hand from the Actions tab (*Run workflow*). The job
+summary lists passed, failed and skipped tests; a run where everything was
+skipped is marked as failed, so a blocked runner never looks green.
 
 ## How it works
 

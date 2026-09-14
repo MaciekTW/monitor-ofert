@@ -47,20 +47,19 @@ from __future__ import annotations
 
 import argparse
 import csv
-import html as html_lib
-import io
 import json
 import os
 import re
 import sqlite3
 import sys
-import tarfile
 import time
 import random
 import unicodedata
 from collections import Counter
 from datetime import datetime
-from urllib.parse import urlparse, parse_qsl, quote
+from urllib.parse import urlparse, parse_qsl
+
+from map.html_map import export_html
 
 # curl_cffi (jeśli jest zainstalowane) podszywa się pod prawdziwą przeglądarkę
 # także na poziomie uścisku dłoni TLS — a właśnie po tym "odcisku palca" OLX
@@ -90,7 +89,6 @@ DEFAULT_DB = "oferty.db"
 LEGACY_DB = "olx_oferty.db"   # nazwa bazy ze starszych wersji skryptu
 
 API_OFFERS = "https://www.olx.pl/api/v1/offers/"
-API_FRIENDLY = "https://www.olx.pl/api/v1/friendly-links/query-params/"
 
 PAGE_LIMIT = 50        # maks. liczba ofert na jedno zapytanie API
 SEGMENT_MAX = 1000     # głębiej niż ~1000 wyników jedno zapytanie nie sięga
@@ -299,50 +297,22 @@ def parse_search_url(url: str):
 
 def resolve_api_params(url: str, overrides: dict) -> tuple[dict, str | None]:
     """Ustala parametry API (category_id, city_id, ...) dla podanego adresu."""
-    path, extra, city_slug = parse_search_url(url)
+    _, extra, city_slug = parse_search_url(url)
     resolved: dict[str, str] = {}
 
-    # 1) endpoint OLX zamieniający adresy SEO na parametry wyszukiwania
+    # 1) identyfikatory wyszukane w kodzie HTML strony wyników
     try:
-        data = http_get(API_FRIENDLY + quote(path) + "/")
-        flat: dict = {}
-
-        def flatten(node):
-            if isinstance(node, dict):
-                for k, v in node.items():
-                    if isinstance(v, (dict, list)):
-                        flatten(v)
-                    else:
-                        flat.setdefault(k, v)
-            elif isinstance(node, list):
-                for item in node:
-                    flatten(item)
-
-        flatten(data)
+        html = http_get(url, as_json=False)
         for key in ("category_id", "region_id", "city_id", "district_id"):
-            if flat.get(key) not in (None, "", 0, "0"):
-                resolved[key] = str(flat[key])
+            camel = re.sub(r"_(\w)", lambda m: m.group(1).upper(), key)
+            hits = re.findall(rf'["\']?{key}["\']?\s*[:=]\s*["\']?(\d+)', html)
+            hits += re.findall(rf'["\']?{camel}["\']?\s*[:=]\s*["\']?(\d+)', html)
+            if hits:
+                resolved[key] = Counter(hits).most_common(1)[0][0]
     except Exception as exc:
-        # endpoint bywa niedostępny — logujemy powód i przechodzimy do planu B
-        note = " ".join(str(exc).split())
-        if len(note) > 140:
-            note = note[:140] + "…"
-        log(f"  (endpoint parametrów nie odpowiedział: {note})", err=True)
+        log(f"  ! Nie udało się przeanalizować strony wyników: {exc}", err=True)
 
-    # 2) plan B: identyfikatory wyszukane w kodzie HTML strony wyników
-    if "category_id" not in resolved:
-        try:
-            html = http_get(url, as_json=False)
-            for key in ("category_id", "region_id", "city_id", "district_id"):
-                camel = re.sub(r"_(\w)", lambda m: m.group(1).upper(), key)
-                hits = re.findall(rf'["\']?{key}["\']?\s*[:=]\s*["\']?(\d+)', html)
-                hits += re.findall(rf'["\']?{camel}["\']?\s*[:=]\s*["\']?(\d+)', html)
-                if hits:
-                    resolved.setdefault(key, Counter(hits).most_common(1)[0][0])
-        except Exception as exc:
-            log(f"  ! Nie udało się przeanalizować strony wyników: {exc}", err=True)
-
-    # 3) parametry podane ręcznie w linii poleceń mają najwyższy priorytet
+    # 2) parametry podane ręcznie w linii poleceń mają najwyższy priorytet
     params = {**extra, **resolved}
     params.update({k: v for k, v in overrides.items() if v})
 
@@ -742,6 +712,24 @@ def _oto_floor(value) -> str | None:
     return None
 
 
+def _oto_created_at(item: dict, ad: dict) -> str | None:
+    """Data pierwszego dodania oferty Otodom.
+
+    Najdokładniejsza jest ad.createdAt ze strony oferty (prawdziwy UTC).
+    Lista wyników ma createdAtFirst — to samo, ale w czasie warszawskim
+    z błędnym sufiksem „Z” (a bywa też wartością zastępczą w rodzaju
+    „1999-02-29 00:00:01”), więc odcinamy „Z” i zostawiamy czas lokalny.
+    dateCreated to data ostatniego odświeżenia — celowo jej nie używamy."""
+    if ad.get("createdAt"):
+        return ad["createdAt"]
+    first = str(item.get("createdAtFirst") or "").removesuffix("Z")
+    try:
+        parsed = datetime.fromisoformat(first)
+    except ValueError:
+        return None
+    return first if parsed.year >= 2000 else None
+
+
 def parse_offer_otodom(item: dict) -> dict:
     """Oferta Otodom (wynik wyszukiwania + ew. szczegóły) → wspólny format."""
     ad = item.get("_ad") or {}
@@ -799,8 +787,7 @@ def parse_offer_otodom(item: dict) -> dict:
         "city": city,
         "district": district,
         "business": business,
-        "created_at": item.get("dateCreatedFirst") or item.get("dateCreated")
-                      or ad.get("createdAt"),
+        "created_at": _oto_created_at(item, ad),
         "last_refresh": item.get("pushedUpAt"),
         "lat": to_float(coords.get("latitude")),
         "lon": to_float(coords.get("longitude")),
@@ -916,10 +903,11 @@ def init_db(path: str) -> sqlite3.Connection:
 
 def migrate_db(con: sqlite3.Connection) -> None:
     """Dostosowuje bazy założone starszymi wersjami skryptu — bez ponownego
-    pobierania czegokolwiek. Dwa etapy:
+    pobierania czegokolwiek. Trzy etapy:
     1) baza jednoportalowa (klucz = numer oferty OLX) → wieloportalowa
        (klucz uid „olx:123”/„oto:456” + kolumna source), razem z historią cen,
-    2) uzupełnienie współrzędnych z zapisanego surowego JSON-a ofert."""
+    2) uzupełnienie współrzędnych z zapisanego surowego JSON-a ofert,
+    3) jednorazowa poprawka dat dodania ofert Otodom (patrz _oto_created_at)."""
     offer_cols = {row[1] for row in con.execute("PRAGMA table_info(offers)")}
     if "uid" not in offer_cols:
         log("(dostosowuję bazę do obsługi wielu portali — chwilka...)")
@@ -957,6 +945,27 @@ def migrate_db(con: sqlite3.Connection) -> None:
     if filled:
         con.commit()
         log(f"(uzupełniono współrzędne {filled} ofert z danych już zapisanych w bazie)")
+
+    # starsze wersje zapisywały jako datę dodania Otodom datę odświeżenia
+    if meta_get(con, "fix:otodom_created_at") is None:
+        fixed = 0
+        for uid, created, raw in con.execute(
+                "SELECT uid, created_at, raw FROM offers "
+                "WHERE source = 'otodom' AND raw IS NOT NULL").fetchall():
+            try:
+                item = json.loads(raw)
+            except ValueError:
+                continue
+            value = _oto_created_at(item, item.get("_ad") or {})
+            if value != created:
+                con.execute("UPDATE offers SET created_at = ? WHERE uid = ?",
+                            (value, uid))
+                fixed += 1
+        meta_set(con, "fix:otodom_created_at", "1")
+        con.commit()
+        if fixed:
+            log(f"(poprawiono datę dodania {fixed} ofert Otodom — wcześniej "
+                "zapisywana była data ostatniego odświeżenia)")
 
 
 def meta_get(con: sqlite3.Connection, key: str):
@@ -1282,692 +1291,6 @@ def export_csv(con: sqlite3.Connection, path: str) -> None:
         writer.writerow(headers)
         writer.writerows(rows)
     log(f"\n✔ Wyeksportowano {len(rows)} aktywnych ofert do „{path}”.")
-
-
-# ------------------------------------------------------- interaktywna mapa HTML
-
-LEAFLET_VERSION = "1.9.4"
-_LEAFLET_CACHE: dict[str, str] = {}
-
-
-def fetch_leaflet() -> tuple[str, str]:
-    """Pobiera bibliotekę map Leaflet z rejestru npm i zwraca (js, css),
-    żeby wkleić ją w całości do generowanego pliku HTML."""
-    if _LEAFLET_CACHE:
-        return _LEAFLET_CACHE["js"], _LEAFLET_CACHE["css"]
-    url = f"https://registry.npmjs.org/leaflet/-/leaflet-{LEAFLET_VERSION}.tgz"
-    try:
-        resp = requests.get(url, timeout=60)
-        resp.raise_for_status()
-        wanted = {"package/dist/leaflet.js": "js", "package/dist/leaflet.css": "css"}
-        with tarfile.open(fileobj=io.BytesIO(resp.content), mode="r:gz") as tar:
-            for member in tar.getmembers():
-                key = wanted.get(member.name)
-                if key:
-                    _LEAFLET_CACHE[key] = tar.extractfile(member).read().decode("utf-8")
-    except Exception as exc:
-        raise RuntimeError(
-            "Nie udało się pobrać biblioteki map (Leaflet) z registry.npmjs.org — "
-            "do wygenerowania pliku HTML potrzebny jest internet.\n"
-            f"Szczegóły: {exc}") from exc
-    if set(_LEAFLET_CACHE) != {"js", "css"}:
-        raise RuntimeError("Paczka Leaflet ma nieoczekiwaną zawartość.")
-    if "</script" in _LEAFLET_CACHE["js"].lower():
-        raise RuntimeError("Kod Leaflet zawiera sekwencję łamiącą osadzanie w HTML.")
-    return _LEAFLET_CACHE["js"], _LEAFLET_CACHE["css"]
-
-
-def strip_html(text: str, limit: int = 4000) -> str:
-    """HTML opisu → czysty tekst (z zachowaniem akapitów), przycięty do limitu."""
-    if not text:
-        return ""
-    text = re.sub(r"<\s*br\s*/?\s*>|</\s*p\s*>|</\s*li\s*>", "\n", text, flags=re.I)
-    text = re.sub(r"<[^>]+>", " ", text)
-    text = html_lib.unescape(text)
-    lines = [re.sub(r"[ \t]+", " ", ln).strip() for ln in text.splitlines()]
-    text = "\n".join(ln for ln in lines if ln)
-    text = re.sub(r"\n{3,}", "\n\n", text).strip()
-    if len(text) > limit:
-        text = text[:limit].rsplit(" ", 1)[0] + " […]"
-    return text
-
-
-def photo_urls(raw_offer: dict, max_photos: int = 8) -> list[str]:
-    urls = []
-    for photo in (raw_offer.get("photos") or [])[:max_photos]:
-        link = photo.get("link") if isinstance(photo, dict) else None
-        if not link:
-            continue
-        urls.append(link.replace("{width}", "1000").replace("{height}", "700"))
-    return urls
-
-
-def export_html(con: sqlite3.Connection, path: str) -> None:
-    """Buduje pojedynczy, samowystarczalny plik HTML z mapą, listą i filtrami.
-    Lekkie dane (ceny, metraże, współrzędne, opisy) siedzą w pliku;
-    zdjęcia dociągają się z serwerów OLX dopiero po otwarciu oferty."""
-    history: dict[str, list] = {}
-    for offer_uid, ts, price in con.execute(
-            "SELECT offer_uid, ts, price FROM price_history ORDER BY ts"):
-        history.setdefault(offer_uid, []).append([ts[:10], price])
-
-    offers = []
-    query = """SELECT uid, source, url, title, price, negotiable, area,
-                      price_per_m, rooms, floor, market, district, business,
-                      created_at, first_seen, lat, lon, map_radius, raw
-               FROM offers WHERE active = 1"""
-    for (uid, source, url, title, price, negotiable, area, ppm, rooms, floor,
-         market, district, business, created, first_seen, lat, lon, radius,
-         raw) in con.execute(query):
-        try:
-            raw_offer = json.loads(raw) if raw else {}
-        except ValueError:
-            raw_offer = {}
-        if source == "otodom":
-            ad = raw_offer.get("_ad") or {}
-            photos = [u for u in (ad.get("images") or [])[:8]
-                      if isinstance(u, str)]
-            desc = strip_html(ad.get("description") or "")
-        else:
-            photos = photo_urls(raw_offer)
-            desc = strip_html(raw_offer.get("description") or "")
-        item = {
-            "id": uid, "s": source, "u": url, "t": title, "p": price,
-            "ng": negotiable, "a": area, "pm": ppm, "r": rooms, "f": floor,
-            "mk": market, "d": district, "b": business, "c": created,
-            "fs": first_seen, "lat": lat, "lon": lon, "rad": radius or 0,
-            "ph": photos, "dsc": desc,
-        }
-        hist = history.get(uid) or []
-        if len(hist) > 1:
-            item["h"] = hist
-        offers.append(item)
-
-    if not offers:
-        raise RuntimeError("Baza nie zawiera aktywnych ofert — najpierw uruchom "
-                           "skrypt bez --offline, żeby pobrać dane.")
-
-    cities = Counter(row[0] for row in
-                     con.execute("SELECT city FROM offers WHERE active = 1")
-                     if row[0])
-    meta = {
-        "city": cities.most_common(1)[0][0] if cities else "OLX",
-        "gen": datetime.now().isoformat(timespec="minutes"),
-        "url": meta_get(con, "search_url") or "",
-        "total": len(offers),
-    }
-
-    log("Pobieram bibliotekę map (Leaflet) do wklejenia w plik...")
-    leaflet_js, leaflet_css = fetch_leaflet()
-    data_json = json.dumps(offers, ensure_ascii=False,
-                           separators=(",", ":")).replace("</", "<\\/")
-    meta_json = json.dumps(meta, ensure_ascii=False).replace("</", "<\\/")
-
-    page = (HTML_TEMPLATE
-            .replace("/*__LEAFLET_CSS__*/", leaflet_css)
-            .replace("/*__LEAFLET_JS__*/", leaflet_js)
-            .replace("/*__META__*/null", meta_json)
-            .replace("/*__DATA__*/null", data_json))
-    with open(path, "w", encoding="utf-8") as f:
-        f.write(page)
-    size_mb = len(page.encode("utf-8")) / 1_048_576
-    log(f"\n✔ Zapisano interaktywną mapę {len(offers)} ofert do „{path}” "
-        f"({size_mb:.1f} MB). Otwórz ten plik w przeglądarce.")
-
-
-HTML_TEMPLATE = r"""<!DOCTYPE html>
-<html lang="pl">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Oferty OLX — mapa</title>
-<style>/*__LEAFLET_CSS__*/</style>
-<style>
-:root{--bg:#f4f5f7;--panel:#fff;--line:#e2e5ea;--txt:#1c2733;--mut:#68758a;
- --acc:#2456c7;--accbg:#e9effc;--green:#178a4c;--red:#c92a2a;--rad:10px}
-*{box-sizing:border-box}
-html,body{margin:0;height:100%;font:14px/1.45 -apple-system,"Segoe UI",Roboto,
- "Helvetica Neue",Arial,sans-serif;color:var(--txt);background:var(--bg)}
-button,input,select{font:inherit;color:inherit}
-header{display:flex;gap:14px;align-items:center;padding:9px 14px;background:var(--panel);
- border-bottom:1px solid var(--line);flex-wrap:wrap}
-header h1{font-size:16px;margin:0;white-space:nowrap}
-header .sub{color:var(--mut);font-size:12px}
-#q{flex:1;min-width:180px;max-width:460px;padding:7px 11px;border:1px solid var(--line);
- border-radius:8px;background:#fbfcfd}
-#q:focus{outline:2px solid var(--accbg);border-color:var(--acc)}
-label.chk{display:flex;gap:6px;align-items:center;color:var(--mut);font-size:12.5px;
- cursor:pointer;user-select:none;white-space:nowrap}
-#layout{display:flex;height:calc(100% - 52px)}
-aside#filters{width:252px;min-width:252px;overflow-y:auto;background:var(--panel);
- border-right:1px solid var(--line);padding:12px}
-#mapwrap{flex:1;min-width:0;position:relative}
-#map{position:absolute;inset:0}
-aside#list{width:396px;min-width:300px;display:flex;flex-direction:column;
- background:var(--panel);border-left:1px solid var(--line)}
-.f-group{margin-bottom:14px}
-.f-group>h3{margin:0 0 6px;font-size:11px;text-transform:uppercase;letter-spacing:.06em;
- color:var(--mut)}
-.range{display:flex;gap:6px}
-.range input{width:50%;padding:6px 8px;border:1px solid var(--line);border-radius:7px}
-select{width:100%;padding:6px 8px;border:1px solid var(--line);border-radius:7px;
- background:#fff}
-.chips{display:flex;gap:6px;flex-wrap:wrap}
-.chip{padding:5px 11px;border:1px solid var(--line);border-radius:99px;background:#fff;
- cursor:pointer}
-.chip.on{background:var(--acc);border-color:var(--acc);color:#fff}
-#districts{max-height:168px;overflow-y:auto;border:1px solid var(--line);
- border-radius:7px;padding:6px 8px;background:#fbfcfd}
-#districts label{display:flex;gap:6px;align-items:center;padding:2px 0;cursor:pointer}
-#districts .cnt{margin-left:auto;color:var(--mut);font-size:11.5px}
-.mini{font-size:12px;color:var(--acc);background:none;border:none;cursor:pointer;
- padding:0 6px 0 0}
-#stats{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:12px}
-#stats div{background:var(--accbg);border-radius:8px;padding:7px 9px}
-#stats b{display:block;font-size:15px}
-#stats span{font-size:11px;color:var(--mut)}
-#histo{width:100%;height:74px;margin:2px 0 12px;display:block}
-#clear{width:100%;padding:8px;border:1px solid var(--line);border-radius:8px;
- background:#fff;cursor:pointer}
-#clear:hover{background:var(--accbg)}
-#listhead{display:flex;gap:8px;align-items:center;padding:9px 12px;
- border-bottom:1px solid var(--line)}
-#listhead .n{font-size:12.5px;color:var(--mut);white-space:nowrap}
-#cards{overflow-y:auto;flex:1}
-.card{display:flex;gap:10px;padding:10px 12px;border-bottom:1px solid var(--line);
- cursor:pointer}
-.card:hover{background:#f7f9fc}
-.card.sel{background:var(--accbg)}
-.card img{width:92px;height:70px;object-fit:cover;border-radius:7px;background:#e8ebf0;
- flex-shrink:0}
-.card .noimg{width:92px;height:70px;border-radius:7px;background:#eef0f4;color:#b6bdc9;
- display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
-.card h4{margin:0 0 3px;font-size:13px;line-height:1.3;font-weight:600;
- display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-.card .pr{font-size:14.5px;font-weight:700}
-.card .meta{font-size:12px;color:var(--mut)}
-.badge{display:inline-block;font-size:10.5px;font-weight:700;border-radius:5px;
- padding:1px 6px;margin-left:6px;vertical-align:1px}
-.badge.new{background:#e3f4ea;color:var(--green)}
-.badge.drop{background:#fdecec;color:var(--red)}
-#more{padding:12px;text-align:center;color:var(--mut)}
-#detail{position:fixed;top:0;right:-620px;width:min(600px,100vw);height:100%;
- background:var(--panel);box-shadow:-8px 0 28px rgba(15,25,40,.18);z-index:1200;
- transition:right .22s ease;display:flex;flex-direction:column}
-#detail.open{right:0}
-#dbody{overflow-y:auto;padding:16px 18px}
-#dclose{position:absolute;top:10px;right:12px;width:34px;height:34px;border-radius:50%;
- border:none;background:rgba(20,28,40,.55);color:#fff;font-size:17px;cursor:pointer;
- z-index:5}
-#backdrop{position:fixed;inset:0;background:rgba(15,22,33,.35);z-index:1100;
- opacity:0;pointer-events:none;transition:opacity .2s}
-#backdrop.open{opacity:1;pointer-events:auto}
-#gal{position:relative;background:#0d1117;border-radius:var(--rad);overflow:hidden}
-#gal .main{width:100%;height:320px;object-fit:contain;display:block}
-#thumbs{display:flex;gap:6px;overflow-x:auto;padding:8px 0 2px}
-#thumbs img{width:72px;height:54px;object-fit:cover;border-radius:6px;cursor:pointer;
- opacity:.65;flex-shrink:0}
-#thumbs img.on{opacity:1;outline:2px solid var(--acc)}
-#detail h2{margin:12px 0 4px;font-size:18px;line-height:1.3}
-#dprice{font-size:22px;font-weight:800}
-#dprice small{font-size:13px;color:var(--mut);font-weight:400}
-#dgrid{display:grid;grid-template-columns:1fr 1fr;gap:7px 14px;margin:13px 0;
- padding:12px;background:#f7f8fa;border-radius:var(--rad)}
-#dgrid span{color:var(--mut);font-size:11.5px;display:block}
-#dgrid b{font-weight:600}
-#dhist table{width:100%;border-collapse:collapse;font-size:13px}
-#dhist td{padding:4px 0;border-bottom:1px dashed var(--line)}
-#dhist td:last-child{text-align:right}
-.up{color:var(--red)}.down{color:var(--green)}
-#ddesc{white-space:pre-line;margin-top:12px;font-size:13.5px}
-.olxbtn{display:block;text-align:center;margin:16px 0 6px;padding:11px;
- background:var(--acc);color:#fff;text-decoration:none;border-radius:9px;font-weight:600}
-.approx{font-size:12px;color:var(--mut);margin-top:8px}
-.leaflet-container{font:inherit}
-.legend{background:#fff;padding:8px 10px;border-radius:8px;
- box-shadow:0 1px 5px rgba(0,0,0,.25);font-size:11.5px;line-height:1.55}
-.legend i{display:inline-block;width:11px;height:11px;border-radius:50%;
- margin-right:6px;vertical-align:-1px}
-@media(max-width:960px){
- #layout{flex-direction:column;height:auto}
- aside#filters{width:100%;min-width:0;order:2;border-right:none;
-  border-top:1px solid var(--line)}
- #mapwrap{order:1;height:46vh;flex:none}
- aside#list{width:100%;min-width:0;order:3;border-left:none;height:60vh}
- body,html{height:auto}
-}
-</style>
-</head>
-<body>
-<header>
- <div><h1 id="hd">Oferty OLX</h1><div class="sub" id="hdsub"></div></div>
- <input id="q" type="search" placeholder="Szukaj: np. balkon, garaż, Ruczaj…">
- <label class="chk"><input type="checkbox" id="qdesc" checked> szukaj też w opisach</label>
-</header>
-<div id="layout">
- <aside id="filters">
-  <div id="stats"></div>
-  <canvas id="histo" title="Rozkład ceny za m² (po filtrach)"></canvas>
-  <div class="f-group"><h3>Cena [zł]</h3>
-   <div class="range"><input id="pmin" type="number" placeholder="od" step="10000">
-    <input id="pmax" type="number" placeholder="do" step="10000"></div></div>
-  <div class="f-group"><h3>Metraż [m²]</h3>
-   <div class="range"><input id="amin" type="number" placeholder="od">
-    <input id="amax" type="number" placeholder="do"></div></div>
-  <div class="f-group"><h3>Cena za m² [zł]</h3>
-   <div class="range"><input id="mmin" type="number" placeholder="od" step="500">
-    <input id="mmax" type="number" placeholder="do" step="500"></div></div>
-  <div class="f-group"><h3>Pokoje</h3><div class="chips" id="rooms">
-   <button class="chip" data-r="1">1</button><button class="chip" data-r="2">2</button>
-   <button class="chip" data-r="3">3</button><button class="chip" data-r="4">4+</button>
-  </div></div>
-  <div class="f-group"><h3>Portal</h3><div class="chips" id="portals">
-   <button class="chip on" data-s="olx">OLX</button>
-   <button class="chip on" data-s="otodom">Otodom</button>
-  </div></div>
-  <div class="f-group"><h3>Rynek</h3><select id="market">
-   <option value="">wszystkie</option><option>Pierwotny</option><option>Wtórny</option>
-  </select></div>
-  <div class="f-group"><h3>Sprzedający</h3><select id="seller">
-   <option value="">wszyscy</option><option value="0">osoba prywatna</option>
-   <option value="1">firma / deweloper</option>
-  </select></div>
-  <div class="f-group"><h3>Dodane</h3><select id="fresh">
-   <option value="">kiedykolwiek</option><option value="1">ostatnie 24 h</option>
-   <option value="3">ostatnie 3 dni</option><option value="7">ostatnie 7 dni</option>
-   <option value="14">ostatnie 14 dni</option><option value="30">ostatnie 30 dni</option>
-  </select></div>
-  <div class="f-group"><h3>Dzielnica</h3>
-   <div><button class="mini" id="dall">wszystkie</button>
-    <button class="mini" id="dnone">żadna</button></div>
-   <div id="districts"></div></div>
-  <div class="f-group">
-   <label class="chk"><input type="checkbox" id="onlydrop"> tylko z obniżką ceny</label>
-   <label class="chk"><input type="checkbox" id="onlygeo"> tylko z lokalizacją na mapie</label>
-   <label class="chk"><input type="checkbox" id="bounds"> zawęź do widocznego obszaru mapy</label>
-  </div>
-  <button id="clear">Wyczyść filtry</button>
- </aside>
- <div id="mapwrap"><div id="map"></div></div>
- <aside id="list">
-  <div id="listhead">
-   <select id="sort">
-    <option value="new">najnowsze</option>
-    <option value="pm-asc">cena za m² ↑</option>
-    <option value="pm-desc">cena za m² ↓</option>
-    <option value="p-asc">cena ↑</option>
-    <option value="p-desc">cena ↓</option>
-    <option value="a-desc">metraż ↓</option>
-    <option value="a-asc">metraż ↑</option>
-    <option value="drop">największa obniżka</option>
-   </select>
-   <span class="n" id="cnt"></span>
-  </div>
-  <div id="cards"></div>
- </aside>
-</div>
-<div id="backdrop"></div>
-<section id="detail"><button id="dclose" title="Zamknij">✕</button>
- <div id="dbody"></div></section>
-<script>/*__LEAFLET_JS__*/</script>
-<script>
-"use strict";
-const META = /*__META__*/null;
-const OFFERS = /*__DATA__*/null;
-const GEN = new Date(META.gen);
-const PORTAL = {olx: "OLX", otodom: "Otodom"};
-const $ = s => document.querySelector(s);
-const esc = s => (s == null ? "" : String(s))
-  .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
-  .replace(/"/g,"&quot;");
-const fmtP = v => v == null ? "brak ceny"
-  : Math.round(v).toString().replace(/\B(?=(\d{3})+(?!\d))/g,"\u202f") + " zł";
-const fmtN = v => v == null ? "—"
-  : Math.round(v).toString().replace(/\B(?=(\d{3})+(?!\d))/g,"\u202f");
-function fmtDate(iso){
-  if(!iso) return "—";
-  const d = new Date(iso), days = Math.floor((GEN - d)/864e5);
-  if(days <= 0) return "dziś";
-  if(days === 1) return "wczoraj";
-  if(days < 14) return days + " dni temu";
-  return d.toLocaleDateString("pl-PL");
-}
-function roomBucket(r){
-  if(!r) return null;
-  if(/kawaler/i.test(r)) return 1;
-  const m = r.match(/\d+/);
-  return m ? Math.min(+m[0], 4) : null;
-}
-// obniżka: cena aktualna vs najwyższa w historii
-for(const o of OFFERS){
-  o._rb = roomBucket(o.r);
-  o._drop = 0;
-  if(o.h && o.p != null){
-    const top = Math.max(...o.h.map(x => x[1]));
-    if(top > o.p) o._drop = (top - o.p) / top;
-  }
-  o._new = o.fs && (GEN - new Date(o.fs)) < 48*3600e3;
-  o._txt = (o.t || "").toLowerCase();
-  o._dtxt = (o.dsc || "").toLowerCase();
-}
-document.title = `Mieszkania ${META.city} — mapa ofert OLX`;
-$("#hd").textContent = `Mieszkania — ${META.city}`;
-const perSrc = OFFERS.reduce((m,o) => (m[o.s]=(m[o.s]||0)+1, m), {});
-$("#hdsub").textContent = `stan z ${GEN.toLocaleString("pl-PL",
-  {dateStyle:"medium", timeStyle:"short"})} · ` +
-  Object.entries(perSrc).map(([s,n]) => `${PORTAL[s]||s}: ${n}`).join(" · ");
-
-/* ---------- mapa ---------- */
-const withGeo = OFFERS.filter(o => o.lat != null && o.lon != null);
-const cLat = withGeo.length ?
-  withGeo.reduce((s,o)=>s+o.lat,0)/withGeo.length : 50.0614;
-const cLon = withGeo.length ?
-  withGeo.reduce((s,o)=>s+o.lon,0)/withGeo.length : 19.9366;
-const map = L.map("map", {preferCanvas:true}).setView([cLat, cLon], 12);
-/* Kafelki OpenStreetMap.org wymagają od 2026 r. nagłówka Referer, którego
-   przeglądarki nie wysyłają z plików lokalnych (file://) — każdy kafelek
-   wracał jako "Access blocked". Publiczne kafelki CARTO (te same dane OSM,
-   styl Voyager) nie mają tego wymogu i działają z pliku lokalnego. */
-L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
-  {maxZoom:20, subdomains:"abcd",
-   attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-              +' &middot; &copy; <a href="https://carto.com/attributions">CARTO</a>'}
-).addTo(map);
-// skala kolorów: kwintyle ceny za m² liczone raz, z całego zbioru
-const PAL = ["#1a9850","#8fce54","#f5c53c","#f2803a","#d73027"];
-const ppmAll = OFFERS.map(o=>o.pm).filter(v=>v!=null).sort((a,b)=>a-b);
-const BR = [1,2,3,4].map(i => ppmAll[Math.floor(ppmAll.length*i/5)] || 0);
-const colorOf = v => v == null ? "#8a93a3"
-  : PAL[BR.findIndex(b => v <= b) === -1 ? 4 : BR.findIndex(b => v <= b)];
-const legend = L.control({position:"bottomleft"});
-legend.onAdd = () => {
-  const div = L.DomUtil.create("div","legend");
-  div.innerHTML = "<b>cena za m²</b><br>" + PAL.map((c,i)=>{
-    const lo = i ? fmtN(BR[i-1]) : null, hi = BR[i] ? fmtN(BR[i]) : null;
-    const lbl = i === 0 ? "do " + hi : i === 4 ? "od " + lo : lo + "–" + hi;
-    return `<i style="background:${c}"></i>${lbl}`;
-  }).join("<br>");
-  return div;
-};
-legend.addTo(map);
-const layer = L.layerGroup().addTo(map);
-const markers = new Map();
-let selId = null;
-function baseStyle(o){
-  return {radius:6, weight:1, color:"#fff", fillColor:colorOf(o.pm),
-          fillOpacity:.88};
-}
-function rebuildMarkers(list){
-  layer.clearLayers(); markers.clear();
-  for(const o of list){
-    if(o.lat == null) continue;
-    const m = L.circleMarker([o.lat, o.lon], baseStyle(o))
-      .on("click", () => openDetail(o.id, true))
-      .bindTooltip(`${esc(o.t)}<br><b>${fmtP(o.p)}</b>` +
-        (o.pm ? ` · ${fmtN(o.pm)} zł/m²` : ""), {direction:"top", opacity:.94});
-    m.addTo(layer);
-    markers.set(o.id, m);
-  }
-  if(selId != null) highlight(selId);
-}
-function highlight(id){
-  if(selId != null && markers.has(selId)){
-    const prev = OFFERS.find(x => x.id === selId);
-    markers.get(selId).setStyle(baseStyle(prev));
-  }
-  selId = id;
-  const m = markers.get(id);
-  if(m){ m.setStyle({radius:10, weight:3, color:"#17233b"}); m.bringToFront(); }
-}
-
-/* ---------- filtry ---------- */
-const districts = {};
-for(const o of OFFERS){
-  const d = o.d || "(nie podano)";
-  districts[d] = (districts[d] || 0) + 1;
-}
-$("#districts").innerHTML = Object.entries(districts)
-  .sort((a,b) => b[1]-a[1])
-  .map(([d,n]) => `<label><input type="checkbox" class="dbox" value="${esc(d)}"
-     checked> ${esc(d)} <span class="cnt">${n}</span></label>`).join("");
-const num = id => { const v = $(id).value.trim(); return v === "" ? null : +v; };
-function currentFilter(){
-  const roomsOn = [...document.querySelectorAll("#rooms .chip.on")]
-    .map(b => +b.dataset.r);
-  const boxes = [...document.querySelectorAll(".dbox")];
-  const dsel = new Set(boxes.filter(b => b.checked).map(b => b.value));
-  const allD = dsel.size === boxes.length;
-  const srcOn = [...document.querySelectorAll("#portals .chip.on")]
-    .map(b => b.dataset.s);
-  const q = $("#q").value.trim().toLowerCase();
-  const inDesc = $("#qdesc").checked;
-  const freshDays = $("#fresh").value ? +$("#fresh").value : null;
-  const bounds = $("#bounds").checked ? map.getBounds() : null;
-  return o => {
-    if(srcOn.length < 2 && !srcOn.includes(o.s)) return false;
-    if(q && !(o._txt.includes(q) || (inDesc && o._dtxt.includes(q)))) return false;
-    const pmin=num("#pmin"), pmax=num("#pmax");
-    if(pmin != null && (o.p == null || o.p < pmin)) return false;
-    if(pmax != null && (o.p == null || o.p > pmax)) return false;
-    const amin=num("#amin"), amax=num("#amax");
-    if(amin != null && (o.a == null || o.a < amin)) return false;
-    if(amax != null && (o.a == null || o.a > amax)) return false;
-    const mmin=num("#mmin"), mmax=num("#mmax");
-    if(mmin != null && (o.pm == null || o.pm < mmin)) return false;
-    if(mmax != null && (o.pm == null || o.pm > mmax)) return false;
-    if(roomsOn.length && (o._rb == null || !roomsOn.includes(o._rb))) return false;
-    if($("#market").value && o.mk !== $("#market").value) return false;
-    if($("#seller").value !== "" && String(o.b) !== $("#seller").value) return false;
-    if(freshDays != null){
-      const t = o.c || o.fs;
-      if(!t || (GEN - new Date(t)) > freshDays*864e5) return false;
-    }
-    if(!allD && !dsel.has(o.d || "(nie podano)")) return false;
-    if($("#onlydrop").checked && !(o._drop > 0)) return false;
-    if($("#onlygeo").checked && o.lat == null) return false;
-    if(bounds && (o.lat == null || !bounds.contains([o.lat, o.lon]))) return false;
-    return true;
-  };
-}
-const SORTS = {
-  "new": (a,b) => new Date(b.c || b.fs || 0) - new Date(a.c || a.fs || 0),
-  "pm-asc": (a,b) => (a.pm ?? 9e9) - (b.pm ?? 9e9),
-  "pm-desc": (a,b) => (b.pm ?? -1) - (a.pm ?? -1),
-  "p-asc": (a,b) => (a.p ?? 9e9) - (b.p ?? 9e9),
-  "p-desc": (a,b) => (b.p ?? -1) - (a.p ?? -1),
-  "a-desc": (a,b) => (b.a ?? -1) - (a.a ?? -1),
-  "a-asc": (a,b) => (a.a ?? 9e9) - (b.a ?? 9e9),
-  "drop": (a,b) => b._drop - a._drop,
-};
-let filtered = [], shown = 0;
-const CHUNK = 80;
-function apply(refitMarkers = true){
-  const pass = currentFilter();
-  filtered = OFFERS.filter(pass).sort(SORTS[$("#sort").value]);
-  $("#cnt").textContent = `${filtered.length} z ${OFFERS.length}`;
-  renderStats(); renderHisto();
-  if(refitMarkers) rebuildMarkers(filtered);
-  $("#cards").scrollTop = 0;
-  shown = 0; $("#cards").innerHTML = ""; renderMore();
-}
-function median(arr){
-  if(!arr.length) return null;
-  const s = [...arr].sort((a,b)=>a-b), m = s.length >> 1;
-  return s.length % 2 ? s[m] : (s[m-1]+s[m])/2;
-}
-function renderStats(){
-  const ps = filtered.map(o=>o.p).filter(v=>v!=null);
-  const ms = filtered.map(o=>o.pm).filter(v=>v!=null);
-  const drops = filtered.filter(o=>o._drop>0).length;
-  $("#stats").innerHTML =
-    `<div><b>${filtered.length}</b><span>ofert po filtrach</span></div>` +
-    `<div><b>${fmtN(median(ms))}</b><span>mediana zł/m²</span></div>` +
-    `<div><b>${fmtN(median(ps))}</b><span>mediana ceny [zł]</span></div>` +
-    `<div><b>${drops}</b><span>z obniżką ceny</span></div>`;
-}
-function renderHisto(){
-  const cv = $("#histo"), ctx = cv.getContext("2d");
-  const W = cv.width = cv.clientWidth * devicePixelRatio;
-  const H = cv.height = cv.clientHeight * devicePixelRatio;
-  ctx.clearRect(0,0,W,H);
-  const vals = filtered.map(o=>o.pm).filter(v=>v!=null);
-  if(vals.length < 3) return;
-  const lo = ppmAll[Math.floor(ppmAll.length*.02)] || Math.min(...vals);
-  const hi = ppmAll[Math.floor(ppmAll.length*.98)] || Math.max(...vals);
-  const NB = 28, bins = new Array(NB).fill(0);
-  for(const v of vals){
-    const i = Math.max(0, Math.min(NB-1, Math.floor((v-lo)/(hi-lo)*NB)));
-    bins[i]++;
-  }
-  const top = Math.max(...bins), bw = W/NB;
-  for(let i=0;i<NB;i++){
-    const h = bins[i]/top*(H-14*devicePixelRatio);
-    const mid = lo + (i+.5)*(hi-lo)/NB;
-    ctx.fillStyle = colorOf(mid);
-    ctx.fillRect(i*bw+1, H-h, bw-2, h);
-  }
-  ctx.fillStyle = "#68758a";
-  ctx.font = `${10*devicePixelRatio}px sans-serif`;
-  ctx.fillText(fmtN(lo), 2, 10*devicePixelRatio);
-  const t = fmtN(hi);
-  ctx.fillText(t, W - ctx.measureText(t).width - 2, 10*devicePixelRatio);
-}
-function cardHTML(o){
-  const img = o.ph.length
-    ? `<img loading="lazy" src="${esc(o.ph[0])}"
-        onerror="this.outerHTML='<div class=noimg>🏠</div>'">`
-    : `<div class="noimg">🏠</div>`;
-  const badges = (o._new ? `<span class="badge new">NOWA</span>` : "") +
-    (o._drop > 0 ? `<span class="badge drop">-${(o._drop*100).toFixed(0)}%</span>` : "");
-  const meta = [PORTAL[o.s] || o.s, o.a ? o.a + " m²" : null,
-    o.pm ? fmtN(o.pm) + " zł/m²" : null,
-    o.r || null, o.d || null].filter(Boolean).join(" · ");
-  return `<div class="card" data-id="${o.id}">${img}<div>
-    <h4>${esc(o.t)}${badges}</h4>
-    <div class="pr">${fmtP(o.p)}</div>
-    <div class="meta">${esc(meta)}</div></div></div>`;
-}
-function renderMore(){
-  const slice = filtered.slice(shown, shown + CHUNK);
-  shown += slice.length;
-  const sent = $("#more"); if(sent) sent.remove();
-  $("#cards").insertAdjacentHTML("beforeend", slice.map(cardHTML).join(""));
-  if(shown < filtered.length)
-    $("#cards").insertAdjacentHTML("beforeend",
-      `<div id="more">… wczytuję (${shown}/${filtered.length})</div>`);
-  const m = $("#more");
-  if(m) io.observe(m);
-}
-const io = new IntersectionObserver(es => {
-  if(es.some(e => e.isIntersecting)) renderMore();
-});
-$("#cards").addEventListener("click", e => {
-  const card = e.target.closest(".card");
-  if(card) openDetail(card.dataset.id, false);
-});
-
-/* ---------- szczegóły oferty ---------- */
-function openDetail(id, fromMap){
-  const o = OFFERS.find(x => x.id === id);
-  if(!o) return;
-  highlight(id);
-  document.querySelectorAll(".card.sel").forEach(c => c.classList.remove("sel"));
-  const card = document.querySelector(`.card[data-id="${id}"]`);
-  if(card){ card.classList.add("sel");
-    if(fromMap) card.scrollIntoView({block:"nearest"}); }
-  if(!fromMap && o.lat != null)
-    map.flyTo([o.lat, o.lon], Math.max(map.getZoom(), 15), {duration:.5});
-  // zdjęcia dociągane z serwerów OLX dopiero teraz — na żądanie
-  const gal = o.ph.length ? `<div id="gal">
-      <img class="main" id="gmain" src="${esc(o.ph[0])}"
-       onerror="this.closest('#gal').style.display='none'"></div>` +
-    (o.ph.length > 1 ? `<div id="thumbs">` + o.ph.map((u,i) =>
-      `<img src="${esc(u)}" data-i="${i}" class="${i?"":"on"}"
-        onerror="this.remove()">`).join("") + `</div>` : "")
-    : "";
-  const grid = [
-    ["Portal", PORTAL[o.s] || o.s],
-    ["Metraż", o.a ? o.a + " m²" : null],
-    ["Cena za m²", o.pm ? fmtN(o.pm) + " zł" : null],
-    ["Pokoje", o.r], ["Piętro", o.f],
-    ["Rynek", o.mk], ["Dzielnica", o.d],
-    ["Sprzedający", o.b ? "firma / deweloper" : "osoba prywatna"],
-    ["Dodane", fmtDate(o.c)],
-    ["Pierwszy raz widziana", fmtDate(o.fs)],
-  ].filter(x => x[1] != null)
-   .map(x => `<div><span>${x[0]}</span><b>${esc(x[1])}</b></div>`).join("");
-  let hist = "";
-  if(o.h){
-    hist = `<div id="dhist"><h3>Historia cen</h3><table>` + o.h.map((x,i) => {
-      const prev = i ? o.h[i-1][1] : null;
-      const diff = prev == null ? "" :
-        `<span class="${x[1] > prev ? "up" : "down"}">
-          ${x[1] > prev ? "▲" : "▼"} ${fmtN(Math.abs(x[1]-prev))}</span> `;
-      return `<tr><td>${esc(x[0])}</td><td>${diff}${fmtP(x[1])}</td></tr>`;
-    }).join("") + `</table></div>`;
-  }
-  $("#dbody").innerHTML = gal +
-    `<h2>${esc(o.t)}</h2>
-     <div id="dprice">${fmtP(o.p)}${o.ng ? " <small>do negocjacji</small>" : ""}</div>
-     <div id="dgrid">${grid}</div>` + hist +
-    (o.rad > 0 ? `<div class="approx">📍 Sprzedający podał lokalizację
-       przybliżoną (±${fmtN(o.rad)} m) — pinezka wskazuje okolicę.</div>` : "") +
-    (o.dsc ? `<div id="ddesc">${esc(o.dsc)}</div>` : "") +
-    `<a class="olxbtn" href="${esc(o.u)}" target="_blank" rel="noopener">
-       Otwórz ogłoszenie na ${PORTAL[o.s] || "portalu"} ↗</a>`;
-  const th = $("#thumbs");
-  if(th) th.addEventListener("click", e => {
-    if(e.target.tagName !== "IMG") return;
-    $("#gmain").src = o.ph[+e.target.dataset.i];
-    th.querySelectorAll("img").forEach(x => x.classList.remove("on"));
-    e.target.classList.add("on");
-  });
-  $("#detail").classList.add("open");
-  $("#backdrop").classList.add("open");
-}
-function closeDetail(){
-  $("#detail").classList.remove("open");
-  $("#backdrop").classList.remove("open");
-}
-$("#dclose").onclick = closeDetail;
-$("#backdrop").onclick = closeDetail;
-addEventListener("keydown", e => { if(e.key === "Escape") closeDetail(); });
-
-/* ---------- zdarzenia ---------- */
-let deb;
-const soon = () => { clearTimeout(deb); deb = setTimeout(() => apply(), 220); };
-["#q","#pmin","#pmax","#amin","#amax","#mmin","#mmax"]
-  .forEach(s => $(s).addEventListener("input", soon));
-["#qdesc","#market","#seller","#fresh","#sort","#onlydrop","#onlygeo"]
-  .forEach(s => $(s).addEventListener("change", () => apply()));
-$("#bounds").addEventListener("change", () => apply(false));
-map.on("moveend", () => { if($("#bounds").checked) apply(false); });
-document.querySelectorAll("#rooms .chip").forEach(b =>
-  b.addEventListener("click", () => { b.classList.toggle("on"); apply(); }));
-document.querySelectorAll("#portals .chip").forEach(b =>
-  b.addEventListener("click", () => { b.classList.toggle("on"); apply(); }));
-$("#districts").addEventListener("change", () => apply());
-$("#dall").onclick = () => {
-  document.querySelectorAll(".dbox").forEach(b => b.checked = true); apply(); };
-$("#dnone").onclick = () => {
-  document.querySelectorAll(".dbox").forEach(b => b.checked = false); apply(); };
-$("#clear").onclick = () => {
-  ["#q","#pmin","#pmax","#amin","#amax","#mmin","#mmax"]
-    .forEach(s => $(s).value = "");
-  ["#market","#seller","#fresh"].forEach(s => $(s).value = "");
-  ["#onlydrop","#onlygeo","#bounds"].forEach(s => $(s).checked = false);
-  $("#qdesc").checked = true;
-  document.querySelectorAll("#rooms .chip").forEach(b => b.classList.remove("on"));
-  document.querySelectorAll("#portals .chip").forEach(b => b.classList.add("on"));
-  document.querySelectorAll(".dbox").forEach(b => b.checked = true);
-  apply();
-};
-addEventListener("resize", renderHisto);
-apply();
-</script>
-</body>
-</html>
-"""
 
 
 # ------------------------------------------------------------------------ main

@@ -1,4 +1,0 @@
-# Recommended: mimics a real browser's TLS fingerprint, avoids most 403s.
-curl_cffi>=0.6
-# Fallback if curl_cffi is unavailable; the script detects which one is present.
-# requests>=2.28
