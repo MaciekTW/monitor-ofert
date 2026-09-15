@@ -89,23 +89,29 @@ L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r
 const PAL = ["#1a9850","#8fce54","#f5c53c","#f2803a","#d73027"];
 const ppmAll = OFFERS.map(o=>o.pm).filter(v=>v!=null).sort((a,b)=>a-b);
 const BR = [1,2,3,4].map(i => ppmAll[Math.floor(ppmAll.length*i/5)] || 0);
-const colorOf = v => v == null ? "#8a93a3"
-  : PAL[BR.findIndex(b => v <= b) === -1 ? 4 : BR.findIndex(b => v <= b)];
+const NOPRICE = "#8a93a3";
+// przedział ceny za m²: 0–4 jak w legendzie, 5 = brak ceny za m²
+const bucketOf = v => v == null ? 5 : BR.findIndex(b => v <= b) === -1 ? 4 : BR.findIndex(b => v <= b);
+const colorOf = v => PAL[bucketOf(v)] ?? NOPRICE;
+function bucketLabel(i){
+  const lo = i ? fmtN(BR[i-1]) : null, hi = BR[i] ? fmtN(BR[i]) : null;
+  return i === 0 ? "do " + hi : i === 4 ? "od " + lo : lo + "–" + hi;
+}
 const legend = L.control({position:"bottomleft"});
 legend.onAdd = () => {
   const div = L.DomUtil.create("div",
     "rounded-lg bg-white px-2.5 py-2 text-[11.5px]/[1.55] shadow-[0_1px_5px_rgba(0,0,0,.25)]");
-  div.innerHTML = "<b>cena za m²</b><br>" + PAL.map((c,i)=>{
-    const lo = i ? fmtN(BR[i-1]) : null, hi = BR[i] ? fmtN(BR[i]) : null;
-    const lbl = i === 0 ? "do " + hi : i === 4 ? "od " + lo : lo + "–" + hi;
-    return `<i class="mr-1.5 inline-block size-[11px] rounded-full align-[-1px]"
-      style="background:${c}"></i>${lbl}`;
-  }).join("<br>");
+  div.innerHTML = "<b>cena za m²</b><br>" + PAL.map((c,i) =>
+    `<i class="mr-1.5 inline-block size-[11px] rounded-full align-[-1px]"
+      style="background:${c}"></i>${bucketLabel(i)}`).join("<br>");
   return div;
 };
 legend.addTo(map);
-/* ---------- warstwy dodatkowe: granice miasta i punkty (lodziarnie, markety) ---------- */
+/* ---------- warstwy: granice miasta, ogłoszenia według ceny za m², punkty (lodziarnie, markety) ---------- */
 // każda warstwa włączana i wyłączana w całości; ikona w panelu = ikona markerów
+const dot = c => `<i class="inline-block size-[11px] rounded-full" style="background:${c}"></i>`;
+// ogłoszenia rozłożone na warstwy według przedziału ceny za m² (rebuildMarkers)
+const priceLayers = [...PAL, NOPRICE].map(() => L.layerGroup());
 const OVERLAYS = [{
   label: "Granice Krakowa",
   visible: true,
@@ -113,7 +119,10 @@ const OVERLAYS = [{
   // sam obwód, nieklikalny, żeby nie zasłaniał markerów
   layer: L.polygon(KRAKOW_BOUNDARY,
     {color:"#2563eb", weight:2.5, opacity:.85, fill:false, interactive:false}),
-}];
+}, ...priceLayers.map((layer, i) => ({
+  label: i < 5 ? `${bucketLabel(i)} zł/m²` : "brak ceny za m²",
+  group: "Ceny mieszkań", visible: true, layer, swatch: dot(PAL[i] ?? NOPRICE),
+}))];
 for(const def of JSON.parse(document.getElementById("pois").textContent)){
   const round = def.shape === "square" ? "rounded-[5px]" : "rounded-full";
   const icon = L.divIcon({className: "", iconSize: [26, 26], iconAnchor: [13, 13], popupAnchor: [0, -13],
@@ -127,13 +136,16 @@ for(const def of JSON.parse(document.getElementById("pois").textContent)){
     swatch: `<img src="${def.icon}" alt="" class="size-[18px] bg-white object-contain ${def.shape === "square" ? "rounded-[3px]" : "rounded-full"}">`});
 }
 OVERLAYS.filter(o => o.visible).forEach(o => o.layer.addTo(map));
-// w panelu najpierw warstwy bez grupy, potem sekcje grup w kolejności pojawienia się
+// w panelu najpierw warstwy bez grupy, potem sekcje grup w kolejności pojawienia się;
+// pole przy nagłówku sekcji włącza lub wyłącza wszystkie jej warstwy naraz
+const overlayGroups = [...new Set(OVERLAYS.map(o => o.group ?? null))]
+  .sort((a, b) => (a !== null) - (b !== null));
 const overlayRow = o => `<label class="chk py-0.5 text-ink">
   <input type="checkbox" data-i="${OVERLAYS.indexOf(o)}" ${o.visible ? "checked" : ""}>
   <span class="grid w-[18px] place-items-center">${o.swatch}</span>${esc(o.label)}</label>`;
-const overlaySections = [...new Set(OVERLAYS.map(o => o.group ?? null))]
-  .sort((a, b) => (a !== null) - (b !== null))
-  .map(g => (g === null ? "" : `<h3 class="f-title mt-2 border-t border-line pt-2">${esc(g)}</h3>`) +
+const overlaySections = overlayGroups
+  .map((g, gi) => (g === null ? "" : `<label class="chk f-title mt-2 mb-1 border-t border-line pt-2">
+      <input type="checkbox" data-g="${gi}"> ${esc(g)}</label>`) +
     OVERLAYS.filter(o => (o.group ?? null) === g).map(overlayRow).join(""))
   .join("");
 const overlayToggle = L.control({position:"topright"});
@@ -157,14 +169,28 @@ overlayToggle.onAdd = () => {
   };
   btn.addEventListener("click", () => setOpen(panel.hidden));
   map.on("click", () => setOpen(false));
-  panel.addEventListener("change", e => {
-    const o = OVERLAYS[+e.target.dataset.i];
-    e.target.checked ? o.layer.addTo(map) : o.layer.remove();
+  const setVisible = (i, on) => {
+    panel.querySelector(`input[data-i="${i}"]`).checked = on;
+    on ? OVERLAYS[i].layer.addTo(map) : OVERLAYS[i].layer.remove();
+  };
+  // pole sekcji: zaznaczone, gdy wszystkie warstwy włączone, „częściowe”, gdy tylko niektóre
+  const syncGroups = () => panel.querySelectorAll("input[data-g]").forEach(box => {
+    const g = overlayGroups[+box.dataset.g];
+    const on = OVERLAYS.filter(o => o.group === g)
+      .map(o => panel.querySelector(`input[data-i="${OVERLAYS.indexOf(o)}"]`).checked);
+    box.checked = on.every(Boolean);
+    box.indeterminate = !box.checked && on.some(Boolean);
   });
+  panel.addEventListener("change", e => {
+    const {i, g} = e.target.dataset;
+    if(g != null) OVERLAYS.forEach((o, j) => o.group === overlayGroups[+g] && setVisible(j, e.target.checked));
+    else setVisible(+i, e.target.checked);
+    syncGroups();
+  });
+  syncGroups();
   return div;
 };
 overlayToggle.addTo(map);
-const layer = L.layerGroup().addTo(map);
 const markers = new Map();
 let selId = null;
 function baseStyle(o){
@@ -172,14 +198,14 @@ function baseStyle(o){
           fillOpacity:.88};
 }
 function rebuildMarkers(list){
-  layer.clearLayers(); markers.clear();
+  priceLayers.forEach(l => l.clearLayers()); markers.clear();
   for(const o of list){
     if(o.lat == null) continue;
     const m = L.circleMarker([o.lat, o.lon], baseStyle(o))
       .on("click", () => openDetail(o.id, true))
       .bindTooltip(`${esc(o.t)}<br><b>${fmtP(o.p)}</b>` +
         (o.pm ? ` · ${fmtN(o.pm)} zł/m²` : ""), {direction:"top", opacity:.94});
-    m.addTo(layer);
+    m.addTo(priceLayers[bucketOf(o.pm)]);
     markers.set(o.id, m);
   }
   if(selId != null) highlight(selId);
