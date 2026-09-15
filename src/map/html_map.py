@@ -17,6 +17,7 @@ from __future__ import annotations
 import base64
 import html as html_lib
 import json
+import os
 import re
 import sqlite3
 from collections import Counter
@@ -300,7 +301,14 @@ def export_html(con: sqlite3.Connection, path: str) -> None:
         "gen": datetime.now().isoformat(timespec="minutes"),
         "url": meta_get(con, "search_url") or "",
         "total": len(offers),
+        # klucz do kafelków CARTO; bez niego kafelki mają napis „API KEY REQUIRED”
+        "carto": os.environ.get("CARTO_API_KEY", "").strip(),
     }
+    if not meta["carto"]:
+        log(
+            "⚠ Brak zmiennej CARTO_API_KEY (np. w pliku .env) — mapa zadziała, ale kafelki "
+            "będą miały napis „API KEY REQUIRED”. Darmowy klucz: https://carto.com/basemaps/apikey"
+        )
 
     page = (
         make_env()

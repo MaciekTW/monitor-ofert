@@ -9,3 +9,6 @@ data.html
 *.db-wal
 .pytest_cache/
 .venv/
+
+# lokalne ustawienia i klucze (wzór w .env.example)
+.env

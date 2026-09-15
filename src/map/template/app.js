@@ -79,8 +79,10 @@ const map = L.map("map", {preferCanvas:true}).setView([cLat, cLon], 12);
 /* Kafelki OpenStreetMap.org wymagają od 2026 r. nagłówka Referer, którego
    przeglądarki nie wysyłają z plików lokalnych (file://) — każdy kafelek
    wracał jako "Access blocked". Publiczne kafelki CARTO (te same dane OSM,
-   styl Voyager) nie mają tego wymogu i działają z pliku lokalnego. */
-L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
+   styl Voyager) nie mają tego wymogu i działają z pliku lokalnego. Od sierpnia 2026 CARTO
+   wymaga klucza (CARTO_API_KEY) — bez niego kafelki mają napis „API KEY REQUIRED”. */
+L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png" +
+  (META.carto ? "?key=" + encodeURIComponent(META.carto) : ""),
   {maxZoom:20, subdomains:"abcd",
    attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
               +' &middot; &copy; <a href="https://carto.com/attributions">CARTO</a>'}

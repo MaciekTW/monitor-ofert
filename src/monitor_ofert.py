@@ -57,7 +57,10 @@ import random
 import unicodedata
 from collections import Counter
 from datetime import datetime
+from pathlib import Path
 from urllib.parse import urlparse, parse_qsl
+
+from dotenv import load_dotenv
 
 from map.html_map import export_html
 from terminal_report import report
@@ -1465,6 +1468,9 @@ def collect(source, con, quick: bool) -> tuple[list, bool]:
 
 
 def main(argv: list[str] | None = None) -> None:
+    # opcjonalne ustawienia (np. CARTO_API_KEY) z pliku .env w głównym katalogu repozytorium;
+    # zmienne ustawione już w środowisku mają pierwszeństwo
+    load_dotenv(Path(__file__).resolve().parents[1] / ".env")
     args = parse_cli(argv)
     chosen = select_sources(args)
 

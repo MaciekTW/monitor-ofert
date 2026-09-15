@@ -9,6 +9,8 @@ dependencies = [
     "curl_cffi>=0.6",
     # szablony interaktywnej mapy HTML (--html)
     "jinja2>=3.0",
+    # wczytuje opcjonalny plik .env (np. klucz CARTO do kafelków mapy)
+    "python-dotenv>=1.2.3",
     # czytelny raport ofert w terminalu (tabele, kolory, klikalne linki)
     "rich>=13",
 ]

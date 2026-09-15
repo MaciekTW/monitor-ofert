@@ -23,13 +23,29 @@ single-file **interactive map** with filters.
   - `curl_cffi` mimics a real browser's TLS fingerprint, which is what OLX
     uses to detect scripted requests,
   - `jinja2` renders the interactive map,
-  - `rich` formats the terminal report (tables, colours, clickable links).
+  - `rich` formats the terminal report (tables, colours, clickable links),
+  - `python-dotenv` loads optional settings from a `.env` file.
 
 ```bash
 uv sync            # creates .venv and installs the locked dependencies
 ```
 
 `uv run` syncs the environment automatically, so the step above is optional.
+
+### Map tiles API key (optional)
+
+The map uses CARTO basemap tiles, which since August 2026 need an API key —
+without one the map still works, but every tile shows an "API KEY REQUIRED"
+watermark (and the script prints a warning). Request a free key at
+<https://carto.com/basemaps/apikey>, then put it in a `.env` file in the
+repository root (it is git-ignored):
+
+```bash
+cp .env.example .env   # then fill in CARTO_API_KEY
+```
+
+A `CARTO_API_KEY` variable already set in the environment takes precedence.
+Note that the key ends up inside the generated HTML file.
 
 ## Usage
 
