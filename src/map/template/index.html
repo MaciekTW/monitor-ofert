@@ -19,8 +19,14 @@
   <button class="tab" data-tab="hist">Historia rynku</button>
  </nav>
  <div id="mapctl" class="contents">
- <input id="q" type="search" placeholder="Szukaj: np. balkon, garaż, Ruczaj…"
-  class="field max-w-[460px] min-w-[180px] flex-1 rounded-lg bg-[#fbfcfd] px-3">
+ <div id="qrows" class="flex max-w-[820px] min-w-[180px] flex-1 flex-wrap items-center gap-1.5"
+   title="I – ogłoszenie musi zawierać obie frazy (wiąże mocniej niż LUB)&#10;LUB – wystarczy jedna z fraz&#10;NIE – fraza nie może wystąpić w ogłoszeniu">
+  <div class="qrow min-w-[180px] flex-1"><input id="q" type="search" placeholder="Szukaj: np. balkon, garaż, Ruczaj…"
+   class="field rounded-lg bg-[#fbfcfd] px-3"></div>
+  <button id="qadd" type="button" title="Dodaj kolejną frazę"
+   class="grid size-8 shrink-0 cursor-pointer place-items-center rounded-full border border-line bg-white
+     text-lg/none text-acc hover:border-acc hover:bg-acc-soft">+</button>
+ </div>
  <label class="chk"><input type="checkbox" id="qdesc" checked> szukaj też w opisach</label>
  </div>
 </header>

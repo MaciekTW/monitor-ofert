@@ -234,6 +234,34 @@ $("#districts").innerHTML = Object.entries(districts)
      <input type="checkbox" class="dbox" value="${esc(d)}" checked> ${esc(d)}
      <span class="ml-auto text-[11.5px] text-mut">${n}</span></label>`).join("");
 const num = id => { const v = $(id).value.trim(); return v === "" ? null : +v; };
+/* wyszukiwarka: komórki z frazami, każda kolejna z łącznikiem I / LUB / NIE.
+   I wiąże mocniej niż LUB: „a I b LUB c” = (a i b) albo c. Frazy z NIE wykluczają
+   ogłoszenie niezależnie od pozostałych. Puste komórki są pomijane. */
+function currentQuery(){
+  const any = [[]], not = [];  // any: alternatywa grup, w których muszą wystąpić wszystkie frazy
+  for(const row of document.querySelectorAll("#qrows .qrow")){
+    const w = row.querySelector("input").value.trim().toLowerCase();
+    const op = row.querySelector("select")?.value ?? "and";
+    if(!w) continue;
+    if(op === "not"){ not.push(w); continue; }
+    if(op === "or" && any.at(-1).length) any.push([]);
+    any.at(-1).push(w);
+  }
+  return {any: any.filter(g => g.length), not};
+}
+function addQueryRow(){
+  const row = document.createElement("div");
+  row.className = "qrow flex items-center";
+  row.innerHTML = `<select title="Łącznik z poprzednimi frazami" class="field w-auto cursor-pointer
+      rounded-r-none border-r-0 bg-page px-1 text-[12.5px] font-semibold">
+      <option value="and">I</option><option value="or">LUB</option><option value="not">NIE</option></select>
+    <input type="text" placeholder="fraza" class="field w-36 rounded-none bg-[#fbfcfd]">
+    <button type="button" title="Usuń frazę" class="field w-auto cursor-pointer rounded-l-none border-l-0
+      px-2 text-mut hover:text-bad">×</button>`;
+  row.querySelector("button").onclick = () => { row.remove(); apply(); };
+  $("#qadd").before(row);
+  row.querySelector("input").focus();
+}
 function currentFilter(){
   const roomsOn = [...document.querySelectorAll("#rooms .chip.on")]
     .map(b => +b.dataset.r);
@@ -242,13 +270,15 @@ function currentFilter(){
   const allD = dsel.size === boxes.length;
   const srcOn = [...document.querySelectorAll("#portals .chip.on")]
     .map(b => b.dataset.s);
-  const q = $("#q").value.trim().toLowerCase();
+  const q = currentQuery();
   const inDesc = $("#qdesc").checked;
   const freshDays = $("#fresh").value ? +$("#fresh").value : null;
   const bounds = $("#bounds").checked ? map.getBounds() : null;
   return o => {
     if(srcOn.length < 2 && !srcOn.includes(o.s)) return false;
-    if(q && !(o._txt.includes(q) || (inDesc && o._dtxt.includes(q)))) return false;
+    const hit = w => o._txt.includes(w) || (inDesc && o._dtxt.includes(w));
+    if(q.any.length && !q.any.some(g => g.every(hit))) return false;
+    if(q.not.some(hit)) return false;
     const pmin=num("#pmin"), pmax=num("#pmax");
     if(pmin != null && (o.p == null || o.p < pmin)) return false;
     if(pmax != null && (o.p == null || o.p > pmax)) return false;
@@ -509,8 +539,10 @@ addEventListener("keydown", e => { if(e.key === "Escape") closeDetail(); });
 /* ---------- zdarzenia ---------- */
 let deb;
 const soon = () => { clearTimeout(deb); deb = setTimeout(() => apply(), 220); };
-["#q","#pmin","#pmax","#amin","#amax","#mmin","#mmax"]
+["#qrows","#pmin","#pmax","#amin","#amax","#mmin","#mmax"]
   .forEach(s => $(s).addEventListener("input", soon));
+$("#qrows").addEventListener("change", e => { if(e.target.tagName === "SELECT") apply(); });
+$("#qadd").onclick = addQueryRow;
 ["#qdesc","#market","#seller","#fresh","#sort","#onlydrop","#onlygeo"]
   .forEach(s => $(s).addEventListener("change", () => apply()));
 $("#bounds").addEventListener("change", () => apply(false));
@@ -527,6 +559,7 @@ $("#dnone").onclick = () => {
 $("#clear").onclick = () => {
   ["#q","#pmin","#pmax","#amin","#amax","#mmin","#mmax"]
     .forEach(s => $(s).value = "");
+  document.querySelectorAll("#qrows .qrow:has(select)").forEach(r => r.remove());
   ["#market","#seller","#fresh"].forEach(s => $(s).value = "");
   ["#onlydrop","#onlygeo","#bounds"].forEach(s => $(s).checked = false);
   $("#qdesc").checked = true;
