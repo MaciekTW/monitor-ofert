@@ -1,0 +1,881 @@
+{
+  "type": "FeatureCollection",
+  "generator": "overpass-turbo",
+  "copyright": "The data included in this document is from www.openstreetmap.org. The data is made available under ODbL.",
+  "timestamp": "2026-09-14T23:10:27Z",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/688243869",
+        "addr:city": "Kraków",
+        "addr:postcode": "30-034",
+        "addr:street": "Plac Teodora Axentowicza",
+        "amenity": "ice_cream",
+        "brand": "Good Lood",
+        "brand:wikidata": "Q122978001",
+        "building": "retail",
+        "check_date": "2026-04-27",
+        "check_date:diet:vegan": "2026-04-27",
+        "contact:phone": "+48 12 619 09 52",
+        "delivery": "no",
+        "diet:vegan": "yes",
+        "email": "goodlood@goodlood.com",
+        "indoor_seating": "no",
+        "internet_access": "no",
+        "name": "Good Lood",
+        "nohousenumber": "yes",
+        "opening_hours": "Mo-Su 10:00-22:00",
+        "outdoor_seating": "no",
+        "payment:cash": "yes",
+        "payment:credit_cards": "yes",
+        "payment:debit_cards": "yes",
+        "shop": "ice_cream",
+        "takeaway": "only",
+        "website": "https://goodlood.com",
+        "wheelchair": "yes",
+        "@geometry": "center"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9261748,
+          50.071536
+        ]
+      },
+      "id": "way/688243869"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/1246986661",
+        "addr:city": "Kraków",
+        "addr:housenumber": "1",
+        "addr:postcode": "30-111",
+        "addr:street": "Józefa Kałuży",
+        "amenity": "ice_cream",
+        "brand": "Good Lood",
+        "brand:wikidata": "Q122978001",
+        "building": "yes",
+        "contact:phone": "+48 12 619 09 56",
+        "delivery": "yes",
+        "diet:vegan": "yes",
+        "email": "goodlood@goodlood.com",
+        "indoor_seating": "no",
+        "name": "Good Lood",
+        "opening_hours": "Mo-Fr 11:00-21:00; Sa-Su 10:00-21:00",
+        "outdoor_seating": "yes",
+        "shop": "ice_cream",
+        "takeaway": "yes",
+        "website": "https://goodlood.com",
+        "wheelchair": "yes",
+        "@geometry": "center"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9221554,
+          50.0586652
+        ]
+      },
+      "id": "way/1246986661"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/1385129249",
+        "addr:city": "Kraków",
+        "addr:housenumber": "41",
+        "addr:postcode": "31-876",
+        "addr:street": "Aleja Generała Tadeusza Bora-Komorowskiego",
+        "amenity": "ice_cream",
+        "branch": "Serenada",
+        "brand": "Good Lood",
+        "brand:wikidata": "Q122978001",
+        "contact:phone": "+48 12 619 09 67",
+        "delivery": "no",
+        "email": "goodlood@goodlood.com",
+        "level": "0",
+        "name": "Good Lood",
+        "opening_hours": "Mo-Sa 10:00-22:00",
+        "outdoor_seating": "no",
+        "shop": "ice_cream",
+        "takeaway": "yes",
+        "wheelchair": "yes",
+        "@geometry": "center"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9852291,
+          50.0877145
+        ]
+      },
+      "id": "way/1385129249"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/2121835233",
+        "addr:city": "Kraków",
+        "addr:housenumber": "11",
+        "addr:postcode": "31-060",
+        "addr:street": "Plac Wolnica",
+        "contact:phone": "+48 12 619 09 65",
+        "delivery": "no",
+        "email": "goodlood@goodlood.com",
+        "name": "Good Lood",
+        "opening_hours": "Mo-Fr 11:00-22:00; Sa 10:00-22:00; Su 09:30-22:00",
+        "outdoor_seating": "no",
+        "shop": "ice_cream",
+        "takeaway": "yes",
+        "website": "https://goodlood.com",
+        "wheelchair": "yes"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9448742,
+          50.0486842
+        ]
+      },
+      "id": "node/2121835233"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/2255630637",
+        "addr:city": "Kraków",
+        "addr:housenumber": "26",
+        "addr:postcode": "30-733",
+        "addr:street": "Kozia",
+        "amenity": "ice_cream",
+        "contact:phone": "+48 12 311 02 28",
+        "delivery": "no",
+        "email": "goodlood@goodlood.com",
+        "name": "Good Lood Bagry",
+        "opening_hours": "Mo-Fr 11:00-21:00; Sa-Su 11:00-21:30",
+        "outdoor_seating": "yes",
+        "shop": "ice_cream",
+        "takeaway": "yes",
+        "wheelchair": "no"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9947711,
+          50.0330791
+        ]
+      },
+      "id": "node/2255630637"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/2990206350",
+        "addr:city": "Kraków",
+        "addr:housenumber": "60",
+        "addr:postcode": "31-155",
+        "addr:street": "Grodzka",
+        "amenity": "ice_cream",
+        "brand": "Good Lood",
+        "brand:wikidata": "Q122978001",
+        "contact:phone": "+48 12 383 26 00",
+        "email": "support@goodlood.com",
+        "indoor_seating": "yes",
+        "name": "Good Lood",
+        "opening_hours": "Mo-Fr 11:00-21:00; Sa-Su 10:00-21:00",
+        "outdoor_seating": "yes",
+        "shop": "ice_cream",
+        "takeaway": "yes",
+        "website": "https://goodlood.com"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9384442,
+          50.0553714
+        ]
+      },
+      "id": "node/2990206350"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/3745362774",
+        "addr:city": "Kraków",
+        "addr:housenumber": "19A",
+        "addr:postcode": "30-612",
+        "addr:street": "Wincentego Witosa",
+        "amenity": "ice_cream",
+        "brand": "Good Lood",
+        "brand:wikidata": "Q122978001",
+        "contact:phone": "+48 12 619 09 49",
+        "delivery": "no",
+        "email": "goodlood@goodlood.com",
+        "name": "Good Lood",
+        "opening_hours": "Mo-Fr 11:00-21:00, Sa-Su 10:00-21:00",
+        "outdoor_seating": "yes",
+        "shop": "ice_cream",
+        "takeaway": "yes",
+        "website": "https://goodlood.com",
+        "wheelchair": "yes"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9562533,
+          50.0108844
+        ]
+      },
+      "id": "node/3745362774"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/4422324498",
+        "addr:city": "Kraków",
+        "addr:housenumber": "8",
+        "addr:postcode": "30-426",
+        "addr:street": "Józefa Montwiłła-Mireckiego",
+        "amenity": "ice_cream",
+        "delivery": "no",
+        "email": "goodlood@goodlood.com",
+        "name": "Good Lood",
+        "opening_hours": "Mo-Su 11:00-21:00",
+        "phone": "+48 12 619 09 57",
+        "shop": "ice_cream",
+        "takeaway": "yes",
+        "website": "https://goodlood.com",
+        "wheelchair": "yes"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9274054,
+          50.0192686
+        ]
+      },
+      "id": "node/4422324498"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/4848519421",
+        "addr:city": "Kraków",
+        "addr:housenumber": "79",
+        "addr:postcode": "31-315",
+        "addr:street": "Walerego Eliasza Radzikowskiego",
+        "amenity": "ice_cream",
+        "brand": "Good Lood",
+        "brand:wikidata": "Q122978001",
+        "check_date:opening_hours": "2026-05-24",
+        "contact:phone": "+48 12 619 09 52",
+        "delivery": "Mo-Su 14:00-22:00",
+        "diet:vegan": "yes",
+        "email": "goodlood@goodlood.com",
+        "name": "Good Lood",
+        "opening_hours": "Mo-Su 11:00-21:00",
+        "outdoor_seating": "no",
+        "shop": "ice_cream",
+        "takeaway": "yes",
+        "website": "https://goodlood.com",
+        "wheelchair": "yes"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.8939845,
+          50.0860248
+        ]
+      },
+      "id": "node/4848519421"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/4934648936",
+        "addr:city": "Kraków",
+        "addr:place": "Osiedle Centrum C",
+        "addr:postcode": "31-960",
+        "air_conditioning": "yes",
+        "amenity": "ice_cream",
+        "branch": "Nowa Huta",
+        "brand": "Good Lood",
+        "brand:wikidata": "Q122978001",
+        "check_date:opening_hours": "2024-09-24",
+        "contact:phone": "+48 12 619 09 50",
+        "email": "goodlood@goodlood.com",
+        "indoor_seating": "yes",
+        "name": "Good Lood",
+        "opening_hours": "Mo-Su 11:00-21:00",
+        "opening_hours:signed": "no",
+        "outdoor_seating": "no",
+        "payment:credit_cards": "yes",
+        "payment:debit_cards": "yes",
+        "smoking": "no",
+        "takeaway": "yes",
+        "website": "https://goodlood.com",
+        "wheelchair": "no"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          20.0376363,
+          50.074256
+        ]
+      },
+      "id": "node/4934648936"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/5589365523",
+        "addr:city": "Kraków",
+        "addr:housenumber": "18",
+        "addr:postcode": "30-867",
+        "addr:street": "Konrada Wallenroda",
+        "air_conditioning": "yes",
+        "amenity": "ice_cream",
+        "contact:phone": "+48 12 619 09 63",
+        "delivery": "no",
+        "email": "goodlood@goodlood.com",
+        "name": "Good Lood",
+        "opening_hours": "Mo-Sa 12:00-20:00, Su 11:00-20:00",
+        "outdoor_seating": "yes",
+        "takeaway": "yes",
+        "website": "https://goodlood.com",
+        "wheelchair": "yes"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          20.0017668,
+          50.0167215
+        ]
+      },
+      "id": "node/5589365523"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/5786966732",
+        "addr:city": "Kraków",
+        "addr:housenumber": "11",
+        "addr:postcode": "33-332",
+        "addr:street": "Nadwiślańska",
+        "amenity": "ice_cream",
+        "brand": "Good Lood",
+        "brand:wikidata": "Q122978001",
+        "check_date": "2026-04-25",
+        "check_date:diet:vegan": "2026-04-25",
+        "contact:phone": "+48 12 619 09 52",
+        "delivery": "no",
+        "diet:vegan": "yes",
+        "email": "goodlood@goodlood.com",
+        "name": "Good Lood",
+        "opening_hours": "Mo-Su 11:00-21:00",
+        "outdoor_seating": "yes",
+        "shop": "ice_cream",
+        "takeaway": "yes",
+        "website": "https://goodlood.com",
+        "wheelchair": "yes"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.951065,
+          50.0468759
+        ]
+      },
+      "id": "node/5786966732"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/5820913644",
+        "addr:door": "2",
+        "amenity": "ice_cream",
+        "brand": "Good Lood",
+        "brand:wikidata": "Q122978001",
+        "contact:phone": "+48 12 619 09 59",
+        "delivery": "Mo-Su 14:00-22:00",
+        "email": "goodlood@goodlood.com",
+        "name": "Good Lood",
+        "opening_hours": "Mo-Fr 11:00-21:00; Sa-Su 10:00-21:00",
+        "outdoor_seating": "yes",
+        "shop": "ice_cream",
+        "takeaway": "yes",
+        "website": "https://goodlood.com",
+        "wheelchair": "yes"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9170219,
+          50.0285096
+        ]
+      },
+      "id": "node/5820913644"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/6411105064",
+        "addr:city": "Kraków",
+        "addr:housenumber": "10",
+        "addr:postcode": "31-141",
+        "addr:street": "Basztowa",
+        "air_conditioning": "yes",
+        "amenity": "ice_cream",
+        "contact:phone": "+48 12 619 09 44",
+        "delivery": "no",
+        "diet:vegan": "yes",
+        "email": "goodlood@goodlood.com",
+        "indoor_seating": "yes",
+        "name": "Good Lood",
+        "opening_hours": "Mo-Fr 12:00-21:00; Sa 11:00-22:00; Su 11:00-21:00",
+        "outdoor_seating": "no",
+        "payment:credit_cards": "yes",
+        "payment:debit_cards": "yes",
+        "shop": "ice_cream",
+        "smoking": "no",
+        "takeaway": "yes",
+        "wheelchair": "no"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9385017,
+          50.0663733
+        ]
+      },
+      "id": "node/6411105064"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/6423602093",
+        "addr:city": "Kraków",
+        "addr:housenumber": "11",
+        "addr:postcode": "31-209",
+        "addr:street": "Generała Augusta Fieldorfa-Nila",
+        "amenity": "ice_cream",
+        "brand": "Good Lood",
+        "brand:wikidata": "Q122978001",
+        "check_date": "2025-10-26",
+        "contact:phone": "+48 12 619 09 47",
+        "delivery": "no",
+        "email": "support@goodlood.com",
+        "name": "Good Lood",
+        "opening_hours": "Mo-Su 11:00-21:00",
+        "outdoor_seating": "yes",
+        "seasonal": "summer",
+        "shop": "ice_cream",
+        "takeaway": "yes",
+        "website": "https://goodlood.com",
+        "website:menu": "https://menu.goodlood.com/14#flavors",
+        "wheelchair": "yes"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9346142,
+          50.0886716
+        ]
+      },
+      "id": "node/6423602093"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/6441466707",
+        "addr:city": "Kraków",
+        "addr:housenumber": "6",
+        "addr:place": "Osiedle Józefa Strusia",
+        "addr:postcode": "31-807",
+        "air_conditioning": "yes",
+        "amenity": "ice_cream",
+        "brand": "Good Lood",
+        "brand:wikidata": "Q122978001",
+        "contact:phone": "+48 12 619 09 52",
+        "delivery": "no",
+        "email": "goodlood@goodlood.com",
+        "indoor_seating": "yes",
+        "name": "Good Lood",
+        "opening_hours": "Mo-Fr 11:00-21:00; Sa-Su 10:00-21:00",
+        "outdoor_seating": "sidewalk",
+        "payment:credit_cards": "yes",
+        "payment:debit_cards": "yes",
+        "shop": "ice_cream",
+        "smoking": "outside",
+        "takeaway": "yes",
+        "wheelchair": "yes"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          20.0139498,
+          50.0885359
+        ]
+      },
+      "id": "node/6441466707"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/6441466708",
+        "amenity": "ice_cream",
+        "brand": "Good Lood",
+        "brand:wikidata": "Q122978001",
+        "contact:phone": "+48 12 619 09 54",
+        "delivery": "no",
+        "email": "goodlood@goodlood.com",
+        "level": "0",
+        "name": "Good Lood",
+        "opening_hours": "Mo-Sa 10:00-22:00, Su 12:00-21:00",
+        "outdoor_seating": "no",
+        "shop": "ice_cream",
+        "takeaway": "yes",
+        "website": "https://goodlood.com",
+        "wheelchair": "yes"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9509417,
+          50.0270489
+        ]
+      },
+      "id": "node/6441466708"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/6441466709",
+        "addr:city": "Kraków",
+        "addr:housenumber": "6",
+        "addr:postcode": "33-332",
+        "addr:street": "Józefa Rostafińskiego",
+        "air_conditioning": "yes",
+        "amenity": "ice_cream",
+        "brand": "Good Lood",
+        "brand:wikidata": "Q122978001",
+        "delivery": "no",
+        "diet:vegan": "yes",
+        "email": "goodlood@goodlood.com",
+        "indoor_seating": "yes",
+        "name": "Good Lood",
+        "opening_hours": "Mo-Su 11:00-21:00",
+        "outdoor_seating": "sidewalk",
+        "payment:credit_cards": "yes",
+        "payment:debit_cards": "yes",
+        "phone": "+48 12 619 09 51",
+        "shop": "ice_cream",
+        "smoking": "no",
+        "takeaway": "yes",
+        "website": "https://goodlood.com",
+        "wheelchair": "yes"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9053,
+          50.068602
+        ]
+      },
+      "id": "node/6441466709"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/6441466710",
+        "addr:city": "Kraków",
+        "addr:housenumber": "18/2a",
+        "addr:postcode": "30-348",
+        "addr:street": "Drukarska",
+        "amenity": "ice_cream",
+        "contact:phone": "+48 12 619 09 58",
+        "delivery": "no",
+        "email": "goodlood@goodlood.com",
+        "name": "Good Lood",
+        "opening_hours": "Mo-Su 11:00-21:00",
+        "outdoor_seating": "yes",
+        "shop": "ice_cream",
+        "takeaway": "yes",
+        "website": "https://goodlood.com",
+        "wheelchair": "yes"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9026439,
+          50.0242605
+        ]
+      },
+      "id": "node/6441466710"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/7227236444",
+        "addr:city": "Kraków",
+        "addr:housenumber": "4",
+        "addr:postcode": "30-702",
+        "addr:street": "Tadeusza Romanowicza",
+        "amenity": "ice_cream",
+        "delivery": "Mo-Su 14:00-22:00",
+        "email": "goodlood@goodlood.com",
+        "name": "Good Lood",
+        "opening_hours": "Mo-Su 11:00-21:00",
+        "outdoor_seating": "yes",
+        "phone": "+48 12 619 09 53",
+        "shop": "ice_cream",
+        "takeaway": "yes",
+        "website": "https://goodlood.com",
+        "wheelchair": "yes"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9640347,
+          50.0475033
+        ]
+      },
+      "id": "node/7227236444"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/7372092756",
+        "addr:city": "Kraków",
+        "addr:housenumber": "28",
+        "addr:postcode": "31-222",
+        "addr:street": "Zygmunta Glogera",
+        "amenity": "ice_cream",
+        "contact:phone": "+48 12 619 09 60",
+        "delivery": "Mon-Su 14:00-22:00",
+        "email": "goodlood@goodlood.com",
+        "name": "Good Lood",
+        "opening_hours": "Mo-Fr 11:00-21:00; Sa-Su 10:00-21:00",
+        "outdoor_seating": "no",
+        "shop": "ice_cream",
+        "takeaway": "yes",
+        "website": "https://goodlood.com",
+        "wheelchair": "yes"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9284465,
+          50.1029142
+        ]
+      },
+      "id": "node/7372092756"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/7548699531",
+        "addr:city": "Kraków",
+        "addr:housenumber": "11/U1",
+        "addr:place": "Osiedle Urocze",
+        "addr:postcode": "31-953",
+        "amenity": "ice_cream",
+        "brand": "Good Lood",
+        "brand:wikidata": "Q122978001",
+        "contact:phone": "+48 12 619 09 45",
+        "email": "goodlood@goodlood.com",
+        "indoor_seating": "yes",
+        "name": "Good Lood",
+        "opening_hours": "closed",
+        "outdoor_seating": "no",
+        "payment:credit_cards": "yes",
+        "payment:debit_cards": "yes",
+        "shop": "ice_cream",
+        "takeaway": "yes",
+        "website": "https://goodlood.com",
+        "wheelchair": "no"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          20.0390653,
+          50.0786361
+        ]
+      },
+      "id": "node/7548699531"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/7954193227",
+        "addr:city": "Kraków",
+        "addr:housenumber": "9",
+        "addr:postcode": "31-157",
+        "addr:street": "Plac Jana Matejki",
+        "air_conditioning": "yes",
+        "amenity": "ice_cream",
+        "brand": "Good Lood",
+        "brand:wikidata": "Q122978001",
+        "contact:phone": "+48 12 619 09 46",
+        "delivery": "no",
+        "diet:vegan": "yes",
+        "email": "goodlood@goodlood.com",
+        "indoor_seating": "yes",
+        "name": "Good Lood",
+        "opening_hours": "Mo-Su 11:00-21:00",
+        "outdoor_seating": "no",
+        "payment:credit_cards": "yes",
+        "payment:debit_cards": "yes",
+        "shop": "ice_cream",
+        "smoking": "no",
+        "takeaway": "yes",
+        "website": "https://goodlood.com",
+        "wheelchair": "no"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9424322,
+          50.0674803
+        ]
+      },
+      "id": "node/7954193227"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/8932177462",
+        "addr:city": "Kraków",
+        "addr:housenumber": "9",
+        "addr:postcode": "31-514",
+        "addr:street": "Aleja Pułkownika Władysława Beliny-Prażmowskiego",
+        "amenity": "ice_cream",
+        "contact:phone": "+48 12 619 09 61",
+        "delivery": "no",
+        "email": "goodlood@goodlood.com",
+        "name": "Good Lood",
+        "opening_hours": "Mo-Fr 11:00-20:30, Sa 11:00-21:00, Su 10:00-21:00",
+        "outdoor_seating": "yes",
+        "shop": "ice_cream",
+        "takeaway": "yes",
+        "website": "https://goodlood.com",
+        "wheelchair": "no"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9597106,
+          50.0686213
+        ]
+      },
+      "id": "node/8932177462"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/10056014486",
+        "addr:city": "Kraków",
+        "addr:housenumber": "61",
+        "addr:postcode": "31-346",
+        "addr:street": "Stawowa",
+        "amenity": "ice_cream",
+        "branch": "Galeria Bronowice",
+        "brand": "Good Lood",
+        "brand:wikidata": "Q122978001",
+        "check_date:opening_hours": "2025-04-27",
+        "contact:phone": "+48 12 383 26 70",
+        "diet:vegan": "yes",
+        "email": "goodlood@goodlood.com",
+        "level": "0",
+        "name": "Good Lood",
+        "opening_hours": "Mo-Sa 09:00-21:00",
+        "outdoor_seating": "no",
+        "shop": "ice_cream",
+        "takeaway": "yes",
+        "wheelchair": "yes"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.897237,
+          50.0928959
+        ]
+      },
+      "id": "node/10056014486"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/12880413638",
+        "addr:city": "Kraków",
+        "addr:housenumber": "1/LU5",
+        "addr:postcode": "31-878",
+        "addr:street": "Bolesława Orlińskiego",
+        "amenity": "ice_cream",
+        "brand": "Good Lood",
+        "brand:wikidata": "Q122978001",
+        "email": "support@goodlood.com",
+        "name": "Good Lood",
+        "opening_hours": "Mo-Fr 11:00-21:00; Sa-Su 10:00-21:00",
+        "outdoor_seating": "yes",
+        "shop": "ice_cream",
+        "website": "https://goodlood.com",
+        "wheelchair": "yes"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9996506,
+          50.0817384
+        ]
+      },
+      "id": "node/12880413638"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/14094166986",
+        "addr:city": "Kraków",
+        "addr:housenumber": "69/LU3",
+        "addr:postcode": "31-234",
+        "addr:street": "Papierni Prądnickich",
+        "amenity": "ice_cream",
+        "brand": "Good Lood",
+        "brand:wikidata": "Q122978001",
+        "check_date:opening_hours": "2026-08-14",
+        "indoor_seating": "yes",
+        "name": "Good Lood",
+        "opening_hours:signed": "no",
+        "outdoor_seating": "no"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9543223,
+          50.0998067
+        ]
+      },
+      "id": "node/14094166986"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/14174917595",
+        "amenity": "ice_cream",
+        "brand": "Good Lood",
+        "brand:wikidata": "Q122978001",
+        "name": "Good Lood"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9068277,
+          50.068477
+        ]
+      },
+      "id": "node/14174917595"
+    }
+  ]
+}

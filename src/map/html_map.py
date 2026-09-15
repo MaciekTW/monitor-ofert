@@ -5,7 +5,8 @@ z mapą (Leaflet), listą i filtrami aktywnych ofert zapisanych w bazie
 oraz drugą zakładką z historią rynku (liczba ofert, ceny i ich zmiany w czasie).
 
 Wygląd i logika strony są w katalogu template/ (szablon Jinja2 index.html
-oraz style.css, app.js, history.js i krakow_boundary.js wklejane do niego bez zmian).
+oraz style.css, app.js, history.js i krakow_boundary.js wklejane do niego bez zmian;
+dodatkowe warstwy punktów, np. lodziarnie, w template/layers/).
 Zewnętrzne biblioteki
 (Leaflet, Apache ECharts, Tailwind CSS w wersji przeglądarkowej) leżą w katalogu deps/
 w głównym katalogu repozytorium.
@@ -13,6 +14,7 @@ w głównym katalogu repozytorium.
 
 from __future__ import annotations
 
+import base64
 import html as html_lib
 import json
 import re
@@ -36,6 +38,47 @@ def meta_get(con: sqlite3.Connection, key: str):
 
 TEMPLATE_DIR = Path(__file__).parent / "template"
 DEPS_DIR = Path(__file__).parents[2] / "deps"  # np. js/leaflet.js, css/leaflet.css
+LAYERS_DIR = TEMPLATE_DIR / "layers"
+
+# Dodatkowe warstwy punktów na mapie, włączane i wyłączane w całości przyciskiem
+# warstw. Każda to plik GeoJSON z punktami (np. eksport z overpass-turbo)
+# i ikona SVG z katalogu template/layers/. Warstwy z tym samym "group" trafiają
+# w panelu do wspólnej sekcji z nagłówkiem; bez "group" są na górze panelu.
+# "shape": "square" rysuje marker jako zaokrąglony kwadrat zamiast koła
+# (dla kwadratowych logo, którym koło ucina rogi). "visible": False sprawia,
+# że warstwa jest po otwarciu mapy wyłączona i trzeba ją zaznaczyć w panelu.
+POI_LAYERS = [
+    {
+        "id": "goodlood",
+        "label": "Lodziarnie Good Lood",
+        "geojson": "goodlood.geojson",
+        "icon": "goodlood.svg",
+    },
+    {
+        "id": "lidl",
+        "label": "Lidl",
+        "group": "Markety",
+        "visible": False,
+        "geojson": "lidl.geojson",
+        "icon": "lidl.svg",
+    },
+    {
+        "id": "kaufland",
+        "label": "Kaufland",
+        "group": "Markety",
+        "visible": False,
+        "shape": "square",
+        "geojson": "kaufland.geojson",
+        "icon": "kaufland.svg",
+    },
+    {
+        "id": "auchan",
+        "label": "Auchan",
+        "group": "Markety",
+        "geojson": "auchan.geojson",
+        "icon": "auchan.svg",
+    },
+]
 
 
 def make_env() -> Environment:
@@ -85,6 +128,51 @@ def photo_urls(raw_offer: dict, max_photos: int = 8) -> list[str]:
             continue
         urls.append(link.replace("{width}", "1000").replace("{height}", "700"))
     return urls
+
+
+def poi_address(props: dict) -> str:
+    """Adres z tagów OSM: ulica (albo osiedle/plac) z numerem,
+    a dla punktów spoza Krakowa także miejscowość."""
+    street = props.get("addr:street") or props.get("addr:place") or ""
+    address = " ".join(part for part in (street, props.get("addr:housenumber")) if part)
+    city = props.get("addr:city")
+    if city and city != "Kraków":
+        address = f"{address}, {city}" if address else city
+    return address
+
+
+def poi_layers() -> list[dict]:
+    """Warstwy z POI_LAYERS: ikona jako data URI i kompaktowa lista punktów
+    [lat, lon, nazwa, adres, godziny otwarcia]."""
+    layers = []
+    for spec in POI_LAYERS:
+        svg = (LAYERS_DIR / spec["icon"]).read_text(encoding="utf-8")
+        # blok <metadata> (manifest pochodzenia pliku) tylko zwiększa rozmiar strony
+        svg = re.sub(r"<metadata>.*?</metadata>", "", svg, flags=re.DOTALL)
+        geojson = json.loads((LAYERS_DIR / spec["geojson"]).read_text(encoding="utf-8"))
+        points = []
+        for feature in geojson["features"]:
+            geometry = feature.get("geometry") or {}
+            if geometry.get("type") != "Point":
+                continue
+            lon, lat = geometry["coordinates"][:2]
+            props = feature.get("properties") or {}
+            name = " ".join(part for part in (props.get("name"), props.get("branch")) if part)
+            points.append(
+                [round(lat, 6), round(lon, 6), name, poi_address(props), props.get("opening_hours") or ""]
+            )
+        layers.append(
+            {
+                "id": spec["id"],
+                "label": spec["label"],
+                "group": spec.get("group"),
+                "visible": spec.get("visible", True),
+                "shape": spec.get("shape", "circle"),
+                "icon": "data:image/svg+xml;base64," + base64.b64encode(svg.encode("utf-8")).decode("ascii"),
+                "pts": points,
+            }
+        )
+    return layers
 
 
 def market_history(con: sqlite3.Connection) -> dict:
@@ -214,7 +302,11 @@ def export_html(con: sqlite3.Connection, path: str) -> None:
         "total": len(offers),
     }
 
-    page = make_env().get_template("index.html").render(meta=meta, offers=offers, hist=market_history(con))
+    page = (
+        make_env()
+        .get_template("index.html")
+        .render(meta=meta, offers=offers, hist=market_history(con), pois=poi_layers())
+    )
     with open(path, "w", encoding="utf-8") as f:
         f.write(page)
     size_mb = len(page.encode("utf-8")) / 1_048_576

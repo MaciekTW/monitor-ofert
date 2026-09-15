@@ -104,20 +104,66 @@ legend.onAdd = () => {
   return div;
 };
 legend.addTo(map);
-// granice Krakowa: sam obwód, nieklikalny, żeby nie zasłaniał markerów
-const boundary = L.polygon(KRAKOW_BOUNDARY,
-  {color:"#2563eb", weight:2.5, opacity:.85, fill:false, interactive:false}).addTo(map);
-const boundaryToggle = L.control({position:"topright"});
-boundaryToggle.onAdd = () => {
-  const div = L.DomUtil.create("label",
-    "chk m-0! rounded-lg bg-white px-2.5 py-1.5 text-[12px] shadow-[0_1px_5px_rgba(0,0,0,.25)]");
-  div.innerHTML = '<input type="checkbox" checked> granice Krakowa';
+/* ---------- warstwy dodatkowe: granice miasta i punkty (lodziarnie, markety) ---------- */
+// każda warstwa włączana i wyłączana w całości; ikona w panelu = ikona markerów
+const OVERLAYS = [{
+  label: "Granice Krakowa",
+  visible: true,
+  swatch: `<i class="inline-block h-0 w-[18px] border-t-[2.5px] border-[#2563eb]"></i>`,
+  // sam obwód, nieklikalny, żeby nie zasłaniał markerów
+  layer: L.polygon(KRAKOW_BOUNDARY,
+    {color:"#2563eb", weight:2.5, opacity:.85, fill:false, interactive:false}),
+}];
+for(const def of JSON.parse(document.getElementById("pois").textContent)){
+  const round = def.shape === "square" ? "rounded-[5px]" : "rounded-full";
+  const icon = L.divIcon({className: "", iconSize: [26, 26], iconAnchor: [13, 13], popupAnchor: [0, -13],
+    html: `<img src="${def.icon}" alt="" class="size-[26px] ${round} border-2 border-white bg-white object-contain
+      shadow-[0_1px_4px_rgba(0,0,0,.4)]">`});
+  const group = L.layerGroup(def.pts.map(([lat, lon, name, addr, hours]) =>
+    L.marker([lat, lon], {icon, title: name, riseOnHover: true})
+      .bindPopup(`<b>${esc(name)}</b>` + (addr ? `<br>${esc(addr)}` : "") +
+        (hours ? `<br><span class="text-mut">godziny: ${esc(hours === "closed" ? "zamknięte" : hours)}</span>` : ""))));
+  OVERLAYS.push({label: `${def.label} (${def.pts.length})`, group: def.group, visible: def.visible, layer: group,
+    swatch: `<img src="${def.icon}" alt="" class="size-[18px] bg-white object-contain ${def.shape === "square" ? "rounded-[3px]" : "rounded-full"}">`});
+}
+OVERLAYS.filter(o => o.visible).forEach(o => o.layer.addTo(map));
+// w panelu najpierw warstwy bez grupy, potem sekcje grup w kolejności pojawienia się
+const overlayRow = o => `<label class="chk py-0.5 text-ink">
+  <input type="checkbox" data-i="${OVERLAYS.indexOf(o)}" ${o.visible ? "checked" : ""}>
+  <span class="grid w-[18px] place-items-center">${o.swatch}</span>${esc(o.label)}</label>`;
+const overlaySections = [...new Set(OVERLAYS.map(o => o.group ?? null))]
+  .sort((a, b) => (a !== null) - (b !== null))
+  .map(g => (g === null ? "" : `<h3 class="f-title mt-2 border-t border-line pt-2">${esc(g)}</h3>`) +
+    OVERLAYS.filter(o => (o.group ?? null) === g).map(overlayRow).join(""))
+  .join("");
+const overlayToggle = L.control({position:"topright"});
+overlayToggle.onAdd = () => {
+  const div = L.DomUtil.create("div", "relative");
+  div.innerHTML = `<button type="button" title="Warstwy na mapie" aria-expanded="false"
+      class="grid size-10 cursor-pointer place-items-center rounded-full bg-white text-ink
+        shadow-[0_1px_5px_rgba(0,0,0,.3)] hover:bg-acc-soft on:bg-acc on:text-white">
+      <svg viewBox="0 0 24 24" class="size-5" fill="none" stroke="currentColor" stroke-width="2"
+        stroke-linejoin="round"><path d="M12 3 2 8l10 5 10-5z"/><path d="m2 13 10 5 10-5"/></svg></button>
+    <div hidden class="absolute top-12 right-0 w-max rounded-lg bg-white px-3 py-2
+      shadow-[0_1px_5px_rgba(0,0,0,.25)]">
+      <h3 class="f-title">Warstwy</h3>${overlaySections}</div>`;
   L.DomEvent.disableClickPropagation(div);
-  div.querySelector("input").addEventListener("change", e =>
-    e.target.checked ? boundary.addTo(map) : boundary.remove());
+  L.DomEvent.disableScrollPropagation(div);
+  const btn = div.querySelector("button"), panel = div.querySelector("div");
+  const setOpen = open => {
+    panel.hidden = !open;
+    btn.classList.toggle("on", open);
+    btn.setAttribute("aria-expanded", open);
+  };
+  btn.addEventListener("click", () => setOpen(panel.hidden));
+  map.on("click", () => setOpen(false));
+  panel.addEventListener("change", e => {
+    const o = OVERLAYS[+e.target.dataset.i];
+    e.target.checked ? o.layer.addTo(map) : o.layer.remove();
+  });
   return div;
 };
-boundaryToggle.addTo(map);
+overlayToggle.addTo(map);
 const layer = L.layerGroup().addTo(map);
 const markers = new Map();
 let selId = null;

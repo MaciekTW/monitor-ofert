@@ -1,0 +1,276 @@
+{
+  "type": "FeatureCollection",
+  "generator": "overpass-turbo",
+  "copyright": "The data included in this document is from www.openstreetmap.org. The data is made available under ODbL.",
+  "timestamp": "2026-09-14T23:42:59Z",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/162320884",
+        "addr:city": "Kraków",
+        "addr:country": "PL",
+        "addr:housenumber": "16a",
+        "addr:place": "Osiedle Kombatantów",
+        "addr:postcode": "31-630",
+        "brand": "Kaufland",
+        "brand:wikidata": "Q685967",
+        "brand:wikipedia": "en:Kaufland",
+        "building": "retail",
+        "building:levels": "1",
+        "building:material": "metal",
+        "name": "Kaufland",
+        "opening_hours": "Mo-Sa 06:00-23:00",
+        "quiet_hours": "Tu 9:00-12:00",
+        "quiet_hours:signed": "yes",
+        "roof:levels": "0",
+        "roof:shape": "skillion",
+        "shop": "supermarket",
+        "website": "https://www.kaufland.pl/",
+        "wheelchair": "yes",
+        "@geometry": "center"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          20.0062284,
+          50.0902785
+        ]
+      },
+      "id": "way/162320884"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/233371382",
+        "addr:city": "Kraków",
+        "addr:housenumber": "1",
+        "addr:postcode": "30-376",
+        "addr:street": "Norymberska",
+        "brand": "Kaufland",
+        "brand:wikidata": "Q685967",
+        "building": "supermarket",
+        "check_date": "2026-07-22",
+        "name": "Kaufland",
+        "opening_hours": "Mo-Sa 07:00-22:00; Su 08:00-22:00; Jul-Aug: Mo-Sa 06:00-23:00; PH off",
+        "operator": "Kaufland Polska Markety Sp. z o.o. Sp. k.",
+        "phone": "+48 12 264 22 50",
+        "shop": "supermarket",
+        "website": "https://www.kaufland.pl/Home/index.jsp?PageId=3&FilialID=7761",
+        "wheelchair": "yes",
+        "@geometry": "center"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9113496,
+          50.029838
+        ]
+      },
+      "id": "way/233371382"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/266906695",
+        "addr:city": "Kraków",
+        "addr:housenumber": "14",
+        "addr:postcode": "30-863",
+        "addr:street": "Mieczysławy Ćwiklińskiej",
+        "brand": "Kaufland",
+        "brand:wikidata": "Q685967",
+        "brand:wikipedia": "pl:Kaufland",
+        "building": "yes",
+        "name": "Kaufland",
+        "opening_hours": "Mo-Sa 07:00-22:00; Su 08:00-22:00",
+        "self_checkout": "yes",
+        "shop": "supermarket",
+        "source": "Bing",
+        "source:addr": "EMUiA (emuia.gugik.gov.pl)",
+        "@geometry": "center"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          20.0225293,
+          50.0147104
+        ]
+      },
+      "id": "way/266906695"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/999484295",
+        "addr:city": "Kraków",
+        "addr:housenumber": "54",
+        "addr:postcode": "30-347",
+        "addr:street": "Kapelanka",
+        "alt_name": "Kaufland Kapelanka",
+        "brand": "Kaufland",
+        "brand:wikidata": "Q685967",
+        "level": "1",
+        "name": "Kaufland",
+        "opening_hours": "Mo-Sa 06:00-22:00; PH off",
+        "operator": "Kaufland Polska Markety Sp. z o.o. Sp. k.",
+        "phone": "+48 800 300 062",
+        "shop": "supermarket",
+        "website": "https://www.kaufland.pl/dla-klienta/sklepy.storeName=PL1033.html",
+        "wheelchair": "yes",
+        "@geometry": "center"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9246027,
+          50.032658
+        ]
+      },
+      "id": "way/999484295"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/1055765847",
+        "addr:city": "Skawina",
+        "addr:housenumber": "12",
+        "addr:postcode": "32-050",
+        "addr:street": "Krakowska",
+        "brand": "Kaufland",
+        "brand:wikidata": "Q685967",
+        "building": "retail",
+        "name": "Kaufland",
+        "opening_hours": "Mo-Sa 06:00-22:00; Su off",
+        "shop": "supermarket",
+        "source:addr": "emuia.gugik.gov.pl",
+        "source:building": "EGiB",
+        "@geometry": "center"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.8340027,
+          49.9761563
+        ]
+      },
+      "id": "way/1055765847"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/1190378592",
+        "addr:city": "Kraków",
+        "addr:housenumber": "8",
+        "addr:postcode": "31-586",
+        "addr:street": "Galicyjska",
+        "brand": "Kaufland",
+        "brand:wikidata": "Q685967",
+        "brand:wikipedia": "pl:Kaufland",
+        "building": "retail",
+        "name": "Kaufland",
+        "opening_hours": "Mo-Sa 06:00-23:00",
+        "shop": "supermarket",
+        "source:addr": "emuia.gugik.gov.pl",
+        "website": "https://sklep.kaufland.pl/uslugi/sklepy/krakow-czyzyny-7664.html",
+        "@geometry": "center"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          20.0065325,
+          50.0616523
+        ]
+      },
+      "id": "way/1190378592"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/1408942411",
+        "addr:city": "Niepołomice",
+        "addr:housenumber": "11",
+        "addr:postcode": "32-005",
+        "addr:street": "Akacjowa",
+        "brand": "Kaufland",
+        "brand:wikidata": "Q685967",
+        "building": "retail",
+        "construction:shop": "supermarket",
+        "name": "Kaufland",
+        "note": "Otwarcie 19.02.2026",
+        "shop": "supermarket",
+        "source:addr": "emuia.gugik.gov.pl",
+        "source:building": "EGiB",
+        "@geometry": "center"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          20.2153865,
+          50.0466445
+        ]
+      },
+      "id": "way/1408942411"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/3380829739",
+        "addr:city": "Kraków",
+        "addr:housenumber": "259",
+        "addr:postcode": "30-663",
+        "addr:street": "Wielicka",
+        "brand": "Kaufland",
+        "brand:wikidata": "Q685967",
+        "brand:wikipedia": "pl:Kaufland",
+        "name": "Kaufland",
+        "opening_hours": "Mo-Sa 06:00-23:00; Su 08:00-20:00",
+        "self_checkout": "yes",
+        "shop": "supermarket",
+        "website": "https://www.kaufland.pl/dla-klienta/sklepy/krakow-prokocim-1020.html",
+        "wheelchair": "yes"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.996491,
+          50.0135883
+        ]
+      },
+      "id": "node/3380829739"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/5482216292",
+        "addr:housenumber": "4",
+        "addr:street": "Bratysławska",
+        "alt_name": "Kaufland Bratysławska",
+        "brand": "Kaufland",
+        "brand:wikidata": "Q685967",
+        "kids_area": "no",
+        "kids_area:fee": "no",
+        "kids_area:indoor": "no",
+        "kids_area:outdoor": "no",
+        "kids_area:supervised": "no",
+        "level": "0",
+        "name": "Kaufland",
+        "opening_hours": "Mo-Sa 06:00-23:00",
+        "operator": "Kaufland Polska Markety sp. z o.o.",
+        "organic": "yes",
+        "phone": "+48 800 300 062",
+        "shop": "supermarket",
+        "toilets": "yes",
+        "toilets:access": "yes",
+        "wheelchair": "yes"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9362424,
+          50.0841107
+        ]
+      },
+      "id": "node/5482216292"
+    }
+  ]
+}

@@ -1,0 +1,874 @@
+{
+  "type": "FeatureCollection",
+  "generator": "overpass-turbo",
+  "copyright": "The data included in this document is from www.openstreetmap.org. The data is made available under ODbL.",
+  "timestamp": "2026-09-14T22:52:03Z",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/54534210",
+        "addr:city": "Kraków",
+        "addr:country": "PL",
+        "addr:housenumber": "11",
+        "addr:place": "Osiedle Centrum E",
+        "addr:postcode": "31-934",
+        "brand": "Lidl",
+        "brand:wikidata": "Q151954",
+        "brand:wikipedia": "en:Lidl",
+        "building": "retail",
+        "building:levels": "1",
+        "building:material": "plaster",
+        "construction:shop": "supermarket",
+        "layer": "-1",
+        "location": "surface",
+        "name": "Lidl",
+        "opening_hours": "Mo-Sa 06:00-22:30",
+        "roof:shape": "flat",
+        "shop": "supermarket",
+        "wheelchair": "yes",
+        "@geometry": "center"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          20.0403717,
+          50.0702818
+        ]
+      },
+      "id": "way/54534210"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/101511594",
+        "addr:city": "Kraków",
+        "addr:housenumber": "2b",
+        "addr:postcode": "31-750",
+        "addr:street": "Kocmyrzowska",
+        "brand": "Lidl",
+        "brand:wikidata": "Q151954",
+        "brand:wikipedia": "en:Lidl",
+        "building": "yes",
+        "name": "Lidl",
+        "payment:cash": "yes",
+        "payment:credit_cards": "yes",
+        "shop": "supermarket",
+        "source:addr": "EMUiA (emuia.gugik.gov.pl)",
+        "@geometry": "center"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          20.0404277,
+          50.0848401
+        ]
+      },
+      "id": "way/101511594"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/108513627",
+        "addr:city": "Kraków",
+        "addr:housenumber": "67",
+        "addr:postcode": "30-552",
+        "addr:street": "Wielicka",
+        "brand": "Lidl",
+        "brand:wikidata": "Q151954",
+        "brand:wikipedia": "en:Lidl",
+        "building": "supermarket",
+        "diet:halal": "no",
+        "diet:kosher": "no",
+        "name": "Lidl",
+        "opening_hours": "Mo-Sa 06:00-22:30",
+        "shop": "supermarket",
+        "wheelchair": "yes",
+        "@geometry": "center"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9681488,
+          50.034637
+        ]
+      },
+      "id": "way/108513627"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/147533947",
+        "addr:city": "Wieliczka",
+        "addr:city:simc": "0952232",
+        "addr:housenumber": "36",
+        "addr:postcode": "32-020",
+        "addr:street": "Tadeusza Kościuszki",
+        "brand": "Lidl",
+        "brand:wikidata": "Q151954",
+        "brand:wikipedia": "pl:Lidl",
+        "building": "supermarket",
+        "check_date": "2026-08-05",
+        "check_date:opening_hours": "2026-08-05",
+        "name": "Lidl",
+        "opening_hours": "Mo-Sa 06:00-23:00",
+        "self_checkout": "yes",
+        "shop": "supermarket",
+        "source": "Bing",
+        "source:addr": "EMUiA (emuia.gugik.gov.pl)",
+        "@geometry": "center"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          20.0407286,
+          49.9908158
+        ]
+      },
+      "id": "way/147533947"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/155417757",
+        "addr:city": "Kraków",
+        "addr:housenumber": "106",
+        "addr:postcode": "30-382",
+        "addr:street": "Kobierzyńska",
+        "brand": "Lidl",
+        "brand:wikidata": "Q151954",
+        "building": "supermarket",
+        "height": "5",
+        "name": "Lidl",
+        "operator": "Lidl",
+        "shop": "supermarket",
+        "wheelchair": "yes",
+        "@geometry": "center"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9128798,
+          50.025
+        ]
+      },
+      "id": "way/155417757"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/161635878",
+        "addr:city": "Kraków",
+        "addr:country": "PL",
+        "addr:housenumber": "1",
+        "addr:postcode": "30-438",
+        "addr:street": "Borkowska",
+        "brand": "Lidl",
+        "brand:wikidata": "Q151954",
+        "brand:wikipedia": "pl:Lidl",
+        "building": "supermarket",
+        "building:levels": "1",
+        "name": "Lidl",
+        "opening_hours": "Mo-Sa 06:00-22:00; PH,Su off",
+        "roof:shape": "skillion",
+        "shop": "supermarket",
+        "source:building": "BDOT",
+        "source:geometry": "EGiB",
+        "wheelchair": "yes",
+        "@geometry": "center"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9046709,
+          50.00643
+        ]
+      },
+      "id": "way/161635878"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/162320885",
+        "addr:city": "Kraków",
+        "addr:country": "PL",
+        "addr:housenumber": "21",
+        "addr:place": "Osiedle Józefa Strusia",
+        "addr:postcode": "31-810",
+        "brand": "Lidl",
+        "brand:wikidata": "Q151954",
+        "building": "retail",
+        "building:levels": "1",
+        "building:material": "metal",
+        "check_date": "2026-06-19",
+        "check_date:opening_hours": "2026-06-19",
+        "name": "Lidl",
+        "opening_hours": "Mo-Sa 06:00-23:00",
+        "roof:levels": "0",
+        "roof:shape": "skillion",
+        "shop": "supermarket",
+        "@geometry": "center"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          20.0068225,
+          50.0886445
+        ]
+      },
+      "id": "way/162320885"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/164035425",
+        "addr:city": "Kraków",
+        "addr:housenumber": "5B",
+        "addr:postcode": "31-223",
+        "addr:street": "Henryka Pachońskiego",
+        "brand": "Lidl",
+        "brand:wikidata": "Q151954",
+        "brand:wikipedia": "en:Lidl",
+        "building": "retail",
+        "building:levels": "1",
+        "check_date": "2026-01-25",
+        "name": "Lidl",
+        "opening_hours": "Mo-Sa 06:00-22:30",
+        "operator": "Lidl sp. z o.o. sp. k.",
+        "roof:shape": "flat",
+        "shop": "supermarket",
+        "wheelchair": "yes",
+        "@geometry": "center"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.920978,
+          50.0936847
+        ]
+      },
+      "id": "way/164035425"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/170828948",
+        "addr:city": "Kraków",
+        "addr:country": "PL",
+        "addr:housenumber": "63",
+        "addr:place": "Osiedle Piastów",
+        "addr:postcode": "31-625",
+        "brand": "Lidl",
+        "brand:wikidata": "Q151954",
+        "brand:wikipedia": "pl:Lidl",
+        "brand:wikipedia:en": "en:Lidl",
+        "building": "retail",
+        "building:levels": "1",
+        "check_date:opening_hours": "2026-08-01",
+        "name": "Lidl",
+        "opening_hours": "Mo-Sa 06:00-23:00; Su 06:00-23:00",
+        "roof:levels": "0",
+        "roof:shape": "skillion",
+        "shop": "supermarket",
+        "website": "https://www.lidl.pl/",
+        "wheelchair": "yes",
+        "@geometry": "center"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          20.0128765,
+          50.1035025
+        ]
+      },
+      "id": "way/170828948"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/191316467",
+        "addr:city": "Kraków",
+        "addr:housenumber": "17",
+        "addr:postcode": "31-231",
+        "addr:street": "Siewna",
+        "brand": "Lidl",
+        "brand:wikidata": "Q151954",
+        "brand:wikipedia": "en:Lidl",
+        "building": "yes",
+        "name": "Lidl",
+        "shop": "supermarket",
+        "wheelchair": "yes",
+        "@geometry": "center"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.952834,
+          50.0924958
+        ]
+      },
+      "id": "way/191316467"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/215156319",
+        "addr:city": "Kraków",
+        "addr:country": "PL",
+        "addr:housenumber": "116",
+        "addr:postcode": "31-445",
+        "addr:street": "Mogilska",
+        "brand": "Lidl",
+        "brand:wikidata": "Q151954",
+        "brand:wikipedia": "en:Lidl",
+        "building": "retail",
+        "building:levels": "1",
+        "name": "Lidl",
+        "name:ru": "Лидл",
+        "name:uk": "Лідл",
+        "note": "Narysować dokładniej, gdy będzie aktualny podkład ortofoto",
+        "opening_hours": "Mo-Sa 08:00-21:00, Su 09:00-19:00",
+        "roof:levels": "0",
+        "shop": "supermarket",
+        "source:building": "BDOT",
+        "source:geometry": "EGiB",
+        "wheelchair": "limited",
+        "@geometry": "center"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9767523,
+          50.0680773
+        ]
+      },
+      "id": "way/215156319"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/225618128",
+        "addr:city": "Kraków",
+        "addr:housename": "Lidl",
+        "addr:housenumber": "1",
+        "addr:postcode": "30-863",
+        "addr:street": "Mieczysławy Ćwiklińskiej",
+        "brand": "Lidl",
+        "brand:wikidata": "Q151954",
+        "brand:wikipedia": "pl:Lidl",
+        "building": "yes",
+        "building:levels": "1",
+        "name": "Lidl",
+        "opening_hours": "Mo-Sa 06:00-22:30",
+        "payment:apple_pay": "yes",
+        "payment:cash": "yes",
+        "payment:contactless": "yes",
+        "payment:credit_cards": "yes",
+        "payment:debit_cards": "yes",
+        "payment:google_pay": "yes",
+        "roof:levels": "0",
+        "roof:shape": "flat",
+        "self_checkout": "yes",
+        "shop": "supermarket",
+        "@geometry": "center"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          20.014171,
+          50.0169959
+        ]
+      },
+      "id": "way/225618128"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/229962011",
+        "addr:city": "Kraków",
+        "addr:city:simc": "0950463",
+        "addr:housenumber": "1",
+        "addr:postcode": "31-580",
+        "addr:street": "Stanisławy Wysockiej",
+        "brand": "Lidl",
+        "brand:wikidata": "Q151954",
+        "brand:wikipedia": "en:Lidl",
+        "building": "supermarket",
+        "building:levels": "1",
+        "name": "Lidl",
+        "opening_hours": "Mo-Sa 06:00-22:30; Su 08:00-21:00",
+        "shop": "supermarket",
+        "source:addr": "gugik.gov.pl",
+        "source:building": "BDOT",
+        "source:geometry": "EGiB",
+        "wheelchair": "yes",
+        "@geometry": "center"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          20.0023895,
+          50.073491
+        ]
+      },
+      "id": "way/229962011"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/249871579",
+        "addr:city": "Skawina",
+        "addr:housenumber": "23B",
+        "addr:postcode": "32-050",
+        "addr:street": "Krakowska",
+        "brand": "Lidl",
+        "brand:wikidata": "Q151954",
+        "brand:wikipedia": "en:Lidl",
+        "building": "yes",
+        "name": "Lidl",
+        "opening_hours": "Mo-Sa 08:00-21:00,Su 09:00-18:00",
+        "operator": "Lidl",
+        "shop": "supermarket",
+        "source:addr": "http://portal.gison.pl/skawina",
+        "@geometry": "center"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.8329478,
+          49.9786639
+        ]
+      },
+      "id": "way/249871579"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/287870862",
+        "brand": "Lidl",
+        "brand:wikidata": "Q151954",
+        "building": "yes",
+        "name": "Lidl",
+        "shop": "supermarket",
+        "@geometry": "center"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9959567,
+          50.0394114
+        ]
+      },
+      "id": "way/287870862"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/370862171",
+        "addr:city": "Kraków",
+        "addr:street": "Nowosądecka",
+        "brand": "Lidl",
+        "brand:wikidata": "Q151954",
+        "brand:wikipedia": "pl:Lidl",
+        "building": "retail",
+        "name": "Lidl",
+        "opening_hours": "Mo-Sa 06:00-22:30",
+        "payment:credit_cards": "yes",
+        "payment:debit_cards": "yes",
+        "self_checkout": "yes",
+        "shop": "supermarket",
+        "@geometry": "center"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9637594,
+          50.0140571
+        ]
+      },
+      "id": "way/370862171"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/416220167",
+        "addr:city": "Kraków",
+        "addr:housenumber": "2",
+        "addr:postcode": "30-611",
+        "addr:street": "Cechowa",
+        "brand": "Lidl",
+        "brand:wikidata": "Q151954",
+        "brand:wikipedia": "en:Lidl",
+        "building": "retail",
+        "building:levels": "1",
+        "level": "0",
+        "name": "Lidl",
+        "opening_hours": "Mo-Sa 06:00-22:30",
+        "payment:cards": "yes",
+        "payment:cash": "yes",
+        "payment:contactless": "yes",
+        "ref": "1497",
+        "shop": "supermarket",
+        "website": "https://www.lidl.pl/",
+        "wheelchair": "yes",
+        "@geometry": "center"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9449007,
+          50.0050681
+        ]
+      },
+      "id": "way/416220167"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/451417815",
+        "addr:housenumber": "2",
+        "addr:street": "Cegielniana",
+        "brand": "Lidl",
+        "brand:wikidata": "Q151954",
+        "brand:wikipedia": "en:Lidl",
+        "building": "retail",
+        "building:levels": "2",
+        "check_date": "2023-04-04",
+        "name": "Lidl",
+        "opening_hours": "Mo-Sa 06:00-22:00",
+        "payment:mastercard": "yes",
+        "payment:visa": "yes",
+        "roof:levels": "0",
+        "roof:shape": "flat",
+        "shop": "supermarket",
+        "wheelchair": "yes",
+        "@geometry": "center"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9354325,
+          50.0286411
+        ]
+      },
+      "id": "way/451417815"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/613098669",
+        "addr:city": "Kraków",
+        "addr:housenumber": "26",
+        "addr:postcode": "31-222",
+        "addr:street": "Zygmunta Glogera",
+        "brand": "Lidl",
+        "brand:wikidata": "Q151954",
+        "brand:wikipedia": "en:Lidl",
+        "building": "retail",
+        "building:levels": "1",
+        "name": "Lidl",
+        "opening_hours": "Mo-Sa 06:00-22:30, Su 09:00-20:00",
+        "roof:levels": "0",
+        "shop": "supermarket",
+        "@geometry": "center"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9291577,
+          50.1028199
+        ]
+      },
+      "id": "way/613098669"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/639688072",
+        "addr:city": "Libertów",
+        "addr:housenumber": "1a",
+        "addr:postcode": "30-444",
+        "addr:street": "Góra Libertowska",
+        "brand": "Lidl",
+        "brand:wikidata": "Q151954",
+        "brand:wikipedia": "en:Lidl",
+        "building": "yes",
+        "name": "Lidl",
+        "shop": "supermarket",
+        "@geometry": "center"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9123208,
+          49.980866
+        ]
+      },
+      "id": "way/639688072"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/845804762",
+        "addr:city": "Zabierzów",
+        "addr:housenumber": "1",
+        "addr:postcode": "32-080",
+        "addr:street": "Rzemieślnicza",
+        "brand": "Lidl",
+        "brand:wikidata": "Q151954",
+        "brand:wikipedia": "en:Lidl",
+        "building": "yes",
+        "name": "Lidl",
+        "opening_hours": "Mo-Sa 06:00-22:00",
+        "operator": "Schwarz Gruppe",
+        "shop": "supermarket",
+        "@geometry": "center"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.824998,
+          50.1094626
+        ]
+      },
+      "id": "way/845804762"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/905202539",
+        "addr:city": "Modlnica",
+        "addr:city:simc": "0342002",
+        "addr:housenumber": "1",
+        "addr:postcode": "32-085",
+        "addr:street": "Polna",
+        "brand": "Lidl",
+        "brand:wikidata": "Q151954",
+        "brand:wikipedia": "pl:Lidl",
+        "building": "retail",
+        "name": "Lidl",
+        "opening_hours": "Mo-Sa 06:00-22:00",
+        "shop": "supermarket",
+        "source:addr": "gugik.gov.pl",
+        "source:building": "EGiB",
+        "@geometry": "center"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.871619,
+          50.1267015
+        ]
+      },
+      "id": "way/905202539"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/1219737682",
+        "addr:city": "Skawina",
+        "addr:housenumber": "3",
+        "addr:postcode": "32-050",
+        "addr:street": "Radziszowska",
+        "brand": "Lidl",
+        "brand:wikidata": "Q151954",
+        "building": "retail",
+        "name": "Lidl",
+        "shop": "supermarket",
+        "@geometry": "center"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.8194919,
+          49.9657933
+        ]
+      },
+      "id": "way/1219737682"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/1327828628",
+        "brand": "Lidl",
+        "brand:wikidata": "Q151954",
+        "brand:wikipedia": "pl:Lidl",
+        "indoor": "room",
+        "level": "0",
+        "name": "Lidl",
+        "opening_hours": "Mo-Sa 06:00-22:30",
+        "room": "shop",
+        "shop": "supermarket",
+        "wheelchair": "yes",
+        "@geometry": "center"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          20.0066161,
+          50.058358
+        ]
+      },
+      "id": "way/1327828628"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/1343879436",
+        "addr:city": "Kraków",
+        "addr:housenumber": "20",
+        "addr:postcode": "31-589",
+        "addr:street": "Sołtysowska",
+        "brand": "Lidl",
+        "brand:wikidata": "Q151954",
+        "brand:wikipedia": "pl:Lidl",
+        "building": "retail",
+        "name": "Lidl",
+        "opening_hours": "Mo-Sa 06:00-22:30",
+        "shop": "supermarket",
+        "source:building": "EGiB",
+        "@geometry": "center"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          20.0206305,
+          50.0639275
+        ]
+      },
+      "id": "way/1343879436"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/1433413357",
+        "addr:city": "Kraków",
+        "addr:housenumber": "36",
+        "addr:postcode": "31-998",
+        "addr:street": "Igołomska",
+        "brand": "Lidl",
+        "brand:wikidata": "Q151954",
+        "brand:wikipedia": "pl:Lidl",
+        "building": "retail",
+        "building:levels": "1",
+        "disused:shop": "supermarket",
+        "name": "Lidl",
+        "roof:levels": "0",
+        "roof:shape": "gabled",
+        "source:addr": "emuia.gugik.gov.pl",
+        "source:building": "EGiB",
+        "@geometry": "center"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          20.1541505,
+          50.0764025
+        ]
+      },
+      "id": "way/1433413357"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/2558240274",
+        "addr:city": "Kraków",
+        "addr:housenumber": "1C",
+        "addr:postcode": "30-148",
+        "addr:street": "Samuela Bogumiła Lindego",
+        "brand": "Lidl",
+        "brand:wikidata": "Q151954",
+        "check_date:opening_hours": "2026-07-28",
+        "level": "0",
+        "name": "Lidl",
+        "opening_hours": "Mo-Sa 06:00-23:00",
+        "shop": "supermarket",
+        "website": "https://www.lidl.pl/s/pl-PL/sklepy/krakow/ul-lindego-1c/",
+        "wheelchair": "yes"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.8790366,
+          50.0786229
+        ]
+      },
+      "id": "node/2558240274"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/3137479726",
+        "addr:city": "Kraków",
+        "addr:housenumber": "79",
+        "addr:postcode": "31-357",
+        "addr:street": "Josepha Conrada",
+        "brand": "Lidl",
+        "brand:wikidata": "Q151954",
+        "name": "Lidl",
+        "opening_hours": "Mo-Sa 06:00-22:30",
+        "ref": "1744",
+        "shop": "supermarket",
+        "website": "https://www.lidl.pl/s/pl-PL/sklepy/krakow/ul-josepha-conrada-79/",
+        "wheelchair": "yes"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.8944976,
+          50.0870381
+        ]
+      },
+      "id": "node/3137479726"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/6221711488",
+        "addr:city": "Kraków",
+        "addr:housenumber": "33",
+        "addr:postcode": "30-392",
+        "addr:street": "Czerwone Maki",
+        "brand": "Lidl",
+        "brand:wikidata": "Q151954",
+        "brand:wikipedia": "en:Lidl",
+        "level": "0",
+        "name": "Lidl",
+        "opening_hours": "Su 09:00-20:00; Mo-Sa 06:00-22:30",
+        "shop": "supermarket",
+        "wheelchair": "yes"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.8872125,
+          50.0117483
+        ]
+      },
+      "id": "node/6221711488"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/13691853014",
+        "brand": "Lidl",
+        "brand:wikidata": "Q151954",
+        "brand:wikipedia": "pl:Lidl",
+        "check_date:opening_hours": "2025-10-27",
+        "diet:halal": "no",
+        "diet:kosher": "no",
+        "name": "Lidl",
+        "opening_hours": "Mo-Sa 06:00-22:30",
+        "shop": "supermarket"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.8480232,
+          50.0682508
+        ]
+      },
+      "id": "node/13691853014"
+    }
+  ]
+}

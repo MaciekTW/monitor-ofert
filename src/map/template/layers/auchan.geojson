@@ -1,0 +1,145 @@
+{
+  "type": "FeatureCollection",
+  "generator": "overpass-turbo",
+  "copyright": "The data included in this document is from www.openstreetmap.org. The data is made available under ODbL.",
+  "timestamp": "2026-09-15T00:10:18Z",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/591578138",
+        "addr:city": "Kraków",
+        "addr:housenumber": "61",
+        "addr:postcode": "31-346",
+        "addr:street": "Stawowa",
+        "brand": "Auchan",
+        "brand:wikidata": "Q758603",
+        "check_date": "2025-08-23",
+        "level": "0",
+        "name": "Auchan",
+        "opening_hours": "Mo-Sa 07:00-22:00; Su 08:00-21:00",
+        "shop": "supermarket",
+        "wheelchair": "yes",
+        "@geometry": "center"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.8984279,
+          50.0919185
+        ]
+      },
+      "id": "way/591578138"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/1089404438",
+        "addr:city": "Kraków",
+        "addr:country": "PL",
+        "addr:housenumber": "67",
+        "addr:postcode": "31-580",
+        "addr:street": "Aleja Pokoju",
+        "brand": "Auchan",
+        "brand:wikidata": "Q758603",
+        "check_date:opening_hours": "2026-06-11",
+        "indoor": "room",
+        "level": "0",
+        "name": "Auchan",
+        "opening_hours": "Mo-We 07:30-22:00; Th-Fr 07:30-23:00; Sa 07:30-22:00; Su,PH off; Su 07:30-22:00 \"niedziele handlowe\"",
+        "operator": "Auchan Polska Sp. z o.o.",
+        "payment:account_cards": "yes",
+        "payment:cards": "yes",
+        "payment:cash": "yes",
+        "payment:contactless": "yes",
+        "room": "shop",
+        "shop": "supermarket",
+        "website": "https://www.auchan.pl/",
+        "@geometry": "center"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9998569,
+          50.0638126
+        ]
+      },
+      "id": "way/1089404438"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/1359385924",
+        "brand": "Auchan",
+        "brand:wikidata": "Q758603",
+        "brand:wikipedia": "pl:Auchan",
+        "indoor": "room",
+        "level": "0",
+        "name": "Auchan",
+        "opening_hours": "PH off; Mo-We,Sa-Su 07:30-22:00; Th,Fr 07:30-23:00",
+        "operator": "Auchan Polska Sp. z o.o.",
+        "room": "shop",
+        "shop": "supermarket",
+        "wheelchair": "yes",
+        "@geometry": "center"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9813288,
+          50.0873881
+        ]
+      },
+      "id": "way/1359385924"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/2394254775",
+        "brand": "Auchan",
+        "brand:wikidata": "Q758603",
+        "brand:wikipedia": "en:Auchan",
+        "level": "0",
+        "name": "Auchan",
+        "opening_hours": "Mo-Sa 08:00-22:00; Su 09:00-22:00; PH off",
+        "operator": "Auchan",
+        "shop": "supermarket"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9516961,
+          50.0286672
+        ]
+      },
+      "id": "node/2394254775"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/7645515819",
+        "addr:city": "Kraków",
+        "addr:housenumber": "17",
+        "addr:postcode": "31-214",
+        "addr:street": "Józefa Mackiewicza",
+        "brand": "Auchan",
+        "brand:wikidata": "Q758603",
+        "brand:wikipedia": "en:Auchan",
+        "name": "Auchan",
+        "opening_hours": "Mo-Sa 07:00-22:00; Su 09:00-21:00",
+        "operator": "Auchan",
+        "shop": "supermarket",
+        "website": "https://www.auchan.pl/pl/sklepy/Auchan-Supermarket-Krakow-Mackiewicza",
+        "wheelchair": "yes"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9465657,
+          50.0937713
+        ]
+      },
+      "id": "node/7645515819"
+    }
+  ]
+}
