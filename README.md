@@ -128,9 +128,16 @@ uv run ruff format
 
 `tests/contract/` holds contract tests that send real requests to the OLX and
 Otodom endpoints the script depends on, and check that the responses still
-contain the fields the parsers read. They also check that the ZTP Kraków GTFS
-page (`gtfs.ztp.krakow.pl`) responds and still links the timetables the map
-takes its stops from (`GTFS_KRK_A.zip`, `GTFS_KRK_M.zip`, `GTFS_KRK_T.zip`). They need network access and take about
+contain the fields the parsers read. They also download the ZTP Kraków GTFS
+timetables the map takes its stops, lines, departures and routes from
+(`GTFS_KRK_A.zip`, `GTFS_KRK_M.zip`, `GTFS_KRK_T.zip` from `gtfs.ztp.krakow.pl`)
+and check the files and columns the parser reads, plus the assumptions that
+would silently break the map rather than the script: `stop_code` in the
+`NNN-NN` form with one stop name per number across all archives, times past
+midnight written as 24:xx+, a reference weekday with service in every archive,
+route shapes for all trips, and a plausible number of stops, lines and night
+lines. A server that stops answering `304 Not Modified` is reported as a
+skipped test (the map still works, it just re-downloads ~30 MB each time). They need network access and take about
 a minute (requests are deliberately paced).
 
 ```bash
