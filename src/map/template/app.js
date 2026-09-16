@@ -150,49 +150,322 @@ const overlaySections = overlayGroups
       <input type="checkbox" data-g="${gi}"> ${esc(g)}</label>`) +
     OVERLAYS.filter(o => (o.group ?? null) === g).map(overlayRow).join(""))
   .join("");
-const overlayToggle = L.control({position:"topright"});
-overlayToggle.onAdd = () => {
-  const div = L.DomUtil.create("div", "relative");
-  div.innerHTML = `<button type="button" title="Warstwy na mapie" aria-expanded="false"
-      class="grid size-10 cursor-pointer place-items-center rounded-full bg-white text-ink
-        shadow-[0_1px_5px_rgba(0,0,0,.3)] hover:bg-acc-soft on:bg-acc on:text-white">
-      <svg viewBox="0 0 24 24" class="size-5" fill="none" stroke="currentColor" stroke-width="2"
-        stroke-linejoin="round"><path d="M12 3 2 8l10 5 10-5z"/><path d="m2 13 10 5 10-5"/></svg></button>
-    <div hidden class="absolute top-12 right-0 w-max rounded-lg bg-white px-3 py-2
-      shadow-[0_1px_5px_rgba(0,0,0,.25)]">
-      <h3 class="f-title">Warstwy</h3>${overlaySections}</div>`;
-  L.DomEvent.disableClickPropagation(div);
-  L.DomEvent.disableScrollPropagation(div);
-  const btn = div.querySelector("button"), panel = div.querySelector("div");
-  const setOpen = open => {
-    panel.hidden = !open;
-    btn.classList.toggle("on", open);
-    btn.setAttribute("aria-expanded", open);
+// przycisk w prawym górnym rogu mapy rozwijający panel; otwarcie jednego panelu
+// zamyka pozostałe, kliknięcie w mapę zamyka wszystkie; setup(panel) podpina obsługę
+const mapPanels = [];
+function mapPanel(title, icon, body, setup){
+  const ctl = L.control({position:"topright"});
+  ctl.onAdd = () => {
+    const div = L.DomUtil.create("div", "relative");
+    div.innerHTML = `<button type="button" title="${esc(title)}" aria-expanded="false"
+        class="grid size-10 cursor-pointer place-items-center rounded-full bg-white text-ink
+          shadow-[0_1px_5px_rgba(0,0,0,.3)] hover:bg-acc-soft on:bg-acc on:text-white">${icon}</button>
+      <div hidden class="absolute top-12 right-0 w-max rounded-lg bg-white px-3 py-2
+        shadow-[0_1px_5px_rgba(0,0,0,.25)]">${body}</div>`;
+    L.DomEvent.disableClickPropagation(div);
+    L.DomEvent.disableScrollPropagation(div);
+    const btn = div.querySelector("button"), panel = div.querySelector("div");
+    const setOpen = open => {
+      panel.hidden = !open;
+      btn.classList.toggle("on", open);
+      btn.setAttribute("aria-expanded", open);
+      // otwarty panel nad przyciskami kolejnych kontrolek (Leaflet daje im ten sam z-index)
+      div.style.zIndex = open ? 1000 : "";
+    };
+    mapPanels.push(setOpen);
+    btn.addEventListener("click", () => {
+      const open = panel.hidden;
+      mapPanels.forEach(f => f(false));
+      setOpen(open);
+    });
+    map.on("click", () => setOpen(false));
+    setup(panel);
+    return div;
   };
-  btn.addEventListener("click", () => setOpen(panel.hidden));
-  map.on("click", () => setOpen(false));
-  const setVisible = (i, on) => {
-    panel.querySelector(`input[data-i="${i}"]`).checked = on;
-    on ? OVERLAYS[i].layer.addTo(map) : OVERLAYS[i].layer.remove();
-  };
-  // pole sekcji: zaznaczone, gdy wszystkie warstwy włączone, „częściowe”, gdy tylko niektóre
-  const syncGroups = () => panel.querySelectorAll("input[data-g]").forEach(box => {
-    const g = overlayGroups[+box.dataset.g];
-    const on = OVERLAYS.filter(o => o.group === g)
-      .map(o => panel.querySelector(`input[data-i="${OVERLAYS.indexOf(o)}"]`).checked);
-    box.checked = on.every(Boolean);
-    box.indeterminate = !box.checked && on.some(Boolean);
-  });
-  panel.addEventListener("change", e => {
-    const {i, g} = e.target.dataset;
-    if(g != null) OVERLAYS.forEach((o, j) => o.group === overlayGroups[+g] && setVisible(j, e.target.checked));
-    else setVisible(+i, e.target.checked);
+  ctl.addTo(map);
+}
+mapPanel("Warstwy na mapie",
+  `<svg viewBox="0 0 24 24" class="size-5" fill="none" stroke="currentColor" stroke-width="2"
+    stroke-linejoin="round"><path d="M12 3 2 8l10 5 10-5z"/><path d="m2 13 10 5 10-5"/></svg>`,
+  `<h3 class="f-title">Warstwy</h3>${overlaySections}`,
+  panel => {
+    const setVisible = (i, on) => {
+      panel.querySelector(`input[data-i="${i}"]`).checked = on;
+      on ? OVERLAYS[i].layer.addTo(map) : OVERLAYS[i].layer.remove();
+    };
+    // pole sekcji: zaznaczone, gdy wszystkie warstwy włączone, „częściowe”, gdy tylko niektóre
+    const syncGroups = () => panel.querySelectorAll("input[data-g]").forEach(box => {
+      const g = overlayGroups[+box.dataset.g];
+      const on = OVERLAYS.filter(o => o.group === g)
+        .map(o => panel.querySelector(`input[data-i="${OVERLAYS.indexOf(o)}"]`).checked);
+      box.checked = on.every(Boolean);
+      box.indeterminate = !box.checked && on.some(Boolean);
+    });
+    panel.addEventListener("change", e => {
+      const {i, g} = e.target.dataset;
+      if(g != null) OVERLAYS.forEach((o, j) => o.group === overlayGroups[+g] && setVisible(j, e.target.checked));
+      else setVisible(+i, e.target.checked);
+      syncGroups();
+    });
     syncGroups();
   });
-  syncGroups();
+
+/* ---------- komunikacja miejska: przystanki z rozkładów GTFS ---------- */
+// każdy rodzaj (autobusy, tramwaje) ma dwie grupy markerów: przystanki zagregowane
+// (jeden punkt na przystanek) i pojedyncze słupki; na mapie jest tylko wybrana,
+// a przy „tylko po przybliżeniu” dopiero od wybranego poziomu przybliżenia
+const TRANSIT_DATA = JSON.parse(document.getElementById("transit").textContent);
+const TRANSIT = TRANSIT_DATA.layers;
+// filtry przystanków: minLines — co najmniej tyle linii (liczba z ikony), minDepartures —
+// co najmniej tyle odjazdów łącznie w dniu odniesienia (liczba z dymku)
+const transitOpt = {grouped: true, zoomOnly: true, minZoom: 15, minLines: 1, minDepartures: 0};
+// progi suwaka odjazdów: na przystankach jest od kilku do ponad 2000 odjazdów dziennie,
+// więc liniowy suwak byłby nieużywalny przy małych wartościach
+const DEPARTURE_STEPS = [0, 10, 20, 50, 100, 150, 200, 300, 500, 750, 1000, 1500, 2000];
+// polska forma liczebnika: 1 linia; 2–4, 22–24… linie; 5–21, 25… linii
+const plural = (n, one, few, many) =>
+  n === 1 ? one : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? few : many;
+const departuresText = n => `${n} ${plural(n, "odjazd", "odjazdy", "odjazdów")}`;
+// odjazdy liczone dla jednego dnia roboczego z rozkładu (gtfs.reference_day)
+const transitDay = TRANSIT_DATA.day
+  ? new Date(TRANSIT_DATA.day + "T12:00").toLocaleDateString("pl-PL", {weekday: "long", day: "numeric", month: "numeric"})
+  : "";
+// grupy linii w popupie przystanku: od najczęściej kursujących; ostatnia to linie,
+// które zatrzymują się tu według rozkładu, ale w dniu odniesienia nie kursują
+const FREQ_GROUPS = [
+  {min: 100, label: "100 i więcej odjazdów"},
+  {min: 50, label: "50–99 odjazdów"},
+  {min: 20, label: "20–49 odjazdów"},
+  {min: 1, label: "1–19 odjazdów"},
+  {min: 0, label: "nie kursuje tego dnia"},
+];
+for(const t of TRANSIT){
+  const nightSet = new Set(t.night);
+  t.iconUrl = n => "data:image/svg+xml;charset=utf-8," + encodeURIComponent(t.svg.replace("{n}", n));
+  // jedna ikona na liczbę linii — tych liczb jest kilkadziesiąt, markerów kilka tysięcy
+  const icons = new Map();
+  const iconFor = n => icons.get(n) ?? icons.set(n, L.divIcon({className: "", iconSize: [28, 45],
+    iconAnchor: [14, 44], popupAnchor: [0, -42], tooltipAnchor: [0, -42],
+    html: `<img src="${t.iconUrl(n)}" alt="" class="h-[45px] w-7">`})).get(n);
+  // numer linii z dymkiem po najechaniu: dokładna liczba odjazdów; kliknięcie rysuje trasę
+  // (code: słupek albo numer przystanku, żeby wyróżnić kierunek, który się tu zatrzymuje)
+  const chip = code => ([i, n]) => {
+    const night = nightSet.has(i);
+    const cls = !n ? "bg-page text-mut" : night ? "bg-ink text-white" : "bg-acc-soft text-acc";
+    return `<span data-route="${esc(t.id)}" data-line="${esc(t.lines[i])}" data-code="${esc(code)}"
+        class="group relative inline-block min-w-7 cursor-pointer rounded px-1.5 py-px text-center
+        text-[12.5px] font-semibold hover:ring-1 hover:ring-current ${cls}">${esc(t.lines[i])}<span class="pointer-events-none absolute bottom-full
+        left-1/2 z-10 mb-1 hidden -translate-x-1/2 rounded bg-ink px-1.5 py-0.5 text-[11.5px] font-normal
+        whitespace-nowrap text-white shadow group-hover:block">linia ${esc(t.lines[i])}${night ? " (nocna)" : ""}:
+        ${departuresText(n)}</span></span>`;
+  };
+  const marker = (lat, lon, name, code, post, deps) => {
+    const night = deps.filter(([i]) => nightSet.has(i)).length, day = deps.length - night;
+    const total = deps.reduce((sum, [, n]) => sum + n, 0);
+    const title = `<b>${esc(name)}</b>` + (post ? ` <span class="text-mut">słupek ${esc(post)}</span>` : "");
+    const sorted = [...deps].sort((a, b) => b[1] - a[1]);
+    const groups = FREQ_GROUPS.map((g, k) => {
+      const upper = k ? FREQ_GROUPS[k - 1].min : Infinity;
+      const inGroup = sorted.filter(([, n]) => n >= g.min && n < upper);
+      return inGroup.length ? `<div><div class="f-title mb-0.5">${g.label} (${inGroup.length})</div>
+        <div class="flex flex-wrap gap-1">${inGroup.map(chip(code)).join("")}</div></div>` : "";
+    }).join("");
+    const m = L.marker([lat, lon], {icon: iconFor(deps.length), riseOnHover: true});
+    m.lineCount = deps.length;
+    m.departures = total;
+    return m
+      .bindTooltip(`${title}<br>${deps.length} ${plural(deps.length, "linia", "linie", "linii")}: ` +
+        `${day} ${plural(day, "dzienna", "dzienne", "dziennych")}, ` +
+        `${night} ${plural(night, "nocna", "nocne", "nocnych")}` +
+        `<br><span class="text-mut">${departuresText(total)} (${transitDay})</span>`,
+        {direction: "top"})
+      .bindPopup(`${title}<div class="text-[11.5px] text-mut">odjazdy: ${transitDay}` +
+        (post ? "" : ", wszystkie słupki") + `</div>
+        <div class="mt-1.5 w-60 space-y-1.5">${groups}</div>
+        <div class="mt-1.5 text-[11px] text-mut">kliknij numer linii, żeby zobaczyć trasę</div>`);
+  };
+  t.on = false;
+  // wszystkie markery; do warstw na mapie trafiają tylko te, które przechodzą filtr (filterTransit)
+  t.stopMarkers = t.stops.map(([lat, lon, name, number, deps]) => marker(lat, lon, name, number, null, deps));
+  t.postMarkers = t.posts.map(([lat, lon, name, code, deps]) =>
+    marker(lat, lon, name, code, code.split("-").pop(), deps));
+  t.grouped = L.layerGroup();
+  t.single = L.layerGroup();
+}
+const stopFilterOk = m => m.lineCount >= transitOpt.minLines && m.departures >= transitOpt.minDepartures;
+function filterTransit(){
+  for(const t of TRANSIT){
+    for(const [layer, all] of [[t.grouped, t.stopMarkers], [t.single, t.postMarkers]]){
+      layer.clearLayers();
+      all.filter(stopFilterOk).forEach(m => layer.addLayer(m));
+    }
+  }
+}
+filterTransit();
+
+/* ---------- trasa linii po kliknięciu jej numeru w popupie przystanku ---------- */
+// przebiegi tras są w osobnym skrypcie w .cache/gtfs/ (gtfs.write_routes), dołączanym
+// dopiero przy pierwszym kliknięciu — <script src>, bo z pliku file:// fetch() jest blokowany
+let routesLoading = null;
+function loadRoutes(){
+  if(window.TRANSIT_ROUTES) return Promise.resolve(window.TRANSIT_ROUTES);
+  routesLoading ??= new Promise((resolve, reject) => {
+    if(!TRANSIT_DATA.routes) return reject();
+    const script = document.createElement("script");
+    script.src = TRANSIT_DATA.routes;
+    script.onload = () => window.TRANSIT_ROUTES ? resolve(window.TRANSIT_ROUTES) : reject();
+    script.onerror = () => { script.remove(); reject(); };
+    document.head.append(script);
+  }).catch(() => { routesLoading = null; throw new Error("brak danych tras"); });
+  return routesLoading;
+}
+// złota trasa z ciemniejszym obrysem — odcina się od żółto-pomarańczowych dróg na kafelkach
+const ROUTE_COLOR = "#e0a800", ROUTE_CASING = "#6b4f00", ROUTE_TEXT = "#9a7200";
+const routeLayer = L.layerGroup().addTo(map);
+let shownRoute = null;  // "rodzaj:linia"
+const routeBox = L.control({position: "topleft"});
+routeBox.onAdd = () => {
+  const div = L.DomUtil.create("div", "hidden max-w-72 rounded-lg bg-white px-3 py-2 text-[12.5px] shadow-[0_1px_5px_rgba(0,0,0,.25)]");
+  L.DomEvent.disableClickPropagation(div);
+  div.addEventListener("click", e => e.target.closest("[data-close]") && clearRoute());
   return div;
 };
-overlayToggle.addTo(map);
+routeBox.addTo(map);
+function showRouteBox(html){
+  const box = routeBox.getContainer();
+  box.innerHTML = `<button type="button" data-close title="Zamknij" class="float-right ml-2 cursor-pointer text-mut
+    hover:text-ink">✕</button>${html}`;
+  box.classList.remove("hidden");
+}
+function clearRoute(){
+  routeLayer.clearLayers();
+  shownRoute = null;
+  routeBox.getContainer().classList.add("hidden");
+}
+async function toggleRoute(kind, line, code){
+  if(shownRoute === `${kind}:${line}`) return clearRoute();
+  clearRoute();
+  shownRoute = `${kind}:${line}`;
+  showRouteBox(`<b>linia ${esc(line)}</b> <span class="text-mut">wczytuję trasę…</span>`);
+  let routes;
+  try {
+    routes = await loadRoutes();
+  } catch {
+    showRouteBox(`<b class="text-bad">Brak danych tras</b><br><span class="text-mut">Nie ma pliku z trasami
+      (.cache/gtfs/routes.js) — mapa otwarta na innym komputerze albo dane usunięto.
+      Wygeneruj mapę ponownie (--html), żeby je pobrać.</span>`);
+    return;
+  }
+  if(shownRoute !== `${kind}:${line}`) return;  // w międzyczasie kliknięto inną linię
+  const variants = routes[kind]?.[line];
+  if(!variants?.length){
+    showRouteBox(`<b>linia ${esc(line)}</b><br><span class="text-bad">brak trasy w danych — wygeneruj mapę ponownie</span>`);
+    return;
+  }
+  const t = TRANSIT.find(x => x.id === kind);
+  const night = t.night.includes(t.lines.indexOf(line));
+  // kierunki zatrzymujące się na klikniętym słupku (albo przystanku) — pozostałe bledsze
+  const here = variants.map(v => v.stops.some(s => s[3] === code || s[3].split("-")[0] === code));
+  const bounds = L.latLngBounds([]);
+  variants.forEach((v, k) => {
+    const main = here[k] || !here.some(Boolean);
+    const opacity = main ? .95 : .4, weight = main ? 5 : 3;
+    routeLayer.addLayer(L.polyline(v.shape, {color: ROUTE_CASING, weight: weight + 3, opacity: opacity * .6, interactive: false}));
+    routeLayer.addLayer(L.polyline(v.shape, {color: ROUTE_COLOR, weight, opacity, interactive: false}));
+    for(const [lat, lon] of v.stops) routeLayer.addLayer(L.circleMarker([lat, lon],
+      {radius: main ? 3.5 : 2.5, color: ROUTE_CASING, weight: 2, fillColor: ROUTE_COLOR, fillOpacity: 1, opacity, interactive: false}));
+    bounds.extend(v.shape);
+  });
+  showRouteBox(`<b style="color:${ROUTE_TEXT}">linia ${esc(line)}</b>${night ? ' <span class="text-mut">(nocna)</span>' : ""}` +
+    variants.map((v, k) => `<div class="${here[k] || !here.some(Boolean) ? "" : "text-mut"}">→ ${esc(v.to)}
+      <span class="text-mut">(${v.stops.length} przyst.)</span></div>`).join(""));
+  map.closePopup();
+  map.fitBounds(bounds, {padding: [40, 40]});
+}
+// klik w numer linii w popupie (popupy nie przepuszczają kliknięć do mapy, więc nasłuch na samym
+// popupie — raz na element, bo ten sam popup otwiera się wielokrotnie)
+const routePopups = new WeakSet();
+map.on("popupopen", e => {
+  const el = e.popup.getElement();
+  if(routePopups.has(el)) return;
+  routePopups.add(el);
+  el.addEventListener("click", ev => {
+    const chip = ev.target.closest("[data-route]");
+    if(chip) toggleRoute(chip.dataset.route, chip.dataset.line, chip.dataset.code);
+  });
+});
+function syncTransit(){
+  const zoomOk = !transitOpt.zoomOnly || map.getZoom() >= transitOpt.minZoom;
+  for(const t of TRANSIT){
+    for(const [layer, grouped] of [[t.grouped, true], [t.single, false]]){
+      const want = t.on && zoomOk && transitOpt.grouped === grouped;
+      if(want !== map.hasLayer(layer)) want ? layer.addTo(map) : layer.remove();
+    }
+  }
+}
+map.on("zoomend", syncTransit);
+if(TRANSIT.length) mapPanel("Komunikacja miejska",
+  `<svg viewBox="0 0 24 24" class="size-5" fill="none" stroke="currentColor" stroke-width="2"
+    stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="14" height="15" rx="3"/>
+    <path d="M5 11h14M9 6.5h6M7.5 18v2.5M16.5 18v2.5"/></svg>`,
+  `<h3 class="f-title">Komunikacja miejska</h3>` +
+  TRANSIT.map((t, i) => `<label class="chk py-0.5 text-ink"><input type="checkbox" data-t="${i}">
+    <span class="grid w-[18px] place-items-center"><img src="${t.iconUrl("")}" alt="" class="h-[18px] w-3"></span>
+    <span>${esc(t.label)} (<span data-count="${i}">${t.stops.length}</span>)</span></label>`).join("") +
+  `<h3 class="f-title mt-2 border-t border-line pt-2">Pokazuj</h3>
+  <nav class="flex gap-1 rounded-lg bg-page p-1">
+    <button type="button" class="tab on grow" data-grouped="1">przystanki</button>
+    <button type="button" class="tab grow" data-grouped="0">każdy słupek</button></nav>
+  <label class="chk mt-2 text-ink"><input type="checkbox" data-opt="zoomOnly" checked>
+    tylko po przybliżeniu</label>
+  <label class="mt-1 flex items-center gap-2 text-[12.5px] text-mut">od
+    <input type="range" data-opt="minZoom" min="11" max="18" step="1" value="${transitOpt.minZoom}"
+      class="w-32 accent-acc disabled:opacity-40">
+    <b class="w-4 text-ink" data-zoomval>${transitOpt.minZoom}</b></label>
+  <p class="mt-0.5 text-[11.5px] text-mut">mapa teraz: <span data-zoomnow>${map.getZoom()}</span></p>
+  <h3 class="f-title mt-2 border-t border-line pt-2">Filtr przystanków</h3>
+  <label class="flex items-center gap-2 text-[12.5px] text-mut"><span class="w-24">min. linii</span>
+    <input type="range" data-opt="minLines" min="1" step="1" value="1"
+      max="${Math.max(1, ...TRANSIT.flatMap(t => t.stopMarkers.map(m => m.lineCount)))}" class="w-32 accent-acc">
+    <b class="w-8 text-ink" data-val="minLines"></b></label>
+  <label class="mt-1 flex items-center gap-2 text-[12.5px] text-mut"><span class="w-24">min. odjazdów</span>
+    <input type="range" data-opt="minDepartures" min="0" max="${DEPARTURE_STEPS.length - 1}" step="1" value="0"
+      class="w-32 accent-acc">
+    <b class="w-8 text-ink" data-val="minDepartures"></b></label>
+  <p class="mt-0.5 text-[11.5px] text-mut">odjazdy łącznie: ${esc(transitDay)}</p>`,
+  panel => {
+    const slider = panel.querySelector('[data-opt="minZoom"]');
+    const refresh = () => {
+      slider.disabled = !transitOpt.zoomOnly;
+      panel.querySelector("[data-zoomval]").textContent = transitOpt.minZoom;
+      panel.querySelectorAll("[data-grouped]").forEach(b =>
+        b.classList.toggle("on", (b.dataset.grouped === "1") === transitOpt.grouped));
+      panel.querySelector('[data-val="minLines"]').textContent = transitOpt.minLines;
+      panel.querySelector('[data-val="minDepartures"]').textContent = transitOpt.minDepartures;
+      TRANSIT.forEach((t, i) => panel.querySelector(`[data-count="${i}"]`).textContent =
+        (transitOpt.grouped ? t.grouped : t.single).getLayers().length);
+      syncTransit();
+    };
+    map.on("zoomend", () => panel.querySelector("[data-zoomnow]").textContent = map.getZoom());
+    panel.addEventListener("click", e => {
+      const b = e.target.closest("[data-grouped]");
+      if(!b) return;
+      transitOpt.grouped = b.dataset.grouped === "1";
+      refresh();
+    });
+    panel.addEventListener("input", e => {
+      const {t, opt} = e.target.dataset;
+      if(t != null) TRANSIT[+t].on = e.target.checked;
+      else if(opt === "zoomOnly") transitOpt.zoomOnly = e.target.checked;
+      else if(opt === "minZoom") transitOpt.minZoom = +e.target.value;
+      else if(opt === "minLines" || opt === "minDepartures"){
+        transitOpt[opt] = opt === "minLines" ? +e.target.value : DEPARTURE_STEPS[+e.target.value];
+        filterTransit();
+      }
+      refresh();
+    });
+    refresh();
+  });
 const markers = new Map();
 let selId = null;
 function baseStyle(o){

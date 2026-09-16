@@ -128,7 +128,9 @@ uv run ruff format
 
 `tests/contract/` holds contract tests that send real requests to the OLX and
 Otodom endpoints the script depends on, and check that the responses still
-contain the fields the parsers read. They need network access and take about
+contain the fields the parsers read. They also check that the ZTP Kraków GTFS
+page (`gtfs.ztp.krakow.pl`) responds and still links the timetables the map
+takes its stops from (`GTFS_KRK_A.zip`, `GTFS_KRK_M.zip`, `GTFS_KRK_T.zip`). They need network access and take about
 a minute (requests are deliberately paced).
 
 ```bash
@@ -151,6 +153,27 @@ skipped is marked as failed, so a blocked runner never looks green.
   notice.
 - A single query returns a limited number of results, so for larger searches
   the script automatically splits the fetch into price ranges.
+- Bus and tram stops on the map come from the public GTFS timetables of ZTP
+  Kraków (MPK and Mobilis buses, trams). The archives (~30 MB) are cached in
+  `.cache/gtfs/` and downloaded again only when the server has a newer version;
+  with `--offline` the cached copy is used, and without one the stop layers are
+  left out. Stops have their own *Komunikacja miejska* button on the map: bus
+  and tram stops are off by default, and the panel switches between one marker
+  per stop and one per stop post, and between showing them only from a chosen
+  zoom level (15 by default) or always. Sliders filter stops by a minimum
+  number of lines and a minimum number of departures on the reference day. Each marker shows how many lines stop
+  there; hovering splits them into day and night lines. Clicking a stop lists
+  its lines grouped by the number of departures (100+, 50–99, 20–49, 1–19, not
+  running that day), and hovering a line shows the exact count. Departures are
+  counted for one reference day: the nearest Tuesday or Wednesday on which every
+  timetable has its usual weekday service (so mid-week public holidays are
+  skipped). For a whole stop they add up all its posts, i.e. both directions.
+  A line counts as a night line when at least half of its trips start between
+  23:00 and 4:00. Clicking a line number draws its route (the most common
+  variant in each direction, with its stops). Routes are not embedded in the
+  map: generating it writes them to `.cache/gtfs/routes.js`, which the page
+  loads on the first click. If the map is opened on another computer or the
+  cache was cleared, it says the route data is missing — generate the map again.
 - Adding another portal means writing a `Source` subclass and registering it in
   `SOURCES`. The database, reporting, CSV and map layers need no changes.
 

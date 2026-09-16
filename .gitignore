@@ -8,6 +8,8 @@ data.html
 *.db-journal
 *.db-wal
 .pytest_cache/
+# pobrane rozkłady GTFS (przystanki na mapie)
+.cache/
 .venv/
 
 # lokalne ustawienia i klucze (wzór w .env.example)

@@ -6,7 +6,8 @@ oraz drugą zakładką z historią rynku (liczba ofert, ceny i ich zmiany w czas
 
 Wygląd i logika strony są w katalogu template/ (szablon Jinja2 index.html
 oraz style.css, app.js, history.js i krakow_boundary.js wklejane do niego bez zmian;
-dodatkowe warstwy punktów, np. lodziarnie, w template/layers/).
+dodatkowe warstwy punktów, np. lodziarnie, w template/layers/;
+przystanki komunikacji miejskiej z modułu gtfs).
 Zewnętrzne biblioteki
 (Leaflet, Apache ECharts, Tailwind CSS w wersji przeglądarkowej) leżą w katalogu deps/
 w głównym katalogu repozytorium.
@@ -26,6 +27,8 @@ from pathlib import Path
 
 from jinja2 import Environment, FileSystemLoader, StrictUndefined, select_autoescape
 from markupsafe import Markup
+
+import gtfs
 
 
 def log(msg: str = "") -> None:
@@ -79,6 +82,14 @@ POI_LAYERS = [
         "geojson": "auchan.geojson",
         "icon": "auchan.svg",
     },
+]
+
+
+# Przystanki komunikacji miejskiej z rozkładów GTFS ZTP (moduł gtfs), z ikonami
+# z template/layers/. Na mapie mają osobny przycisk i panel (app.js).
+TRANSIT_LAYERS = [
+    {"id": "bus", "label": "Przystanki autobusowe", "icon": "bus.svg"},
+    {"id": "tram", "label": "Przystanki tramwajowe", "icon": "tram.svg"},
 ]
 
 
@@ -142,14 +153,23 @@ def poi_address(props: dict) -> str:
     return address
 
 
+def icon_svg(name: str) -> str:
+    """Ikona SVG z template/layers/ bez bloku <metadata> (manifest pochodzenia
+    pliku), który tylko zwiększa rozmiar strony."""
+    svg = (LAYERS_DIR / name).read_text(encoding="utf-8")
+    return re.sub(r"<metadata>.*?</metadata>", "", svg, flags=re.DOTALL)
+
+
+def icon_data_uri(name: str) -> str:
+    """Ikona SVG z template/layers/ jako data URI."""
+    return "data:image/svg+xml;base64," + base64.b64encode(icon_svg(name).encode("utf-8")).decode("ascii")
+
+
 def poi_layers() -> list[dict]:
     """Warstwy z POI_LAYERS: ikona jako data URI i kompaktowa lista punktów
     [lat, lon, nazwa, adres, godziny otwarcia]."""
     layers = []
     for spec in POI_LAYERS:
-        svg = (LAYERS_DIR / spec["icon"]).read_text(encoding="utf-8")
-        # blok <metadata> (manifest pochodzenia pliku) tylko zwiększa rozmiar strony
-        svg = re.sub(r"<metadata>.*?</metadata>", "", svg, flags=re.DOTALL)
         geojson = json.loads((LAYERS_DIR / spec["geojson"]).read_text(encoding="utf-8"))
         points = []
         for feature in geojson["features"]:
@@ -169,11 +189,64 @@ def poi_layers() -> list[dict]:
                 "group": spec.get("group"),
                 "visible": spec.get("visible", True),
                 "shape": spec.get("shape", "circle"),
-                "icon": "data:image/svg+xml;base64," + base64.b64encode(svg.encode("utf-8")).decode("ascii"),
+                "icon": icon_data_uri(spec["icon"]),
                 "pts": points,
             }
         )
     return layers
+
+
+def line_order(line: str):
+    """Numery linii po kolei jak liczby (2 < 10 < 102); nieliczbowe, np. LR0, na końcu."""
+    return (0, int(line), "") if line.isdigit() else (1, 0, line)
+
+
+def transit_layers(offline: bool = False) -> dict:
+    """Przystanki na mapę: {"day": dzień odniesienia dla odjazdów (RRRR-MM-DD),
+    "routes": adres file:// skryptu z trasami linii (gtfs.write_routes), "layers": [...]},
+    gdzie każda warstwa ma:
+    - svg: ikonę z „{n}” w miejscu liczby linii (app.js wstawia liczbę),
+    - lines: posortowane numery linii i night: indeksy linii nocnych,
+    - stops: przystanki zagregowane [lat, lon, nazwa, numer przystanku, [[indeks linii, odjazdy], …]],
+    - posts: pojedyncze słupki [lat, lon, nazwa, stop_code, [[indeks linii, odjazdy], …]]."""
+    networks, day = gtfs.load(offline)
+    routes = gtfs.write_routes(networks).as_uri() if networks else None
+    layers = []
+    for spec in TRANSIT_LAYERS:
+        network = networks.get(spec["id"])
+        if not network or not network["posts"]:
+            continue
+        posts = network["posts"]
+        lines = sorted(set().union(*(p["lines"] for p in posts.values())), key=line_order)
+        index = {line: i for i, line in enumerate(lines)}
+
+        def departures(item: dict) -> list[list[int]]:
+            return sorted([index[line], count] for line, count in item["lines"].items())
+
+        svg = re.sub(
+            r'(<text id="liczba-linii"[^>]*>).*?(</text>)',
+            r"\1{n}\2",
+            icon_svg(spec["icon"]),
+            flags=re.DOTALL,
+        )
+        layers.append(
+            {
+                "id": spec["id"],
+                "label": spec["label"],
+                "svg": svg,
+                "lines": lines,
+                "night": sorted(index[line] for line in network["night"] if line in index),
+                "stops": [
+                    [round(s["lat"], 6), round(s["lon"], 6), s["name"], number, departures(s)]
+                    for number, s in sorted(gtfs.group_posts(posts).items(), key=lambda item: item[1]["name"])
+                ],
+                "posts": [
+                    [round(p["lat"], 6), round(p["lon"], 6), p["name"], code, departures(p)]
+                    for code, p in sorted(posts.items())
+                ],
+            }
+        )
+    return {"day": day.isoformat() if day else None, "routes": routes, "layers": layers}
 
 
 def market_history(con: sqlite3.Connection) -> dict:
@@ -218,10 +291,11 @@ def market_history(con: sqlite3.Connection) -> dict:
     return {"scans": scans, "offers": rows}
 
 
-def export_html(con: sqlite3.Connection, path: str) -> None:
+def export_html(con: sqlite3.Connection, path: str, offline: bool = False) -> None:
     """Buduje pojedynczy, samowystarczalny plik HTML z mapą, listą i filtrami.
     Lekkie dane (ceny, metraże, współrzędne, opisy) siedzą w pliku;
-    zdjęcia dociągają się z serwerów OLX dopiero po otwarciu oferty."""
+    zdjęcia dociągają się z serwerów OLX dopiero po otwarciu oferty.
+    offline: przystanki tylko z zapisanej wcześniej kopii rozkładów GTFS."""
     history: dict[str, list] = {}
     for offer_uid, ts, price in con.execute("SELECT offer_uid, ts, price FROM price_history ORDER BY ts"):
         history.setdefault(offer_uid, []).append([ts[:10], price])
@@ -313,7 +387,13 @@ def export_html(con: sqlite3.Connection, path: str) -> None:
     page = (
         make_env()
         .get_template("index.html")
-        .render(meta=meta, offers=offers, hist=market_history(con), pois=poi_layers())
+        .render(
+            meta=meta,
+            offers=offers,
+            hist=market_history(con),
+            pois=poi_layers(),
+            transit=transit_layers(offline),
+        )
     )
     with open(path, "w", encoding="utf-8") as f:
         f.write(page)

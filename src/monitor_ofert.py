@@ -1495,7 +1495,7 @@ def main(argv: list[str] | None = None) -> None:
         if args.export:
             export_csv(con, args.export)
         if args.html:
-            export_html(con, args.html)
+            export_html(con, args.html, offline=True)
         if not args.export and not args.html:
             log(
                 "Tryb --offline: nic nie pobrano. Dodaj --export PLIK.csv "

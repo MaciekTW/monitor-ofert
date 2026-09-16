@@ -1,6 +1,6 @@
 name: Contract tests
 
-# Testy kontraktów odpytują prawdziwe OLX i Otodom, więc nie uruchamiamy ich
+# Testy kontraktów odpytują prawdziwe OLX, Otodom i GTFS ZTP Kraków, więc nie uruchamiamy ich
 # przy każdym pushu — tylko codziennie i na żądanie (zakładka Actions → Run workflow).
 on:
   schedule:
