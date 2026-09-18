@@ -99,13 +99,14 @@ scraping anything yourself. Both files are gzipped to stay under GitHub's file
 size limits — unpack them first:
 
 ```bash
-gunzip -k oferty.db.gz     # -> oferty.db  (239 MB)
-gunzip -k data.html.gz     # -> data.html  (70 MB)
+gunzip -k oferty.db.gz     # -> oferty.db  (391 MB)
+gunzip -k data.html.gz     # -> data.html  (141 MB)
 ```
 
-- **`oferty.db.gz`** — SQLite database, snapshot from 2026-09-01: 15 627
-  listings (13 217 Otodom, 2 410 OLX), 14 832 of them still active, plus
-  15 763 price-history rows. Tables: `offers`, `price_history`, `meta`.
+- **`oferty.db.gz`** — SQLite database, snapshot from 2026-09-18: 35 145
+  listings (17 454 Otodom, 14 302 Gratka, 3 389 OLX), 29 967 of them still
+  active, plus 35 090 price-history rows. Tables: `offers`, `price_history`,
+  `meta`.
 - **`data.html.gz`** — the generated map: one self-contained HTML file
   (Leaflet and Apache ECharts are inlined, no CDN needed) with all listings plotted and filters
   for price, area, rooms, floor and district. Open it in a browser.
