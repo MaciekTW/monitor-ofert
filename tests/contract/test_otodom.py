@@ -149,8 +149,19 @@ def test_ad_coordinates(ad):
 
 
 def test_ad_district(ad):
-    levels = [n.get("locationLevel") for n in dig(ad, "location.reverseGeocoding.locations")]
-    assert "district" in levels, f"brak locationLevel=district, są: {levels}"
+    """parse_offer_otodom czyta dzielnicę z reverseGeocoding. Sama dzielnica
+    jest opcjonalna — oferty spoza miasta mają hierarchię powiat/gmina bez
+    poziomu district, a kod ma dla nich fallback (district or ad["district"],
+    kolumna w bazie jest NULL-owalna). Tu sprawdzamy więc kształt listy;
+    obecności locationLevel=district pilnuje test_item_location na całej
+    liście wyników."""
+    locations = dig(ad, "location.reverseGeocoding.locations")
+    assert isinstance(locations, list) and locations, "reverseGeocoding.locations jest puste"
+    assert_all(
+        locations,
+        lambda n: isinstance(n, dict) and isinstance(n.get("locationLevel"), str) and n.get("name"),
+        "locations[] z polami locationLevel i name",
+    )
 
 
 def test_ad_target_details(ad):

@@ -2,7 +2,7 @@
 const META = JSON.parse(document.getElementById("meta").textContent);
 const OFFERS = JSON.parse(document.getElementById("data").textContent);
 const GEN = new Date(META.gen);
-const PORTAL = {olx: "OLX", otodom: "Otodom"};
+const PORTAL = {olx: "OLX", otodom: "Otodom", gratka: "Gratka"};
 const $ = s => document.querySelector(s);
 const esc = s => (s == null ? "" : String(s))
   .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")

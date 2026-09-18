@@ -1,7 +1,7 @@
 # monitor-ofert
 
 A small Python tool that tracks real-estate listings from Polish classifieds
-portals (**OLX** and **Otodom**) and tells you what actually changed since the
+portals (**OLX**, **Otodom** and **Gratka**) and tells you what actually changed since the
 last time you looked.
 
 The first run downloads every listing matching your search and stores it in a
@@ -50,7 +50,7 @@ Note that the key ends up inside the generated HTML file.
 ## Usage
 
 ```bash
-# all sources (OLX + Otodom), default search: flats for sale in Kraków
+# all sources (OLX + Otodom + Gratka), default search: flats for sale in Kraków
 uv run src/monitor_ofert.py
 
 # a single source
@@ -68,7 +68,8 @@ uv run src/monitor_ofert.py --html mapa.html
 # your own searches, into a separate database file
 uv run src/monitor_ofert.py --db tanie.db \
     --url "https://www.olx.pl/nieruchomosci/mieszkania/sprzedaz/krakow/?search[filter_float_price:to]=700000" \
-    --url "https://www.otodom.pl/pl/wyniki/sprzedaz/mieszkanie/malopolskie/krakow/krakow/krakow?priceMax=700000"
+    --url "https://www.otodom.pl/pl/wyniki/sprzedaz/mieszkanie/malopolskie/krakow/krakow/krakow?priceMax=700000" \
+    --url "https://gratka.pl/nieruchomosci/mieszkania/krakow?cena-calkowita:max=700000"
 
 # no network at all — just export what's already in the database
 uv run src/monitor_ofert.py --offline --html mapa.html
@@ -79,7 +80,7 @@ uv run src/monitor_ofert.py --offline --html mapa.html
 | Option | Meaning |
 | --- | --- |
 | `--url URL` | Search URL from a supported portal; repeatable |
-| `--source NAME` | Restrict to one source (`olx`, `otodom`); repeatable |
+| `--source NAME` | Restrict to one source (`olx`, `otodom`, `gratka`); repeatable |
 | `--db FILE` | SQLite database file (default `oferty.db`) |
 | `--quick` | Only look for new listings |
 | `--export FILE.csv` | Write active listings to CSV |
@@ -126,8 +127,8 @@ uv run ruff format
 
 ## Tests
 
-`tests/contract/` holds contract tests that send real requests to the OLX and
-Otodom endpoints the script depends on, and check that the responses still
+`tests/contract/` holds contract tests that send real requests to the OLX,
+Otodom and Gratka endpoints the script depends on, and check that the responses still
 contain the fields the parsers read. They also download the ZTP Kraków GTFS
 timetables the map takes its stops, lines, departures and routes from
 (`GTFS_KRK_A.zip`, `GTFS_KRK_M.zip`, `GTFS_KRK_T.zip` from `gtfs.ztp.krakow.pl`)
@@ -156,10 +157,16 @@ skipped is marked as failed, so a blocked runner never looks green.
 
 - **OLX** is read through the same JSON API (`/api/v1/offers/`) the website
   itself calls in the background; **Otodom** through the `__NEXT_DATA__` blob
-  embedded in its result pages. Both are unofficial and can change without
-  notice.
-- A single query returns a limited number of results, so for larger searches
-  the script automatically splits the fetch into price ranges.
+  embedded in its result pages; **Gratka** through the GraphQL API
+  (`gratka.pl/api-gratka`) its own pages query. All three are unofficial and
+  can change without notice.
+- On OLX and Otodom a single query returns a limited number of results, so for
+  larger searches the script automatically splits the fetch into price ranges.
+  Gratka serves results down to the last page, so its listings are read page by
+  page instead.
+- **Gratka** keeps the market type (primary/secondary), the description and the
+  photos on the offer page only, so the script fetches those once per listing
+  and reuses them on later scans.
 - Bus and tram stops on the map come from the public GTFS timetables of ZTP
   Kraków (MPK and Mobilis buses, trams). The archives (~30 MB) are cached in
   `.cache/gtfs/` and downloaded again only when the server has a newer version;

@@ -13,8 +13,8 @@ erDiagram
     offers ||--o{ price_history : "uid = offer_uid"
 
     offers {
-        TEXT    uid PK "e.g. olx:1090974837, oto:68307723"
-        TEXT    source "olx | otodom"
+        TEXT    uid PK "e.g. olx:1090974837, oto:68307723, gra:48926797"
+        TEXT    source "olx | otodom | gratka"
         INTEGER id "offer id on the portal"
         TEXT    url
         TEXT    title
@@ -63,14 +63,14 @@ offers that disappear from the portal are only marked inactive.
 
 | Column | Type | Description |
 | --- | --- | --- |
-| `uid` | TEXT, PK | Portal-scoped id: `olx:<id>` or `oto:<id>`. |
-| `source` | TEXT | Portal key: `olx` or `otodom`. |
+| `uid` | TEXT, PK | Portal-scoped id: `olx:<id>`, `oto:<id>` or `gra:<id>`. |
+| `source` | TEXT | Portal key: `olx`, `otodom` or `gratka`. |
 | `id` | INTEGER | Offer id on the portal. |
 | `url` | TEXT | Link to the offer page. |
 | `title` | TEXT | Offer title (trimmed). |
 | `price` | REAL | Current total price. |
 | `currency` | TEXT | Currency code, defaults to `PLN`. |
-| `negotiable` | INTEGER | `1` if the price is negotiable (OLX only; always `0` for Otodom). |
+| `negotiable` | INTEGER | `1` if the price is negotiable (OLX only; always `0` for Otodom and Gratka). |
 | `area` | REAL | Area in m². |
 | `price_per_m` | REAL | Price per m²; computed as `price / area` when the portal doesn't provide it. |
 | `rooms` | TEXT | Human-readable label, e.g. `1 pokój`, `2 pokoje`. |
@@ -82,11 +82,11 @@ offers that disappear from the portal are only marked inactive.
 | `created_at` | TEXT | When the offer was originally published on the portal (portal's timestamp, ISO 8601; format varies by source). |
 | `last_refresh` | TEXT | Last time the offer was refreshed/bumped on the portal. |
 | `lat`, `lon` | REAL | Coordinates. Once set, they are not overwritten with `NULL` on later scans. |
-| `map_radius` | REAL | Location accuracy radius; `> 0` means the seller gave only an approximate location (OLX). Always `0` for Otodom. |
+| `map_radius` | REAL | Location accuracy radius; `> 0` means the seller gave only an approximate location (OLX). Always `0` for Otodom and Gratka, which give an exact point. |
 | `first_seen` | TEXT | Local timestamp of the scan that first found the offer. |
 | `last_seen` | TEXT | Local timestamp of the most recent scan that found the offer. |
 | `active` | INTEGER | `1` = present in the last full scan of its portal, `0` = withdrawn. Set back to `1` if the offer reappears. |
-| `raw` | TEXT | Full source JSON of the offer. For Otodom it may include an `_ad` key with details fetched from the offer page (description, coordinates, …), carried over between scans. |
+| `raw` | TEXT | Full source JSON of the offer. For Otodom it may include an `_ad` key, and for Gratka a `_detail` key, with details fetched from the offer page (description, photos, coordinates, market type, …), carried over between scans. |
 
 `first_seen`, `last_seen` and `price_history.ts` are local time in
 `YYYY-MM-DDTHH:MM:SS` format (no timezone).

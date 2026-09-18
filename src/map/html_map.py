@@ -330,10 +330,12 @@ def export_html(con: sqlite3.Connection, path: str, offline: bool = False) -> No
             raw_offer = json.loads(raw) if raw else {}
         except ValueError:
             raw_offer = {}
-        if source == "otodom":
-            ad = raw_offer.get("_ad") or {}
-            photos = [u for u in (ad.get("images") or [])[:8] if isinstance(u, str)]
-            desc = strip_html(ad.get("description") or "")
+        if source in ("otodom", "gratka"):
+            # oba portale mają opis i zdjęcia dopiero na stronie oferty —
+            # skrypt dociąga je raz i chowa w surowym JSON-ie
+            detail = raw_offer.get("_ad") or raw_offer.get("_detail") or {}
+            photos = [u for u in (detail.get("images") or [])[:8] if isinstance(u, str)]
+            desc = strip_html(detail.get("description") or "")
         else:
             photos = photo_urls(raw_offer)
             desc = strip_html(raw_offer.get("description") or "")

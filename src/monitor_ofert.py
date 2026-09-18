@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-monitor_ofert.py — monitor ofert nieruchomości z wielu portali (OLX, Otodom)
+monitor_ofert.py — monitor ofert nieruchomości z wielu portali (OLX, Otodom, Gratka)
 
 Domyślnie zbiera dane ze WSZYSTKICH zdefiniowanych serwisów (patrz rejestr
 SOURCES); dla każdego portala używane jest jego domyślne wyszukiwanie
@@ -16,7 +16,7 @@ Kolejne uruchomienia:   pobiera oferty ponownie i pokazuje TYLKO:
                           • ogłoszenia, które wróciły po zniknięciu.
 
 Przykłady użycia:
-    python src/monitor_ofert.py                      # wszystkie źródła (OLX + Otodom)
+    python src/monitor_ofert.py                      # wszystkie źródła (OLX + Otodom + Gratka)
     python src/monitor_ofert.py --source olx         # tylko jedno źródło
     python src/monitor_ofert.py --quick              # szybki tryb: tylko NOWE oferty
     python src/monitor_ofert.py --export oferty.csv  # zrzut aktywnych ofert do CSV
@@ -35,9 +35,10 @@ Wymagania:  Python 3.8+  oraz  pip install curl_cffi
 Uwagi:
   * Skrypt korzysta z tych samych, nieoficjalnych mechanizmów, których używają
     strony portali w przeglądarce (API JSON OLX-a, dane __NEXT_DATA__
-    Otodomu). Serwisy mogą je w każdej chwili zmienić.
-  * Jedno zapytanie zwraca ograniczoną liczbę wyników, więc przy większych
-    wyszukiwaniach skrypt automatycznie dzieli pobieranie na przedziały cen.
+    Otodomu, API GraphQL Gratki). Serwisy mogą je w każdej chwili zmienić.
+  * W OLX-ie i Otodomie jedno zapytanie zwraca ograniczoną liczbę wyników,
+    więc przy większych wyszukiwaniach skrypt automatycznie dzieli pobieranie
+    na przedziały cen (Gratka wydaje wyniki do ostatniej strony).
   * Między zapytaniami jest pauza (--delay, domyślnie 0,6 s) — nie zmniejszaj
     jej agresywnie; to narzędzie do prywatnego monitoringu, a nie masowego
     scrapingu. Regulaminy portali ograniczają automatyczny dostęp.
@@ -58,7 +59,7 @@ import unicodedata
 from collections import Counter
 from datetime import datetime
 from pathlib import Path
-from urllib.parse import urlparse, parse_qsl
+from urllib.parse import urlparse, parse_qsl, urlencode
 
 from dotenv import load_dotenv
 
@@ -852,6 +853,389 @@ def parse_offer_otodom(item: dict) -> dict:
     }
 
 
+# ---------------------------------------------------------------------- gratka
+
+API_GRATKA = "https://gratka.pl/api-gratka"
+
+GRA_PAGE = 35  # tyle ofert na stronę wydaje API (liczby nie da się zmienić)
+# zdjęcia serwuje osobny CDN; w API jest sam identyfikator kadru i nazwa pliku
+GRA_THUMB = "https://thumbs.cdngr.pl/thumb/{id}/3x2_m:fill_and_crop/{name}.jpg"
+
+# Gratka to aplikacja Nuxt rozmawiająca z własnym API GraphQL — wysyłamy
+# dokładnie te zapytania, co strona otwarta w przeglądarce. Serwis nie wymaga
+# do nich ani tokenu, ani zalogowanej sesji.
+GRA_HEADERS = {
+    "Accept": "application/json",
+    "Content-Type": "application/json",
+    "Origin": "https://gratka.pl",
+    "Referer": "https://gratka.pl/",
+    "X-MZN-Client": "GRATKA",
+    "X-MZN-Type": "GRATKA",
+    "Sec-Fetch-Dest": "empty",
+    "Sec-Fetch-Mode": "cors",
+    "Sec-Fetch-Site": "same-origin",
+}
+
+# adres wyszukiwania → parametry, które serwis z niego odczytał
+GRA_DECODE_QUERY = """query decodeListingUrl($url: String!) {
+  decodeListingUrl(url: $url) {
+    url
+    totalCount
+    listingParameters {
+      locations { name type }
+      searchParameters { transaction type }
+    }
+  }
+}"""
+
+# jedna strona wyników; pola dobrane pod kolumny bazy (patrz parse_offer_gratka).
+# Celowo NIE pobieramy relatedProperties ani topPromoted — to oferty spoza
+# wyszukiwania, które serwis dokleja do listy jako promowane wstawki.
+GRA_SEARCH_QUERY = """query getPropertyListingData($url: String!) {
+  searchProperties(url: $url) {
+    properties {
+      totalCount
+      nodes {
+        idOnFrontend
+        title
+        advertisementText
+        url
+        addedAt
+        refreshedAt
+        area
+        numberOfRooms
+        floorFormatted
+        price { amount currency }
+        priceM2 { amount }
+        location { location street map { center { latitude longitude } } }
+        contact { company { name type } person { type } }
+        development { id name }
+      }
+    }
+  }
+}"""
+
+# strona pojedynczej oferty: rynek, dokładne piętro i powierzchnia, opis, zdjęcia
+GRA_DETAIL_QUERY = """query getPropertyDetails($url: String!) {
+  getProperty(url: $url) {
+    marketType
+    floor
+    area
+    description
+    photos { id name }
+  }
+}"""
+
+
+class GratkaQueryError(RuntimeError):
+    """Błąd zgłoszony przez samo API Gratki (HTTP 200 + pole „errors”)."""
+
+
+def gratka_gql(query: str, variables: dict, delay: float, retries: int = 4) -> dict:
+    """Zapytanie do API GraphQL Gratki — odpowiednik http_get dla POST-a.
+
+    Zwraca zawartość pola „data”. Błędy GraphQL przychodzą ze statusem 200,
+    więc sprawdzamy je osobno."""
+    warm_up(API_GRATKA)
+    payload = {"query": query, "variables": variables}
+    last_exc = None
+    for attempt in range(retries):
+        try:
+            r = session.post(API_GRATKA, json=payload, timeout=30, headers=GRA_HEADERS)
+        except NETWORK_ERRORS as exc:
+            last_exc = exc
+            time.sleep(2 * (attempt + 1))
+            continue
+        if r.status_code in (429, 500, 502, 503, 504):
+            wait = 3 * (attempt + 1)
+            log(f"  ! HTTP {r.status_code} — czekam {wait} s i ponawiam...", err=True)
+            time.sleep(wait)
+            continue
+        if r.status_code == 403:
+            raise RuntimeError(
+                "Gratka odrzuciła zapytanie (HTTP 403) — serwis uznał je za "
+                "automatyczne. Odczekaj kilkanaście minut i spróbuj ponownie, "
+                "najlepiej z większą pauzą (np. --delay 1.5)."
+            )
+        r.raise_for_status()
+        try:
+            data = r.json()
+        except ValueError:
+            raise RuntimeError("Odpowiedź API Gratki nie jest poprawnym JSON-em — serwis mógł zmienić API.")
+        pause(delay)
+        errors = data.get("errors")
+        if errors:
+            first = errors[0].get("message") if isinstance(errors[0], dict) else errors[0]
+            raise GratkaQueryError(f"API Gratki odrzuciło zapytanie: {first}")
+        return data.get("data") or {}
+    raise RuntimeError(f"Nie udało się odpytać API Gratki ({last_exc})")
+
+
+def gratka_path(url: str, **extra) -> str:
+    """Adres wyszukiwania → ścieżka w postaci, jakiej oczekuje API.
+
+    API przyjmuje dokładnie to, co widać w pasku adresu przeglądarki (np.
+    „/nieruchomosci/mieszkania/krakow?cena-calkowita:max=700000”), więc
+    zachowujemy parametry użytkownika i dokładamy tylko własne (page, sort)."""
+    parsed = urlparse(url if "//" in url else "https://gratka.pl" + url)
+    params = dict(parse_qsl(parsed.query))
+    params.update({k: str(v) for k, v in extra.items() if v is not None})
+    # dwukropek w nazwach filtrów Gratki („cena-calkowita:max”) zostawiamy
+    # nieprzekodowany — tak zapisuje go sam serwis
+    query = urlencode(params, safe=":")
+    return (parsed.path or "/") + (f"?{query}" if query else "")
+
+
+def decode_gratka(url: str, delay: float) -> dict:
+    """Parametry, które Gratka odczytała z adresu wyszukiwania.
+
+    Pozwala sprawdzić adres, zanim zaczniemy pobieranie, i poznać deklarowaną
+    liczbę ofert — odpowiednik reported_count() dla OLX-a."""
+    try:
+        data = gratka_gql(GRA_DECODE_QUERY, {"url": gratka_path(url)}, delay)
+    except GratkaQueryError as exc:
+        raise RuntimeError(
+            f"Gratka nie rozpoznaje tego wyszukiwania:\n  {url}\n"
+            "Otwórz listę ofert na gratka.pl i skopiuj adres z paska przeglądarki.\n"
+            f"(odpowiedź serwisu: {exc})"
+        )
+    info = data.get("decodeListingUrl")
+    if not info:
+        raise RuntimeError(f"Gratka nie zwróciła parametrów wyszukiwania dla adresu {url}.")
+    return info
+
+
+def gratka_page(url: str, extra: dict, delay: float) -> tuple[list, int]:
+    """Jedna strona wyników: (oferty, deklarowana liczba wszystkich ofert)."""
+    data = gratka_gql(GRA_SEARCH_QUERY, {"url": gratka_path(url, **extra)}, delay)
+    props = ((data.get("searchProperties") or {}).get("properties")) or {}
+    nodes = [n for n in (props.get("nodes") or []) if isinstance(n, dict) and _gra_id(n) is not None]
+    return nodes, int(props.get("totalCount") or 0)
+
+
+def fetch_all_gratka(url: str, delay: float) -> list[dict]:
+    """Pobiera wszystkie oferty z wyszukiwania Gratki.
+
+    W odróżnieniu od OLX-a i Otodomu serwis wydaje wyniki do ostatniej strony,
+    więc nie trzeba dzielić wyszukiwania na przedziały cenowe — wystarczy
+    przejść kolejne strony."""
+    collected: dict[int, dict] = {}
+    nodes, total = gratka_page(url, {}, delay)
+    pages = -(-total // GRA_PAGE) if total else 1
+    page = 1
+    while nodes:
+        for node in nodes:
+            collected[_gra_id(node)] = node
+        print(f"\r  [Gratka] pobrano {len(collected)} z {total} ofert...", end="", flush=True)
+        page += 1
+        if page > pages:
+            break
+        nodes, _ = gratka_page(url, {"page": page}, delay)
+    print()
+    if total and len(collected) < total * 0.9:
+        log(f"  ! [Gratka] serwis zapowiadał {total} ofert, a wydał {len(collected)}.")
+    log(f"[Gratka] pobrano łącznie {len(collected)} unikalnych ofert.")
+    return list(collected.values())
+
+
+def fetch_new_quick_gratka(url: str, known_ids: set, delay: float) -> list[dict]:
+    """Szybki tryb dla Gratki: od najnowszych, aż trafimy na same znane."""
+    fresh, seen = [], set()
+    page = 1
+    while True:
+        nodes, total = gratka_page(url, {"sort": "newest", "page": page}, delay)
+        if not nodes:
+            break
+        page_new = [n for n in nodes if _gra_id(n) not in known_ids and _gra_id(n) not in seen]
+        seen.update(_gra_id(n) for n in page_new)
+        fresh.extend(page_new)
+        print(f"\r  [Gratka] sprawdzono {page} str., nowych: {len(fresh)}...", end="", flush=True)
+        if not page_new or page * GRA_PAGE >= total:
+            break
+        page += 1
+    print()
+    return fresh
+
+
+def fetch_gratka_detail(offer_path: str, delay: float) -> dict | None:
+    """Strona pojedynczej oferty: rynek, piętro, opis, zdjęcia.
+    Zwraca odchudzony słownik albo None, gdy oferty nie da się pobrać — np.
+    właśnie zniknęła z serwisu (API zwraca wtedy getProperty: null)."""
+    if not offer_path:
+        return None
+    try:
+        data = gratka_gql(GRA_DETAIL_QUERY, {"url": offer_path}, delay)
+    except (RuntimeError,) + NETWORK_ERRORS:
+        return None  # oferta mogła właśnie zniknąć — trudno
+    prop = data.get("getProperty")
+    if not prop:
+        return None
+    slim = {k: prop.get(k) for k in ("marketType", "floor", "area", "description") if prop.get(k) is not None}
+    images = [
+        GRA_THUMB.format(id=photo["id"], name=photo.get("name") or "zdjecie")
+        for photo in (prop.get("photos") or [])[:8]
+        if isinstance(photo, dict) and photo.get("id")
+    ]
+    if images:
+        slim["images"] = images
+    return slim or None
+
+
+def enrich_gratka(items: list[dict], stored: dict, delay: float) -> None:
+    """Dociąga szczegóły ofert, które ich jeszcze nie mają (rynek, opis, zdjęcia).
+    Wynik wkłada do item["_detail"] — trafi do bazy razem z surowymi danymi.
+
+    Ofertom znanym z poprzednich uruchomień podkładamy szczegóły zapisane
+    wtedy w bazie: rynek, piętro i dokładna powierzchnia są kolumnami bazy,
+    więc bez tego zwykły skan listy wyczyściłby je przy aktualizacji."""
+    todo = []
+    for item in items:
+        detail = stored.get(_gra_id(item))
+        if detail:
+            item["_detail"] = detail
+        else:
+            todo.append(item)
+    if not todo:
+        return
+    est = int(len(todo) * (delay + 0.25) / 60) + 1
+    log(f"[Gratka] dociągam szczegóły {len(todo)} ofert (rynek, opisy, zdjęcia — ok. {est} min)...")
+    for done, item in enumerate(todo, 1):
+        detail = fetch_gratka_detail(item.get("url") or "", delay)
+        if detail:
+            item["_detail"] = detail
+        print(f"\r  [Gratka] szczegóły {done}/{len(todo)}...", end="", flush=True)
+    print()
+
+
+_GRA_MARKET = {"Rynek pierwotny": "Pierwotny", "Rynek wtórny": "Wtórny"}
+_GRA_VOIVODESHIPS = {
+    "dolnośląskie",
+    "kujawsko-pomorskie",
+    "lubelskie",
+    "lubuskie",
+    "łódzkie",
+    "małopolskie",
+    "mazowieckie",
+    "opolskie",
+    "podkarpackie",
+    "podlaskie",
+    "pomorskie",
+    "śląskie",
+    "świętokrzyskie",
+    "warmińsko-mazurskie",
+    "wielkopolskie",
+    "zachodniopomorskie",
+}
+# tylko do komunikatu o rozpoznanym wyszukiwaniu (patrz GratkaSource.prepare)
+_GRA_TRANSACTION = {"SALE": "sprzedaż", "RENT": "wynajem"}
+_GRA_TYPE = {
+    "FLAT": "mieszkania",
+    "HOUSE": "domy",
+    "PLOT": "działki",
+    "COMMERCIAL_PROPERTY": "lokale użytkowe",
+    "GARAGE": "garaże",
+    "ROOM": "pokoje",
+}
+
+
+def _gra_id(item: dict) -> int | None:
+    """Numer ogłoszenia widoczny w adresie oferty (pole „id” to klucz wewnętrzny)."""
+    try:
+        return int(item.get("idOnFrontend"))
+    except (TypeError, ValueError):
+        return None
+
+
+def _gra_title(item: dict) -> str:
+    """Tytuł oferty. Lista wyników podaje w „title” samą kategorię („mieszkanie
+    na sprzedaż”), więc bierzemy nagłówek ogłoszenia, a gdy go brak —
+    dopisujemy do kategorii ulicę, żeby oferty dało się od siebie odróżnić."""
+    headline = " ".join((item.get("advertisementText") or "").split())
+    if headline:
+        return headline
+    title = " ".join((item.get("title") or "").split())
+    street = " ".join(((item.get("location") or {}).get("street") or "").split())
+    return f"{title}, {street}" if title and street else (title or street)
+
+
+def _gra_place(item: dict) -> tuple[str | None, str | None]:
+    """(miasto, dzielnica) z hierarchii lokalizacji oferty.
+
+    Gratka podaje dwa poziomy, ale nie zawsze te same: przy ofercie z podaną
+    dzielnicą jest to [miasto, dzielnica], a bez niej — [województwo, miasto].
+    Pola county/commune bywają puste, więc rozpoznajemy województwo po nazwie."""
+    names = [n.strip() for n in ((item.get("location") or {}).get("location") or []) if isinstance(n, str)]
+    names = [n for n in names if n]
+    if names and names[0].lower() in _GRA_VOIVODESHIPS:
+        names = names[1:]
+    city = names[0] if names else None
+    district = names[1] if len(names) > 1 else None
+    return city, district
+
+
+def _gra_floor(item: dict, detail: dict) -> str | None:
+    """Piętro w formacie wspólnym dla portali: „3”, „Parter”, „Suterena”."""
+    floor = detail.get("floor")
+    if isinstance(floor, int):
+        if floor < 0:
+            return "Suterena"
+        return "Parter" if floor == 0 else str(floor)
+    # z listy wyników przychodzi etykieta w stylu „piętro 2/3” albo „parter/4”
+    # (piętro oferty / liczba pięter w budynku)
+    label = str(item.get("floorFormatted") or "").split("/")[0].strip().lower()
+    m = re.search(r"\d+", label)
+    if m:
+        return m.group()
+    return label.capitalize() or None
+
+
+def parse_offer_gratka(item: dict) -> dict:
+    """Oferta Gratki (wynik wyszukiwania + ew. szczegóły) → wspólny format."""
+    detail = item.get("_detail") or {}
+
+    def money(node):
+        return to_float(node.get("amount")) if isinstance(node, dict) else None
+
+    price = money(item.get("price"))
+    # szczegóły oferty podają powierzchnię dokładniej (27,75 zamiast 27)
+    area = to_float(detail.get("area")) or to_float(item.get("area"))
+    ppm = money(item.get("priceM2"))
+    if ppm is None and price and area:
+        ppm = round(price / area)
+
+    loc = item.get("location") or {}
+    center = (loc.get("map") or {}).get("center") or {}
+    city, district = _gra_place(item)
+    contact = item.get("contact") or {}
+    offer_id = _gra_id(item)
+    return {
+        "uid": f"gra:{offer_id}",
+        "source": "gratka",
+        "id": offer_id,
+        "url": "https://gratka.pl" + (item.get("url") or ""),
+        "title": _gra_title(item),
+        "price": price,
+        "currency": (item.get("price") or {}).get("currency") or "PLN",
+        "negotiable": 0,
+        "area": area,
+        "price_per_m": ppm,
+        "rooms": item.get("numberOfRooms"),
+        "floor": _gra_floor(item, detail),
+        "market": _GRA_MARKET.get(detail.get("marketType")),
+        "city": city,
+        "district": district,
+        # ogłoszenia prywatne są na Gratce rzadkością — niemal wszystko
+        # wystawiają biura i deweloperzy (contact.company / development)
+        "business": 1 if (contact.get("company") or item.get("development")) else 0,
+        "created_at": item.get("addedAt"),
+        "last_refresh": item.get("refreshedAt"),
+        "lat": to_float(center.get("latitude")),
+        "lon": to_float(center.get("longitude")),
+        # API podaje dokładny punkt, bez promienia przybliżenia
+        "map_radius": 0,
+    }
+
+
 # ----------------------------------------------------- interpretacja ofert OLX
 
 
@@ -1101,13 +1485,15 @@ def sync(con: sqlite3.Connection, records: list[tuple[dict, dict]], full_scan_so
                     "INSERT INTO price_history VALUES (?, ?, ?)",
                     (o["uid"], now, o["price"]),
                 )
-            # szczegóły Otodom (_ad: opis, zdjęcia, współrzędne) dociągamy raz —
-            # przy zwykłym skanie listy przenosimy je ze starego rekordu
-            if o["source"] == "otodom" and "_ad" not in raw and old_raw_txt:
+            # szczegóły ze stron ofert (Otodom: opis, zdjęcia, współrzędne;
+            # Gratka: rynek, opis, zdjęcia) dociągamy raz — przy zwykłym
+            # skanie listy przenosimy je ze starego rekordu
+            detail_key = DETAIL_KEYS.get(o["source"])
+            if detail_key and detail_key not in raw and old_raw_txt:
                 try:
-                    old_ad = json.loads(old_raw_txt).get("_ad")
-                    if old_ad:
-                        raw = dict(raw, _ad=old_ad)
+                    old_detail = json.loads(old_raw_txt).get(detail_key)
+                    if old_detail:
+                        raw = dict(raw, **{detail_key: old_detail})
                 except ValueError:
                     pass
             con.execute(
@@ -1181,6 +1567,8 @@ class Source:
     label = ""  # nazwa wyświetlana w komunikatach
     domains: tuple = ()  # domeny rozpoznawane w adresach --url
     default_url = ""  # wyszukiwanie używane, gdy nie podano --url
+    detail_key = ""  # klucz w surowym JSON-ie, pod którym siedzą dociągnięte
+    # szczegóły oferty; ustaw, gdy enrich() pobiera je raz na ofertę
 
     def __init__(self, url: str, delay: float):
         self.url = url
@@ -1260,6 +1648,7 @@ class OlxSource(Source):
 
 class OtodomSource(Source):
     name = "otodom"
+    detail_key = "_ad"
     label = "Otodom"
     domains = ("otodom.pl",)
     default_url = "https://www.otodom.pl/pl/wyniki/sprzedaz/mieszkanie/malopolskie/krakow/krakow/krakow"
@@ -1284,7 +1673,56 @@ class OtodomSource(Source):
         return parse_offer_otodom(raw)
 
 
-SOURCES: dict[str, type] = {cls.name: cls for cls in (OlxSource, OtodomSource)}
+class GratkaSource(Source):
+    name = "gratka"
+    label = "Gratka"
+    domains = ("gratka.pl",)
+    default_url = "https://gratka.pl/nieruchomosci/mieszkania/krakow"
+    detail_key = "_detail"
+
+    def prepare(self, con, overrides):
+        """Sprawdza adres wyszukiwania i mówi, co serwis z niego odczytał.
+        Zły adres kończy się tu czytelnym błędem, a nie pustym wynikiem."""
+        info = decode_gratka(self.url, self.delay)
+        params = (info.get("listingParameters") or {}).get("searchParameters") or {}
+        places = [
+            loc.get("name")
+            for loc in (info.get("listingParameters") or {}).get("locations") or []
+            if loc.get("name")
+        ]
+        what = ", ".join(_GRA_TYPE.get(t, str(t).lower()) for t in params.get("type") or []) or "?"
+        deal = _GRA_TRANSACTION.get(params.get("transaction"), str(params.get("transaction") or "?").lower())
+        where = ", ".join(places) or "?"
+        log(f"Wyszukiwanie: {what}, {deal}, {where} — {info.get('totalCount') or 0} ofert.")
+
+    def fetch_all(self):
+        return fetch_all_gratka(self.url, self.delay)
+
+    def fetch_new(self, known_ids):
+        return fetch_new_quick_gratka(self.url, known_ids, self.delay)
+
+    def enrich(self, items, con):
+        stored = {}
+        for offer_id, raw in con.execute(
+            "SELECT id, raw FROM offers WHERE source = ? AND raw IS NOT NULL",
+            (self.name,),
+        ):
+            try:
+                detail = json.loads(raw).get(self.detail_key)
+            except ValueError:
+                continue
+            if detail:
+                stored[offer_id] = detail
+        enrich_gratka(items, stored, self.delay)
+
+    def parse(self, raw):
+        return parse_offer_gratka(raw)
+
+
+SOURCES: dict[str, type] = {cls.name: cls for cls in (OlxSource, OtodomSource, GratkaSource)}
+
+# portale, które dociągają szczegóły ofert osobnym zapytaniem (patrz sync)
+DETAIL_KEYS = {name: cls.detail_key for name, cls in SOURCES.items() if cls.detail_key}
 
 
 def source_for(url: str):

@@ -64,13 +64,26 @@ def test_search_page_html_contains_search_ids():
 # ------------------------------------------------------------ endpoint ofert
 
 
+# OLX nie gwarantuje pełnych PAGE_LIMIT wyników organicznych — potrafi wydać
+# ich o kilka mniej (np. gdy oferta zniknie między zbudowaniem listy a
+# odpowiedzią). Nie sprawdzamy więc równości, tylko czy strona nie została
+# realnie obcięta.
+ORGANIC_TOLERANCE = 5
+
+
 def test_offers_endpoint_returns_full_page(offers_page, offers):
     """Paginacja zakłada, że strona, która nie jest ostatnia, ma co najmniej
-    PAGE_LIMIT ofert (krótsza = koniec wyników). OLX dokłada do PAGE_LIMIT
-    ofert organicznych kilka promowanych — ich indeksy są w metadata.source."""
+    PAGE_LIMIT ofert (krótsza = koniec wyników). crawl() liczy przy tym całe
+    pole data, do którego OLX dokłada do ofert organicznych kilka promowanych —
+    indeksy tych organicznych są w metadata.source."""
+    assert len(offers) >= m.PAGE_LIMIT, (
+        f"data ma {len(offers)} ofert, oczekiwano co najmniej {m.PAGE_LIMIT} — "
+        "przy tylu wynikach crawl() uznałby stronę za ostatnią"
+    )
     organic = dig(offers_page, "metadata.source.organic")
-    assert len(organic) == m.PAGE_LIMIT, f"ofert organicznych {len(organic)}, oczekiwano {m.PAGE_LIMIT}"
-    assert len(offers) >= m.PAGE_LIMIT
+    assert len(organic) >= m.PAGE_LIMIT - ORGANIC_TOLERANCE, (
+        f"ofert organicznych {len(organic)}, oczekiwano ok. {m.PAGE_LIMIT}"
+    )
 
 
 def test_offers_metadata_reports_count(offers_page):

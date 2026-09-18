@@ -21,7 +21,7 @@ def fmt_price(value) -> str:
 
 
 LIST_CAP = 30  # maks. liczba pozycji wypisywanych w każdej sekcji raportu
-PORTAL_STYLE = {"olx": "cyan", "otodom": "magenta"}
+PORTAL_STYLE = {"olx": "cyan", "otodom": "magenta", "gratka": "green"}
 
 
 def offer_cell(o: dict, console: Console, with_url: bool = True) -> Group:

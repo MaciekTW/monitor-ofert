@@ -30,6 +30,18 @@ def fetch(url: str, params: dict | None = None, as_json: bool = True):
     return resp
 
 
+def post_json(url: str, payload: dict, headers: dict | None = None):
+    """Jak fetch(), ale metodą POST — dla portali z API opartym na GraphQL."""
+    m.warm_up(url)
+    resp = m.session.post(url, json=payload, timeout=30, headers=headers or m.JSON_HEADERS)
+    time.sleep(REQUEST_PAUSE * random.uniform(0.9, 1.3))
+    if resp.status_code == 403:
+        pytest.skip(
+            f"HTTP 403: {url} — portal odrzucił zapytanie jako automatyczne, kontraktu nie da się sprawdzić"
+        )
+    return resp
+
+
 def dig(node, path: str):
     """Zwraca wartość spod ścieżki "a.b.c"; jeśli jej brak, zgłasza czytelny błąd
     z miejscem, w którym struktura się urywa, i kluczami dostępnymi w tym miejscu."""
