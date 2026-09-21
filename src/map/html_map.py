@@ -80,12 +80,6 @@ ZOO = [
 
 POI_LAYERS = [
     {
-        "id": "goodlood",
-        "label": "Lodziarnie Good Lood",
-        "geojson": "goodlood.geojson",
-        "icon": "goodlood.svg",
-    },
-    {
         "id": "lidl",
         "label": "Lidl",
         "group": "Markety",
@@ -108,6 +102,13 @@ POI_LAYERS = [
         "group": "Markety",
         "geojson": "auchan.geojson",
         "icon": "auchan.svg",
+    },
+    {
+        "id": "goodlood",
+        "label": "Good Lood",
+        "group": "Handel",
+        "geojson": "goodlood.geojson",
+        "icon": "goodlood.svg",
     },
     {
         "id": "marketplace",
@@ -158,6 +159,14 @@ POI_LAYERS = [
         "shape": "plain",
         "features": ZOO,
         "icon": "zoo-akcent.svg",
+    },
+    {
+        "id": "nightclub",
+        "label": "Kluby nocne",
+        "group": "Rozrywka",
+        "visible": False,
+        "geojson": "clubs.geojson",
+        "icon": "club.svg",
     },
 ]
 

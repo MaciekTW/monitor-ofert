@@ -47,6 +47,13 @@ cp .env.example .env   # then fill in CARTO_API_KEY
 A `CARTO_API_KEY` variable already set in the environment takes precedence.
 Note that the key ends up inside the generated HTML file.
 
+The map's other basemap — *Zdjęcia lotnicze*, the GUGiK orthophoto served as
+WMTS tiles from <https://mapy.geoportal.gov.pl> — needs no key at all, so it is
+also a way around the watermark. Pick it under *Podkład* in the map's
+*Podkład i granice* panel. Imagery goes down to zoom 19 (about 10 cm per pixel
+over Kraków); zoom 20 just stretches the last level, because the service has no
+tiles above 19.
+
 ## Usage
 
 ```bash
@@ -191,8 +198,9 @@ skipped is marked as failed, so a blocked runner never looks green.
   cache was cleared, it says the route data is missing — generate the map again.
 - The 18 Kraków district boundaries come from the city's open data portal and
   live in `src/map/template/layers/districts.geojson`. They get their own
-  *Granice dzielnic* section in the map's layer panel and are **all off by
-  default** — tick a district to outline it and label it on the map, or tick the
+  *Granice dzielnic* section in the map's *Podkład i granice* panel (next to the
+  basemap choice and the city outline) and are **all off by default** — tick a
+  district to outline it and label it on the map, or tick the
   section header to show all of them at once. Every section of that panel folds
   away with the arrow next to its header, and a section with all its layers off
   (the districts one, right after opening the map) starts folded. The file in the repo is already

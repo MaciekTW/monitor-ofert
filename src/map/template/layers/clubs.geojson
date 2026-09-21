@@ -1,0 +1,730 @@
+{
+  "type": "FeatureCollection",
+  "generator": "overpass-turbo",
+  "copyright": "The data included in this document is from www.openstreetmap.org. The data is made available under ODbL.",
+  "timestamp": "2026-09-21T14:17:48Z",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/233355450",
+        "addr:city": "Kraków",
+        "addr:country": "PL",
+        "addr:housenumber": "12",
+        "addr:street": "Kamienna",
+        "amenity": "nightclub",
+        "building": "yes",
+        "name": "Kamienna 12",
+        "website": "www.instagram.com/kamienna_12/",
+        "@geometry": "center"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9433615,
+          50.0780349
+        ]
+      },
+      "id": "way/233355450"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/475387262",
+        "addr:city": "Kraków",
+        "addr:housenumber": "7",
+        "addr:postcode": "31-011",
+        "addr:street": "Plac Szczepański",
+        "amenity": "nightclub",
+        "check_date": "2026-06-30",
+        "level": "-1",
+        "name": "Gorzko Gorzko",
+        "opening_hours": "Fr 22:00-24:00; Sa 00:00-05:00,22:00-24:00; Su 00:00-05:00",
+        "website": "https://www.facebook.com/gorzkogorzkokrakow/"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9363632,
+          50.0641583
+        ]
+      },
+      "id": "node/475387262"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/475387295",
+        "addr:city": "Kraków",
+        "addr:country": "PL",
+        "addr:housenumber": "3",
+        "addr:street": "Szczepańska",
+        "amenity": "nightclub",
+        "level": "-1",
+        "name": "The Legends",
+        "opening_hours": "Mo-Th 00:00-03:00,19:00-24:00; Fr 00:00-04:00,19:00-24:00; Sa,Su 00:00-05:00,19:00-24:00",
+        "phone": "+48 881 303 886",
+        "website": "https://www.facebook.com/The.Legends.Music.Club"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9347486,
+          50.0634887
+        ]
+      },
+      "id": "node/475387295"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/490986264",
+        "addr:city": "Kraków",
+        "addr:housenumber": "53",
+        "addr:postcode": "31-019",
+        "addr:street": "Floriańska",
+        "amenity": "nightclub",
+        "level": "-1",
+        "name": "Społem Deluxe",
+        "opening_hours": "We 21:00-24:00; Th,Fr 00:00-03:00,21:00-24:00; Sa 00:00-04:00,21:00-24:00; Su 00:00-04:00",
+        "website": "https://www.facebook.com/spolemdeluxe"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.94135,
+          50.0644129
+        ]
+      },
+      "id": "node/490986264"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/490986424",
+        "addr:city": "Kraków",
+        "addr:housenumber": "3",
+        "addr:postcode": "31-019",
+        "addr:street": "Floriańska",
+        "amenity": "nightclub",
+        "check_date:opening_hours": "2024-06-18",
+        "level": "-1",
+        "name": "Jazz Club U Muniaka",
+        "opening_hours": "Mo-Su 19:00-24:00+",
+        "website": "https://jazzumuniaka.club/",
+        "wheelchair": "no"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9395855,
+          50.0621882
+        ]
+      },
+      "id": "node/490986424"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/490986472",
+        "amenity": "nightclub",
+        "name": "Stalowe Magnolie",
+        "note": "live music",
+        "website": "http://www.stalowemagnolie.pl"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9405662,
+          50.0620917
+        ]
+      },
+      "id": "node/490986472"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/2122790276",
+        "addr:city": "Kraków",
+        "addr:housenumber": "1",
+        "addr:postcode": "31-866",
+        "addr:street": "Stanisława Skarżyńskiego",
+        "amenity": "nightclub",
+        "name": "Klub Kwadrat",
+        "smoking": "isolated"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9960192,
+          50.0838332
+        ]
+      },
+      "id": "node/2122790276"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/2477510295",
+        "amenity": "nightclub",
+        "check_date": "2025-09-13",
+        "layer": "-1",
+        "name": "Single Scena Music Bar",
+        "website": "https://singlescena.pl/"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9406024,
+          50.0634966
+        ]
+      },
+      "id": "node/2477510295"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/3162656676",
+        "addr:city": "Kraków",
+        "addr:housenumber": "3",
+        "addr:postcode": "30-204",
+        "addr:street": "Tadeusza Kościuszki",
+        "amenity": "nightclub",
+        "name": "Klub30",
+        "opening_hours": "Fr 21:00-24:00; Sa 00:00-04:00,21:00-24:00; Su 00:00-04:00",
+        "phone": "+48 725 700 215",
+        "website": "https://krakow.klub30.pl/"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9267671,
+          50.0551016
+        ]
+      },
+      "id": "node/3162656676"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/4221560490",
+        "addr:housenumber": "4",
+        "addr:postcode": "31-000",
+        "addr:street": "Mikołajska",
+        "amenity": "nightclub",
+        "name": "Lips",
+        "opening_hours:signed": "no"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.94101,
+          50.06171
+        ]
+      },
+      "id": "node/4221560490"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/4281246642",
+        "addr:housenumber": "6",
+        "addr:street": "Rynek Główny",
+        "amenity": "nightclub",
+        "level": "-1",
+        "name": "La Bodega Del Ron",
+        "opening_hours": "Mo-We 18:00-03:00, Th 18:00-04:30, Fr,Sa 18:00-05:30, Su 18:00-03:30",
+        "website": "https://la-bodega-del-ron-krakow.business.site/",
+        "wheelchair": "no"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9385125,
+          50.0611587
+        ]
+      },
+      "id": "node/4281246642"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/4734733122",
+        "amenity": "nightclub",
+        "check_date": "2026-01-25",
+        "name": "Forty Kraków",
+        "name:pl": "Forty Kraków"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9377173,
+          50.074799
+        ]
+      },
+      "id": "node/4734733122"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/4734733123",
+        "addr:city": "Kraków",
+        "addr:housenumber": "6",
+        "addr:street": "Plac Dominikański",
+        "amenity": "nightclub",
+        "check_date": "2025-08-25",
+        "check_date:smoking": "2025-08-25",
+        "level": "-1;-2",
+        "name": "Prozak 2.0",
+        "smoking": "outside",
+        "website": "https://www.facebook.com/ProzakDwaZero/"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9382002,
+          50.0590001
+        ]
+      },
+      "id": "node/4734733123"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/4854032841",
+        "amenity": "nightclub",
+        "level": "1",
+        "name": "Bracka 4",
+        "website": "http://www.klub.krakow.pl/b4/"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9364782,
+          50.0604712
+        ]
+      },
+      "id": "node/4854032841"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/4880291721",
+        "amenity": "nightclub",
+        "check_date": "2025-12-09",
+        "contact:city": "Kraków",
+        "contact:housenumber": "12",
+        "contact:postcode": "31-009",
+        "contact:street": "Szewska",
+        "name": "Piec Art",
+        "website": "https://piecart.pl/"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9346539,
+          50.062512
+        ]
+      },
+      "id": "node/4880291721"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/4894143121",
+        "addr:city": "Kraków",
+        "addr:housenumber": "10",
+        "addr:postcode": "31-010",
+        "addr:street": "Jagiellońska",
+        "amenity": "nightclub",
+        "name": "Teatro Cubano",
+        "name:pl": "Teatro Cubano",
+        "opening_hours": "Su-Tu 15:00-04:00; We-Th 15:00-05:00; Fr-Sa 15:00-06:00",
+        "phone": "+48 660 562 100",
+        "website": "https://m.facebook.com/TeatroCubanoKrakow"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9346628,
+          50.0620877
+        ]
+      },
+      "id": "node/4894143121"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/6011254500",
+        "addr:city": "Kraków",
+        "addr:housenumber": "16",
+        "addr:street": "Starowiślna",
+        "alt_name": "Shine Club Kraków",
+        "amenity": "nightclub",
+        "name": "Shine",
+        "opening_hours": "Fr,Sa 22:00-05:00",
+        "phone": "+48 725 700 225",
+        "postal_code": "31-032",
+        "website": "https://krakow.shineclub.com.pl/"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9445016,
+          50.0576382
+        ]
+      },
+      "id": "node/6011254500"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/6044678289",
+        "addr:city": "Kraków",
+        "addr:housenumber": "9",
+        "addr:street": "Mikołajska",
+        "amenity": "nightclub",
+        "level": "-1",
+        "name": "Awaria",
+        "opening_hours": "Mo-Su 15:00-18:00+",
+        "postal_code": "31-027",
+        "website": "http://www.klubawaria.com/"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9420641,
+          50.0613194
+        ]
+      },
+      "id": "node/6044678289"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/6053576524",
+        "addr:city": "Kraków",
+        "addr:housenumber": "6",
+        "addr:postcode": "31-010",
+        "addr:street": "Jagiellońska",
+        "amenity": "nightclub",
+        "level": "-1",
+        "name": "Four Music Club",
+        "opening_hours:signed": "no",
+        "website": "https://www.facebook.com/FourMusicClub/"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9353355,
+          50.0627747
+        ]
+      },
+      "id": "node/6053576524"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/6056104732",
+        "amenity": "nightclub",
+        "level": "-1",
+        "name": "Guapo",
+        "website": "http://www.klub.krakow.pl/disco-pub/"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9364716,
+          50.0604238
+        ]
+      },
+      "id": "node/6056104732"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/6361419216",
+        "amenity": "nightclub",
+        "contact:instagram": "https://www.instagram.com/kiosk.events",
+        "name": "Kiosk Events",
+        "opening_hours": "\"open during events\"",
+        "phone": "+48 501 786 753",
+        "was:shop": "kiosk"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9488278,
+          50.0439922
+        ]
+      },
+      "id": "node/6361419216"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/6558480797",
+        "amenity": "nightclub",
+        "name": "Klub Studencki Żaczek",
+        "opening_hours": "Mo-Sa 10:00-24:00; Su 12:00-24:00",
+        "website": "https://klubzaczek.pl/",
+        "wheelchair": "yes"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9223234,
+          50.0603821
+        ]
+      },
+      "id": "node/6558480797"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/7721428988",
+        "amenity": "nightclub",
+        "check_date": "2025-12-09",
+        "check_date:opening_hours": "2022-11-28",
+        "contact:city": "Kraków",
+        "contact:housenumber": "14",
+        "contact:postcode": "31-962",
+        "contact:street": "Szewska",
+        "inscription": "rin music club",
+        "name": "Rin",
+        "smoking": "isolated",
+        "website": "https://www.facebook.com/rinclubkrakow/"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9345555,
+          50.0625945
+        ]
+      },
+      "id": "node/7721428988"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/7830473485",
+        "amenity": "nightclub",
+        "name": "Drukarnia Jazz Pub",
+        "opening_hours": "Su-Th 10:00-24:00, Fr,Sa 10:00-02:00"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9491918,
+          50.0460744
+        ]
+      },
+      "id": "node/7830473485"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/8147844352",
+        "amenity": "nightclub",
+        "level": "-1",
+        "name": "Papuga",
+        "opening_hours": "Th 22:00-24:00; Fr 00:00-04:00,22:00-24:00; Sa 00:00-06:00,22:00-24:00; Su 00:00-06:00",
+        "website": "https://www.facebook.com/Club-Papuga-348566072497292/"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9434974,
+          50.0548266
+        ]
+      },
+      "id": "node/8147844352"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/9597891717",
+        "amenity": "nightclub",
+        "name": "Klub Alternatywy"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9407213,
+          50.0611448
+        ]
+      },
+      "id": "node/9597891717"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/10043663698",
+        "addr:city": "Kraków",
+        "addr:housenumber": "38",
+        "addr:postcode": "31-024",
+        "addr:street": "Szpitalna",
+        "amenity": "nightclub",
+        "level": "-1",
+        "name": "Coco",
+        "opening_hours": "Fr,Sa 22:00-06:01",
+        "website": "https://www.clubcoco.pl"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9421999,
+          50.0642826
+        ]
+      },
+      "id": "node/10043663698"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/10046107151",
+        "amenity": "nightclub",
+        "level": "-1",
+        "name": "Choice",
+        "opening_hours": "Fr 22:00-24:00; Sa 00:00-03:00,22:00-24:00; Su 00:00-04:00",
+        "website": "http://www.choiceclub.pl"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9399797,
+          50.0626334
+        ]
+      },
+      "id": "node/10046107151"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/10078449296",
+        "addr:city": "Kraków",
+        "addr:housenumber": "4",
+        "addr:street": "Szewska",
+        "amenity": "nightclub",
+        "level": "-1",
+        "name": "SpaceClub",
+        "website": "http://www.spaceclub.tv/krakow/"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9352228,
+          50.0622267
+        ]
+      },
+      "id": "node/10078449296"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/10148588867",
+        "amenity": "nightclub",
+        "name": "Sekta Selekta",
+        "opening_hours": "Mo-We 00:00-02:30,19:00-24:00; Th 00:00-03:30,19:00-24:00; Fr 00:00-05:00,19:00-24:00; Sa,Su 00:00-06:00,19:00-24:00",
+        "website": "https://www.facebook.com/sektabar"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9448134,
+          50.0512019
+        ]
+      },
+      "id": "node/10148588867"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/10153143107",
+        "amenity": "nightclub",
+        "level": "-1",
+        "name": "Zoo Klub",
+        "opening_hours": "Mo-Fr 00:00-03:00,18:00-24:00; Sa,Su 00:00-05:00,18:00-24:00",
+        "website": "https://www.facebook.com/ZooKlubMuzyczny"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9433097,
+          50.0505879
+        ]
+      },
+      "id": "node/10153143107"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/11168492903",
+        "amenity": "nightclub",
+        "music": "techno",
+        "name": "STK 47 Warehouse",
+        "opening_hours": "Fr 22:00-24:00; Sa 00:00-08:00,22:00-24:00; Su 00:00-08:00",
+        "website": "https://www.facebook.com/stk47warehouse"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9711294,
+          50.0512723
+        ]
+      },
+      "id": "node/11168492903"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/11529315584",
+        "amenity": "nightclub",
+        "lgbtq": "primary",
+        "name": "BlueXL"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9453348,
+          50.0557386
+        ]
+      },
+      "id": "node/11529315584"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/12068877801",
+        "amenity": "nightclub",
+        "name": "Mojitos Casa Latina",
+        "website": "https://www.mojitos.pl/"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9424684,
+          50.061378
+        ]
+      },
+      "id": "node/12068877801"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/12425507590",
+        "amenity": "nightclub",
+        "check_date": "2024-12-17",
+        "name": "Villa Incognito"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9033487,
+          50.0658614
+        ]
+      },
+      "id": "node/12425507590"
+    }
+  ]
+}

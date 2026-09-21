@@ -45,6 +45,30 @@
         @apply flex cursor-pointer items-center gap-1.5 text-[12.5px] whitespace-nowrap text-mut select-none;
     }
 
+    /* wybór podkładu: miniatura kafelka z podpisem pod spodem, jak w Mapach Google;
+       przełącza ukryty przycisk radiowy, więc zaznaczenie widać przez :has(:checked) */
+    .bmap {
+        @apply flex w-[76px] cursor-pointer flex-col items-center gap-1 text-center text-[11px]/[1.25] text-mut select-none;
+    }
+
+    .bmap img {
+        @apply size-[68px] rounded-lg border-2 border-line bg-page object-cover shadow-[0_1px_3px_rgba(0,0,0,.2)];
+    }
+
+    .bmap:has(:checked) {
+        @apply font-semibold text-acc;
+    }
+
+    .bmap:has(:checked) img {
+        @apply border-acc;
+    }
+
+    /* przycisk radiowy jest ukryty (sr-only), więc ognisko klawiatury rysuje bladą
+       poświatę wokół miniatury — obok ramki zaznaczenia, a nie zamiast niej */
+    .bmap:has(:focus-visible) img {
+        @apply outline-2 outline-offset-2 outline-acc-soft;
+    }
+
     .chip {
         @apply cursor-pointer rounded-full border border-line bg-white px-3 py-1 on:border-acc on:bg-acc on:text-white;
     }

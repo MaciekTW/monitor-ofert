@@ -81,12 +81,37 @@ const map = L.map("map", {preferCanvas:true}).setView([cLat, cLon], 12);
    wracał jako "Access blocked". Publiczne kafelki CARTO (te same dane OSM,
    styl Voyager) nie mają tego wymogu i działają z pliku lokalnego. Od sierpnia 2026 CARTO
    wymaga klucza (CARTO_API_KEY) — bez niego kafelki mają napis „API KEY REQUIRED”. */
-L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png" +
-  (META.carto ? "?key=" + encodeURIComponent(META.carto) : ""),
-  {maxZoom:20, subdomains:"abcd",
-   attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-              +' &middot; &copy; <a href="https://carto.com/attributions">CARTO</a>'}
-).addTo(map);
+/* dwa podkłady do wyboru w panelu „Podkład i granice”; pierwszy jest włączony na starcie */
+const BASEMAPS = [{
+  label: "Mapa",
+  url: "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png" +
+    (META.carto ? "?key=" + encodeURIComponent(META.carto) : ""),
+  opts: {maxZoom:20, subdomains:"abcd",
+    attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+               +' &middot; &copy; <a href="https://carto.com/attributions">CARTO</a>'},
+}, {
+  /* Ortofotomapa GUGiK (WMTS w EPSG:3857, czyli siatka kafelków taka sama jak w OSM):
+     darmowa, bez klucza i bez wymogu Referera, więc działa też z pliku lokalnego.
+     Zdjęcia kończą się na zoomie 19 (~10 cm/px) — wyżej maxNativeZoom rozciąga
+     ostatni poziom, zamiast prosić o kafelek, którego serwis nie ma. */
+  label: "Zdjęcia lotnicze",
+  url: "https://mapy.geoportal.gov.pl/wss/service/PZGIK/ORTO/WMTS/StandardResolution" +
+    "?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=ORTOFOTOMAPA&STYLE=default" +
+    "&FORMAT=image/jpeg&TILEMATRIXSET=EPSG:3857&TILEMATRIX=EPSG:3857:{z}&TILEROW={y}&TILECOL={x}",
+  opts: {maxZoom:20, maxNativeZoom:19,
+    attribution:'ortofotomapa &copy; <a href="https://www.geoportal.gov.pl">GUGiK</a>'},
+}];
+// miniatura podkładu to zwykły kafelek z tego samego źródła, wzięty z okolicy środka
+// mapy — pokazuje dokładnie to, co się włączy, i nie trzeba trzymać obrazków w repo
+const THUMB_Z = 14, thumbN = 2 ** THUMB_Z, rad = cLat * Math.PI / 180;
+const THUMB = {z: THUMB_Z, r: "", s: "a",
+  x: Math.floor((cLon + 180) / 360 * thumbN),
+  y: Math.floor((1 - Math.log(Math.tan(rad) + 1 / Math.cos(rad)) / Math.PI) / 2 * thumbN)};
+for(const b of BASEMAPS){
+  b.layer = L.tileLayer(b.url, b.opts);
+  b.thumb = L.Util.template(b.url, THUMB);
+}
+BASEMAPS[0].layer.addTo(map);
 // skala kolorów: kwintyle ceny za m² liczone raz, z całego zbioru
 const PAL = ["#1a9850","#8fce54","#f5c53c","#f2803a","#d73027"];
 const ppmAll = OFFERS.map(o=>o.pm).filter(v=>v!=null).sort((a,b)=>a-b);
@@ -116,7 +141,7 @@ const dot = c => `<i class="inline-block size-[11px] rounded-full" style="backgr
 const priceLayers = [...PAL, NOPRICE].map(() => L.layerGroup());
 const OVERLAYS = [{
   label: "Granice Krakowa",
-  visible: true,
+  visible: true, panel: "base",
   swatch: `<i class="inline-block h-0 w-[18px] border-t-[2.5px] border-[#2563eb]"></i>`,
   // sam obwód, nieklikalny, żeby nie zasłaniał markerów
   layer: L.polygon(KRAKOW_BOUNDARY,
@@ -151,7 +176,7 @@ for(const def of JSON.parse(document.getElementById("distdata").textContent)){
   const name = L.marker(def.c, {interactive:false, keyboard:false, icon: L.divIcon({
     className: "", iconSize: [0, 0], html: `<span class="dlabel">${esc(def.name)}</span>`})});
   OVERLAYS.push({label: `${def.nr} — ${def.name}`, group: "Granice dzielnic", visible: false,
-    layer: L.layerGroup([border, name]),
+    panel: "base", layer: L.layerGroup([border, name]),
     swatch: `<i class="inline-block h-0 w-[18px] border-t-2 border-[#7c3aed]"></i>`});
 }
 OVERLAYS.filter(o => o.visible).forEach(o => o.layer.addTo(map));
@@ -162,6 +187,7 @@ OVERLAYS.filter(o => o.visible).forEach(o => o.layer.addTo(map));
 const overlayGroups = [...new Set(OVERLAYS.map(o => o.group ?? null))]
   .sort((a, b) => (a !== null) - (b !== null));
 // sekcja, w której wszystkie warstwy są wyłączone (jak granice dzielnic), zaczyna zwinięta
+const panelOf = o => o.panel ?? "layers";
 const overlayFolded = g => g !== null && OVERLAYS.filter(o => o.group === g).every(o => !o.visible);
 const overlayRow = o => `<label class="chk py-0.5 text-ink">
   <input type="checkbox" data-i="${OVERLAYS.indexOf(o)}" ${o.visible ? "checked" : ""}>
@@ -173,10 +199,17 @@ const overlayHeader = (g, gi) => `<div class="mt-2 mb-1 flex items-center gap-1 
       transition-transform hover:bg-acc-soft hover:text-ink aria-expanded:rotate-0">
     <svg viewBox="0 0 24 24" class="size-3.5" fill="none" stroke="currentColor" stroke-width="2.5"
       stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></button></div>`;
-const overlaySections = overlayGroups
-  .map((g, gi) => (g === null ? "" : overlayHeader(g, gi)) +
-    `<div data-rows="${gi}" ${overlayFolded(g) ? "hidden" : ""}>` +
-    OVERLAYS.filter(o => (o.group ?? null) === g).map(overlayRow).join("") + "</div>")
+const baseRows = `<div class="flex gap-2 py-0.5">` + BASEMAPS.map((b, i) => `<label class="bmap">
+  <input type="radio" name="basemap" data-b="${i}" class="sr-only" ${i ? "" : "checked"}>
+  <img src="${b.thumb}" alt=""><span>${esc(b.label)}</span></label>`).join("") + `</div>`;
+// warstwy panelu „Podkład i granice” (granice miasta i dzielnic) kontra reszta w „Warstwach”;
+// numery grup zostają globalne, bo po nich panel odnajduje swoje pola i sekcje
+const overlaySections = which => overlayGroups
+  .map(g => [g, OVERLAYS.filter(o => (o.group ?? null) === g && panelOf(o) === which)])
+  .filter(([, rows]) => rows.length)
+  .map(([g, rows]) => (g === null ? "" : overlayHeader(g, overlayGroups.indexOf(g))) +
+    `<div data-rows="${overlayGroups.indexOf(g)}" ${overlayFolded(g) ? "hidden" : ""}>` +
+    rows.map(overlayRow).join("") + "</div>")
   .join("");
 // przycisk w prawym górnym rogu mapy rozwijający panel; otwarcie jednego panelu
 // zamyka pozostałe, kliknięcie w mapę zamyka wszystkie; setup(panel) podpina obsługę
@@ -212,38 +245,49 @@ function mapPanel(title, icon, body, setup){
   };
   ctl.addTo(map);
 }
+// obsługa wspólna dla obu paneli z warstwami; każda warstwa jest tylko w jednym z nich,
+// więc panel dotyka wyłącznie swoich pól (pozostałe po prostu w nim nie istnieją)
+const overlayPanel = panel => {
+  const setVisible = (i, on) => {
+    panel.querySelector(`input[data-i="${i}"]`).checked = on;
+    on ? OVERLAYS[i].layer.addTo(map) : OVERLAYS[i].layer.remove();
+  };
+  // pole sekcji: zaznaczone, gdy wszystkie warstwy włączone, „częściowe”, gdy tylko niektóre
+  const syncGroups = () => panel.querySelectorAll("input[data-g]").forEach(box => {
+    const g = overlayGroups[+box.dataset.g];
+    const on = OVERLAYS.filter(o => o.group === g)
+      .map(o => panel.querySelector(`input[data-i="${OVERLAYS.indexOf(o)}"]`).checked);
+    box.checked = on.every(Boolean);
+    box.indeterminate = !box.checked && on.some(Boolean);
+  });
+  panel.addEventListener("change", e => {
+    const {i, g, b} = e.target.dataset;
+    if(b != null) BASEMAPS.forEach((m, j) => j === +b ? m.layer.addTo(map) : m.layer.remove());
+    else if(g != null) OVERLAYS.forEach((o, j) => o.group === overlayGroups[+g] && setVisible(j, e.target.checked));
+    else setVisible(+i, e.target.checked);
+    syncGroups();
+  });
+  panel.addEventListener("click", e => {
+    const btn = e.target.closest("[data-fold]");
+    if(!btn) return;
+    const open = btn.getAttribute("aria-expanded") === "false";
+    btn.setAttribute("aria-expanded", open);
+    panel.querySelector(`[data-rows="${btn.dataset.fold}"]`).hidden = !open;
+  });
+  syncGroups();
+};
 mapPanel("Warstwy na mapie",
   `<svg viewBox="0 0 24 24" class="size-5" fill="none" stroke="currentColor" stroke-width="2"
     stroke-linejoin="round"><path d="M12 3 2 8l10 5 10-5z"/><path d="m2 13 10 5 10-5"/></svg>`,
-  `<h3 class="f-title">Warstwy</h3>${overlaySections}`,
-  panel => {
-    const setVisible = (i, on) => {
-      panel.querySelector(`input[data-i="${i}"]`).checked = on;
-      on ? OVERLAYS[i].layer.addTo(map) : OVERLAYS[i].layer.remove();
-    };
-    // pole sekcji: zaznaczone, gdy wszystkie warstwy włączone, „częściowe”, gdy tylko niektóre
-    const syncGroups = () => panel.querySelectorAll("input[data-g]").forEach(box => {
-      const g = overlayGroups[+box.dataset.g];
-      const on = OVERLAYS.filter(o => o.group === g)
-        .map(o => panel.querySelector(`input[data-i="${OVERLAYS.indexOf(o)}"]`).checked);
-      box.checked = on.every(Boolean);
-      box.indeterminate = !box.checked && on.some(Boolean);
-    });
-    panel.addEventListener("change", e => {
-      const {i, g} = e.target.dataset;
-      if(g != null) OVERLAYS.forEach((o, j) => o.group === overlayGroups[+g] && setVisible(j, e.target.checked));
-      else setVisible(+i, e.target.checked);
-      syncGroups();
-    });
-    panel.addEventListener("click", e => {
-      const btn = e.target.closest("[data-fold]");
-      if(!btn) return;
-      const open = btn.getAttribute("aria-expanded") === "false";
-      btn.setAttribute("aria-expanded", open);
-      panel.querySelector(`[data-rows="${btn.dataset.fold}"]`).hidden = !open;
-    });
-    syncGroups();
-  });
+  `<h3 class="f-title">Warstwy</h3>${overlaySections("layers")}`,
+  overlayPanel);
+// podkład (mapa albo zdjęcia lotnicze) razem z granicami, bo to też rysunek tła
+mapPanel("Podkład i granice",
+  `<svg viewBox="0 0 24 24" class="size-5" fill="none" stroke="currentColor" stroke-width="2"
+    stroke-linejoin="round"><path d="m3 6 6-3 6 3 6-3v15l-6 3-6-3-6 3z"/><path d="M9 3v15M15 6v15"/></svg>`,
+  `<h3 class="f-title">Podkład</h3>${baseRows}
+   <h3 class="f-title mt-2 border-t border-line pt-2">Granice</h3>${overlaySections("base")}`,
+  overlayPanel);
 
 /* ---------- komunikacja miejska: przystanki z rozkładów GTFS ---------- */
 // każdy rodzaj (autobusy, tramwaje) ma dwie grupy markerów: przystanki zagregowane
