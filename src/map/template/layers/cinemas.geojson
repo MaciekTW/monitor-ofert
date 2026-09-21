@@ -1,0 +1,275 @@
+{
+  "type": "FeatureCollection",
+  "generator": "overpass-turbo",
+  "copyright": "The data included in this document is from www.openstreetmap.org. The data is made available under ODbL.",
+  "timestamp": "2026-09-21T12:39:02Z",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/55987827",
+        "addr:city": "Kraków",
+        "addr:housenumber": "62",
+        "addr:postcode": "30-418",
+        "addr:street": "Zakopianka",
+        "amenity": "cinema",
+        "brand": "Cinema City",
+        "brand:wikidata": "Q543651",
+        "brand:wikipedia": "en:Cinema City International",
+        "building": "commercial",
+        "name": "Cinema City",
+        "@geometry": "center"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9305881,
+          50.0164833
+        ]
+      },
+      "id": "way/55987827"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/233092319",
+        "addr:city": "Kraków",
+        "addr:country": "PL",
+        "addr:housenumber": "34",
+        "addr:postcode": "30-101",
+        "addr:street": "Aleja Zygmunta Krasińskiego",
+        "amenity": "cinema",
+        "building": "yes",
+        "building:levels": "1",
+        "check_date": "2026-02-07",
+        "contact:email": "kijow@kijowcentrum.pl",
+        "contact:fax": "+48 12 4227767",
+        "contact:phone": "+48 12 4330033",
+        "height": "12",
+        "name": "Kijów",
+        "old_name": "Kino Kijów",
+        "opening_hours": "\"kasa kina: pół godziny przed seansem\"",
+        "roof:shape": "flat",
+        "source:building": "BDOT",
+        "source:geometry": "EGiB",
+        "website": "https://www.kijow.pl/",
+        "wheelchair": "limited",
+        "wikidata": "Q11739359",
+        "wikipedia": "pl:Kino „Kijów”",
+        "@geometry": "center"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9248805,
+          50.0583215
+        ]
+      },
+      "id": "way/233092319"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/294235198",
+        "addr:city": "Kraków",
+        "addr:country": "PL",
+        "addr:housenumber": "128",
+        "addr:postcode": "31-416",
+        "addr:street": "Dobrego Pasterza",
+        "amenity": "cinema",
+        "brand": "Multikino",
+        "brand:wikidata": "Q1144802",
+        "brand:wikipedia": "pl:Multikino",
+        "building": "yes",
+        "email": "krakow@multikino.pl",
+        "name": "Multikino",
+        "opening_hours": "Mo-Su 10:00-22:00",
+        "operator": "Vue Cinemas",
+        "phone": "+48 12 2984610",
+        "website": "https://multikino.pl/pl/wszystkie-kina/krakow/",
+        "wheelchair": "yes",
+        "wikidata": "Q38244648",
+        "@geometry": "center"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9848554,
+          50.0891107
+        ]
+      },
+      "id": "way/294235198"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/957908480",
+        "amenity": "cinema",
+        "brand": "Cinema City",
+        "brand:wikidata": "Q543651",
+        "brand:wikipedia": "en:Cinema City International",
+        "name": "Cinema City Kraków - Galeria Kazimierz",
+        "wheelchair": "yes"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9543024,
+          50.0534233
+        ]
+      },
+      "id": "node/957908480"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/968360644",
+        "amenity": "cinema",
+        "check_date:opening_hours": "2025-03-30",
+        "name": "Kino Studyjne Sfinks",
+        "opening_hours:signed": "no",
+        "phone": "+48 12 644 27 65",
+        "website": "https://www.kinosfinks.pl/",
+        "wikidata": "Q11739393",
+        "wikipedia": "pl:Kino Sfinks"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          20.0364042,
+          50.0798268
+        ]
+      },
+      "id": "node/968360644"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/1878966498",
+        "amenity": "cinema",
+        "name": "Mikro",
+        "opening_hours": "\"zależnie od seansów\"",
+        "wheelchair": "no",
+        "wikidata": "Q38244641"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9238098,
+          50.0695341
+        ]
+      },
+      "id": "node/1878966498"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/2255629846",
+        "addr:city": "Kraków",
+        "addr:housenumber": "18",
+        "addr:postcode": "30-503",
+        "addr:street": "Ignacego Krasickiego",
+        "amenity": "cinema",
+        "name": "Kinokawiarnia Kika",
+        "opening_hours": "Tu-Su 10:00-22:00; Mo 15:00-22:00",
+        "website": "http://www.kinokika.pl"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9406074,
+          50.0418096
+        ]
+      },
+      "id": "node/2255629846"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/2429269436",
+        "addr:city": "Kraków",
+        "addr:housenumber": "8",
+        "addr:postcode": "31-142",
+        "addr:street": "Krowoderska",
+        "amenity": "cinema",
+        "name": "Agrafka",
+        "website": "http://www.kinoagrafka.pl/",
+        "wikidata": "Q38244569"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9375014,
+          50.0673661
+        ]
+      },
+      "id": "node/2429269436"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/3587471633",
+        "addr:city": "Kraków",
+        "addr:housenumber": "27",
+        "addr:street": "Rynek Główny",
+        "amenity": "cinema",
+        "name": "Kino Pod Baranami",
+        "opening_hours": "\"W zależności od godzin sensów, trzeba sprawdzać na stronie https://www.kinopodbaranami.pl/\"",
+        "phone": "+48 12 423 0768",
+        "website": "https://www.kinopodbaranami.pl/",
+        "wikidata": "Q11739383",
+        "wikipedia": "pl:Kino „Pod Baranami”"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9352018,
+          50.0616001
+        ]
+      },
+      "id": "node/3587471633"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/3885811171",
+        "alt_name": "Cinema City Bonarka",
+        "amenity": "cinema",
+        "brand": "Cinema City",
+        "brand:wikidata": "Q543651",
+        "brand:wikipedia": "en:Cinema City International",
+        "level": "1",
+        "name": "Cinema City",
+        "phone": "+48 12 299 99 99"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9497729,
+          50.0269082
+        ]
+      },
+      "id": "node/3885811171"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/4692951322",
+        "amenity": "cinema",
+        "internet_access": "wlan",
+        "name": "Paradox",
+        "opening_hours": "Mo-Su 13:00-22:00",
+        "phone": "+48 12 430 00 15",
+        "website": "https://kinoparadox.pl/"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9265814,
+          50.0627251
+        ]
+      },
+      "id": "node/4692951322"
+    }
+  ]
+}

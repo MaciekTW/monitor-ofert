@@ -52,7 +52,14 @@ LAYERS_DIR = TEMPLATE_DIR / "layers"
 # (dla kwadratowych logo, którym koło ucina rogi), a "plain" zdejmuje białą
 # podkładkę i zostawia sam rysunek (dla ikon, które nie są logotypem).
 # "visible": False sprawia, że warstwa jest po otwarciu mapy wyłączona
-# i trzeba ją zaznaczyć w panelu.
+# i trzeba ją zaznaczyć w panelu. "brands" i "brands_except" zawężają plik do
+# punktów z danym tagiem brand:wikidata (albo do całej reszty), więc jeden
+# GeoJSON może dać kilka osobno przełączanych warstw.
+
+# Kina sieciowe rozpoznawane po tagu brand:wikidata z OSM: Cinema City
+# i Multikino. Kina bez tej marki (albo bez tagu) są na mapie jako studyjne.
+MULTIPLEX_BRANDS = ("Q543651", "Q1144802")
+
 POI_LAYERS = [
     {
         "id": "goodlood",
@@ -93,6 +100,26 @@ POI_LAYERS = [
         "shape": "plain",
         "geojson": "theatres.geojson",
         "icon": "theatre.svg",
+    },
+    {
+        "id": "multiplex",
+        "label": "Kina — multipleksy",
+        "group": "Rozrywka",
+        "visible": False,
+        "shape": "plain",
+        "geojson": "cinemas.geojson",
+        "icon": "kino-popcorn.svg",
+        "brands": MULTIPLEX_BRANDS,
+    },
+    {
+        "id": "arthouse",
+        "label": "Kina studyjne",
+        "group": "Rozrywka",
+        "visible": False,
+        "shape": "plain",
+        "geojson": "cinemas.geojson",
+        "icon": "kino-popcorn.svg",
+        "brands_except": MULTIPLEX_BRANDS,
     },
 ]
 
@@ -197,6 +224,11 @@ def poi_layers() -> list[dict]:
                 continue
             lon, lat = geometry["coordinates"][:2]
             props = feature.get("properties") or {}
+            brand = props.get("brand:wikidata")
+            if spec.get("brands") and brand not in spec["brands"]:
+                continue
+            if spec.get("brands_except") and brand in spec["brands_except"]:
+                continue
             name = " ".join(part for part in (props.get("name"), props.get("branch")) if part)
             points.append(
                 [round(lat, 6), round(lon, 6), name, poi_address(props), props.get("opening_hours") or ""]
