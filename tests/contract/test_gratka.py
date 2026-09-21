@@ -121,11 +121,30 @@ def test_search_page_parameter_returns_next_page(nodes):
     )
 
 
+# totalCount bywa nieznacznie zawyżony wobec tego, co API realnie stronicuje
+# (widziane: 14 250 zapowiedziane, 14 218 wydane), więc ceil(total / GRA_PAGE)
+# potrafi wskazać stronę już za końcem wyników. Trafiamy w głąb z zapasem —
+# fetch_all_gratka i tak kończy się na pierwszej pustej stronie (while nodes),
+# a nie na wyliczonym numerze.
+DEEP_PAGE_MARGIN = 0.95
+
+
 def test_search_reaches_last_page(properties):
-    """fetch_all_gratka idzie stronami do końca — serwis nie ucina głębokości."""
+    """fetch_all_gratka idzie stronami do końca — serwis nie ucina głębokości
+    (OLX dla odmiany ucina na SEGMENT_MAX i dlatego wymaga dzielenia na
+    przedziały cen). Sprawdzamy stronę leżącą głęboko w wynikach oraz to,
+    że wyniki faktycznie się kończą, a nie zawijają w nieskończoność."""
     total = dig(properties, "totalCount")
-    last = -(-total // m.GRA_PAGE)
-    assert nodes_of(search(page=last)), f"ostatnia strona ({last}) jest pusta"
+    deep = int(total * DEEP_PAGE_MARGIN) // m.GRA_PAGE
+    assert deep > 1, f"za mało wyników, żeby sprawdzić głębokość stronicowania: totalCount={total}"
+    assert nodes_of(search(page=deep)), (
+        f"strona {deep} jest pusta, a powinna leżeć wewnątrz {total} wyników — "
+        "serwis ucina głębokość stronicowania"
+    )
+    beyond = -(-total // m.GRA_PAGE) + 5
+    assert not (search(page=beyond).get("nodes") or []), (
+        f"strona {beyond} leży za końcem {total} wyników, a nadal coś zwraca"
+    )
 
 
 def test_search_newest_sort_is_applied():
