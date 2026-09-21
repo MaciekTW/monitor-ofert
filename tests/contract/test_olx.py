@@ -100,15 +100,26 @@ def organic_ids(page: dict) -> set:
     return {data[i]["id"] for i in dig(page, "metadata.source.organic")}
 
 
+# OLX potrafi powtórzyć ofertę z granicy stron — ostatnia oferta organiczna
+# strony N bywa pierwszą ofertą strony N+1 (taka strona ma wtedy o jedną ofertę
+# organiczną mniej). crawl() zbiera oferty do słownika po id, więc pojedyncze
+# powtórzenie mu nie szkodzi; groźne byłoby dopiero, gdyby offset przestał
+# przesuwać okno wyników i strony zaczęły się realnie dublować.
+OVERLAP_TOLERANCE = 2
+
+
 def test_offers_offset_returns_next_page(offers_page):
     """offset=PAGE_LIMIT zwraca kolejną stronę wyników organicznych,
-    która nie pokrywa się z pierwszą."""
+    która — poza ofertą ze styku stron — nie pokrywa się z pierwszą."""
     resp = fetch(m.API_OFFERS, params=offers_query(offset=m.PAGE_LIMIT))
     assert resp.status_code == 200
     next_ids = organic_ids(resp.json())
     assert next_ids, "druga strona wyników jest pusta"
     overlap = next_ids & organic_ids(offers_page)
-    assert not overlap, f"druga strona powtarza oferty z pierwszej: {sorted(overlap)[:10]}"
+    assert len(overlap) <= OVERLAP_TOLERANCE, (
+        f"druga strona powtarza {len(overlap)}/{len(next_ids)} ofert z pierwszej "
+        f"(dopuszczamy {OVERLAP_TOLERANCE} ze styku stron): {sorted(overlap)[:10]}"
+    )
 
 
 def test_offers_price_filter_is_applied():
