@@ -1,0 +1,706 @@
+{
+  "type": "FeatureCollection",
+  "generator": "overpass-turbo",
+  "copyright": "The data included in this document is from www.openstreetmap.org. The data is made available under ODbL.",
+  "timestamp": "2026-09-21T12:04:15Z",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "relation/21094621",
+        "addr:city": "Kraków",
+        "addr:housenumber": "50",
+        "addr:postcode": "30-523",
+        "addr:street": "Jana Zamoyskiego",
+        "amenity": "theatre",
+        "building": "yes",
+        "check_date": "2025-02-09",
+        "level": "0",
+        "multipolygon": "yes",
+        "name": "Teatr KTO",
+        "type": "multipolygon",
+        "wikidata": "Q114244178",
+        "@geometry": "center"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9440231,
+          50.040482
+        ]
+      },
+      "id": "relation/21094621"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/39357571",
+        "addr:city": "Kraków",
+        "addr:country": "PL",
+        "addr:housenumber": "1",
+        "addr:postcode": "31-011",
+        "addr:street": "Plac Szczepański",
+        "amenity": "theatre",
+        "building": "yes",
+        "building:levels": "4",
+        "name": "Narodowy Stary Teatr imienia Heleny Modrzejewskiej",
+        "roof:shape": "gabled",
+        "wikidata": "Q9344362",
+        "wikipedia": "pl:Stary Teatr im. Heleny Modrzejewskiej w Krakowie",
+        "@geometry": "center"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9352735,
+          50.0631552
+        ]
+      },
+      "id": "way/39357571"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/39393950",
+        "addr:city": "Kraków",
+        "addr:country": "PL",
+        "addr:housenumber": "1",
+        "addr:postcode": "31-103",
+        "addr:street": "Zwierzyniecka",
+        "amenity": "theatre",
+        "building": "philharmonic",
+        "building:levels": "3",
+        "heritage": "2",
+        "heritage:operator": "nid",
+        "name": "Filharmonia Krakowska imienia Karola Szymanowskiego",
+        "name:en": "Kraków Philharmonic",
+        "ref:nid": "A-706",
+        "theatre:genre": "philharmonic",
+        "website": "https://www.filharmonia.krakow.pl/",
+        "wikidata": "Q4237502",
+        "wikipedia": "pl:Filharmonia im. Karola Szymanowskiego w Krakowie",
+        "@geometry": "center"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9325788,
+          50.0588446
+        ]
+      },
+      "id": "way/39393950"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/39397573",
+        "amenity": "theatre",
+        "building": "theatre",
+        "building:levels": "3",
+        "name": "Scena Kameralna - Stary Teatr",
+        "website": "https://stary.pl/scena/scena-kameralna/",
+        "@geometry": "center"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.943609,
+          50.0571395
+        ]
+      },
+      "id": "way/39397573"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/39449007",
+        "addr:city": "Kraków",
+        "addr:country": "PL",
+        "addr:housenumber": "34",
+        "addr:place": "Osiedle Teatralne",
+        "addr:postcode": "31-948",
+        "amenity": "theatre",
+        "building": "theatre",
+        "check_date": "2025-03-31",
+        "name": "Teatr Ludowy",
+        "name:en": "Ludowy Theatre",
+        "theatre:genre": "drama",
+        "website": "https://www.ludowy.pl/",
+        "wheelchair": "limited",
+        "wheelchair:description": "wjazdy dla niepełnosprawnych wystawiane przez spektaklami (ze względu na konserwatora zabytków nie są zamontowane na stałe)",
+        "wikidata": "Q6699038",
+        "wikipedia": "pl:Teatr Ludowy w Krakowie",
+        "@geometry": "center"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          20.0337522,
+          50.0803638
+        ]
+      },
+      "id": "way/39449007"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/125207200",
+        "amenity": "theatre",
+        "building": "yes",
+        "building:levels": "4",
+        "check_date": "2024-04-13",
+        "name": "Teatr Bagatela",
+        "name:de": "Bagatela-Theater",
+        "name:pl": "Teatr Bagatela",
+        "source": "bing",
+        "wikidata": "Q3527432",
+        "wikimedia_commons": "Category:Bagatela",
+        "wikipedia": "pl:Teatr „Bagatela” im. Tadeusza Boya-Żeleńskiego",
+        "@geometry": "center"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9322688,
+          50.0636504
+        ]
+      },
+      "id": "way/125207200"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/128130589",
+        "addr:city": "Kraków",
+        "addr:country": "PL",
+        "addr:housenumber": "48",
+        "addr:postcode": "31-512",
+        "addr:street": "Lubicz",
+        "amenity": "theatre",
+        "building": "civic",
+        "building:levels": "6",
+        "name": "Opera Krakowska",
+        "theatre:genre": "opera",
+        "website": "https://www.opera.krakow.pl/",
+        "wheelchair": "yes",
+        "wikidata": "Q3277044",
+        "wikipedia": "pl:Opera Krakowska",
+        "@geometry": "center"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9561675,
+          50.0659174
+        ]
+      },
+      "id": "way/128130589"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/152104792",
+        "amenity": "theatre",
+        "building": "yes",
+        "building:levels": "4",
+        "name": "Krakowska Opera Kameralna",
+        "wikidata": "Q30170485",
+        "wikipedia": "pl:Kamienica przy ulicy Miodowej 15 w Krakowie",
+        "@geometry": "center"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9439073,
+          50.0523108
+        ]
+      },
+      "id": "way/152104792"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/153942974",
+        "addr:city": "Kraków",
+        "addr:housenumber": "1",
+        "addr:postcode": "31-023",
+        "addr:street": "Plac Świętego Ducha",
+        "amenity": "theatre",
+        "building": "theatre",
+        "building:levels": "5",
+        "height": "13",
+        "historic": "theatre",
+        "name": "Teatr im. Juliusza Słowackiego",
+        "name:be": "Тэатр Юліюша Славацкага",
+        "name:en": "Juliusz Słowacki Theatre",
+        "name:pl": "Teatr im. Juliusza Słowackiego",
+        "ref:ckkp": "MA00671",
+        "website": "https://teatrwkrakowie.pl/",
+        "wikidata": "Q3527492",
+        "wikimedia_commons": "File:20110514 Krakow Teatr Slowackiego 9264.jpg",
+        "wikipedia": "pl:Teatr im. Juliusza Słowackiego w Krakowie",
+        "@geometry": "center"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9430484,
+          50.0639462
+        ]
+      },
+      "id": "way/153942974"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/172741052",
+        "addr:city": "Kraków",
+        "addr:country": "PL",
+        "addr:housenumber": "23",
+        "addr:place": "Osiedle Teatralne",
+        "addr:postcode": "31-946",
+        "amenity": "theatre",
+        "building": "theatre",
+        "building:levels": "4",
+        "contact:facebook": "https://www.facebook.com/profile.php?id=61551253912191",
+        "name": "Teatralny Instytut Młodych",
+        "operator": "Teatr Ludowy",
+        "payment:cash": "yes",
+        "payment:contactless": "yes",
+        "payment:credit_cards": "yes",
+        "payment:debit_cards": "yes",
+        "roof:shape": "flat",
+        "short_name": "TIM",
+        "theatre:genre": "drama",
+        "website": "https://www.ludowy.pl/",
+        "wheelchair": "yes",
+        "wikidata": "Q6699038",
+        "wikipedia": "pl:Teatr Ludowy w Krakowie",
+        "@geometry": "center"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          20.0321838,
+          50.080192
+        ]
+      },
+      "id": "way/172741052"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/471984833",
+        "addr:city": "Kraków",
+        "addr:country": "PL",
+        "addr:housenumber": "2",
+        "addr:street": "Skarbowa",
+        "amenity": "theatre",
+        "check_date": "2025-03-30",
+        "contact:website": "www.groteska.pl",
+        "name": "Teatr Groteska",
+        "wikidata": "Q9356061",
+        "wikimedia_commons": "Category:Groteska Theatre in Kraków",
+        "wikipedia": "pl:Teatr „Groteska”"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9265845,
+          50.0631883
+        ]
+      },
+      "id": "node/471984833"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/472125031",
+        "amenity": "theatre",
+        "check_date": "2026-06-09",
+        "name": "Scena El-Jot"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9438045,
+          50.0523564
+        ]
+      },
+      "id": "node/472125031"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/475387327",
+        "addr:city": "Kraków",
+        "addr:housenumber": "27",
+        "addr:street": "Rynek Główny",
+        "amenity": "theatre",
+        "description": "also a cafe,cabaret,live music,concerts",
+        "name": "Piwnica Pod Baranami",
+        "theatre:genre": "variety",
+        "wikidata": "Q448341",
+        "wikimedia_commons": "Category:Piwnica pod Baranami",
+        "wikipedia": "pl:Piwnica pod Baranami"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9353977,
+          50.0616022
+        ]
+      },
+      "id": "node/475387327"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/475613660",
+        "addr:city": "Kraków",
+        "addr:country": "PL",
+        "addr:housenumber": "8",
+        "addr:street": "Rynek Główny",
+        "amenity": "theatre",
+        "name": "Teatr 38",
+        "wikidata": "Q9356004",
+        "wikipedia": "pl:Teatr 38"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9382486,
+          50.0608041
+        ]
+      },
+      "id": "node/475613660"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/968080333",
+        "addr:city": "Kraków",
+        "addr:country": "PL",
+        "addr:housenumber": "25",
+        "addr:place": "Osiedle Szkolne",
+        "addr:postcode": "31-977",
+        "amenity": "theatre",
+        "check_date": "2024-03-30",
+        "name": "Teatr Łaźnia Nowa",
+        "website": "https://www.laznianowa.pl/",
+        "wikidata": "Q8080619",
+        "wikipedia": "pl:Teatr Łaźnia Nowa"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          20.0479573,
+          50.0781895
+        ]
+      },
+      "id": "node/968080333"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/1195890837",
+        "addr:city": "Kraków",
+        "addr:housenumber": "2",
+        "addr:postcode": "31-024",
+        "addr:street": "Plac Świętego Ducha",
+        "amenity": "theatre",
+        "building": "yes",
+        "name": "Dom Machin (Scena Miniatura)",
+        "website": "https://teatrwkrakowie.pl/",
+        "wikidata": "Q9334175",
+        "wikipedia": "pl:Scena Miniatura w Krakowie",
+        "@geometry": "center"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9436372,
+          50.0636914
+        ]
+      },
+      "id": "way/1195890837"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/1537969471",
+        "amenity": "theatre",
+        "building": "yes",
+        "covered": "yes",
+        "note:": "otwierana scena na wolnym powietrzu",
+        "theatre:type": "open_air",
+        "@geometry": "center"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9442717,
+          50.0404092
+        ]
+      },
+      "id": "way/1537969471"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/2611212705",
+        "addr:city": "Kraków",
+        "addr:housenumber": "16-18",
+        "addr:postcode": "30-101",
+        "addr:street": "Aleja Zygmunta Krasińskiego",
+        "amenity": "theatre",
+        "check_date": "2026-02-04",
+        "name": "Teatr Scena STU",
+        "phone": "+48 12 422 22 63",
+        "website": "https://www.scenastu.pl/",
+        "wheelchair": "yes",
+        "wikidata": "Q7777279",
+        "wikipedia": "pl:Krakowski Teatr Scena STU"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9264434,
+          50.0564127
+        ]
+      },
+      "id": "node/2611212705"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/3283873028",
+        "amenity": "theatre",
+        "capacity": "92",
+        "check_date:opening_hours": "2019-11-17",
+        "email": "ratusz@ludowy.pl",
+        "level": "-1",
+        "name": "Scena pod Ratuszem",
+        "opening_hours": "Mo-Sa 12:00-19:00;Su \"2 godziny przed spektaklem\";PH \"2 godziny przed spektaklem\"",
+        "operator": "Teatr Ludowy",
+        "phone": "+48 12 421 50 16",
+        "website": "https://www.ludowy.pl/index.php?action=aboutStages&id=3",
+        "wheelchair": "no"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9363219,
+          50.0614753
+        ]
+      },
+      "id": "node/3283873028"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/3656558512",
+        "addr:city": "Kraków",
+        "addr:country": "PL",
+        "addr:housenumber": "71",
+        "addr:postcode": "31-559",
+        "addr:street": "Grzegórzecka",
+        "amenity": "theatre",
+        "check_date": "2026-08-08",
+        "email": "info@teatrvariete.pl",
+        "name": "Krakowski Teatr \"Variété\"",
+        "phone": "+48 12 4427800",
+        "website": "https://www.teatrvariete.pl/",
+        "wheelchair": "limited",
+        "wikidata": "Q19400840",
+        "wikipedia": "pl:Krakowski Teatr Variété"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9639126,
+          50.0568848
+        ]
+      },
+      "id": "node/3656558512"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/5274182420",
+        "amenity": "theatre",
+        "level": "3",
+        "name": "Chopin Concert Hall",
+        "theatre:type": "concert_hall",
+        "website": "https://cracowconcerts.com/",
+        "wheelchair": "no"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9374506,
+          50.0640057
+        ]
+      },
+      "id": "node/5274182420"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/5946093151",
+        "amenity": "theatre",
+        "name": "Teatr Barakah",
+        "website": "https://teatrbarakah.com/"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9404723,
+          50.0501923
+        ]
+      },
+      "id": "node/5946093151"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/6780916900",
+        "amenity": "theatre",
+        "name": "Teatr Bagatela scena na Sarego 7"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9416893,
+          50.056646
+        ]
+      },
+      "id": "node/6780916900"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/10091005353",
+        "amenity": "theatre",
+        "check_date": "2025-06-23",
+        "level": "2",
+        "name": "Teatr Współczesny w Krakowie",
+        "website": "https://teatrkrakow.pl/"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9442273,
+          50.0572267
+        ]
+      },
+      "id": "node/10091005353"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/11235812890",
+        "amenity": "theatre",
+        "name": "Klezmer Music Venue",
+        "theatre:type": "concert_hall"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9374338,
+          50.0639601
+        ]
+      },
+      "id": "node/11235812890"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/11646608022",
+        "amenity": "theatre",
+        "name": "Teatr Bez Rzędów",
+        "website": "https://www.facebook.com/TeatrBezRzedow/"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9423012,
+          50.0502689
+        ]
+      },
+      "id": "node/11646608022"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/11663805754",
+        "amenity": "theatre",
+        "check_date": "2026-07-18",
+        "name": "Teatr Nowy Proxima",
+        "website": "https://teatrnowy.com.pl/"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.943395,
+          50.0476721
+        ]
+      },
+      "id": "node/11663805754"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/11984980238",
+        "addr:city": "Kraków",
+        "addr:country": "PL",
+        "addr:housenumber": "2",
+        "addr:postcode": "31-066",
+        "addr:province": "Lesser Poland",
+        "addr:street": "Skawińska",
+        "amenity": "theatre",
+        "changing_table:fee": "no",
+        "lgbtq": "welcome",
+        "name": "Scena Berlin",
+        "phone": "+48 501 350 665;+48 534 852 630",
+        "theatre:genre": "variety",
+        "toilets": "yes",
+        "toilets:access": "customers",
+        "toilets:wheelchair": "no",
+        "website": "https://scenaberlin.com.pl",
+        "wheelchair": "no"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9432155,
+          50.0476633
+        ]
+      },
+      "id": "node/11984980238"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/12979288484",
+        "addr:city": "Kraków",
+        "addr:country": "PL",
+        "addr:housenumber": "12",
+        "addr:postcode": "31-124",
+        "addr:street": "Rajska",
+        "amenity": "theatre",
+        "contact:website": "https://teatrwkrakowie.pl/",
+        "name": "MOS – Teatr w Krakowie",
+        "operator": "Teatru im. Juliusza Słowackiego w Krakowie"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9293322,
+          50.0642169
+        ]
+      },
+      "id": "node/12979288484"
+    }
+  ]
+}

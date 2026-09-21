@@ -189,6 +189,15 @@ skipped is marked as failed, so a blocked runner never looks green.
   map: generating it writes them to `.cache/gtfs/routes.js`, which the page
   loads on the first click. If the map is opened on another computer or the
   cache was cleared, it says the route data is missing — generate the map again.
+- The 18 Kraków district boundaries come from the city's open data portal and
+  live in `src/map/template/layers/districts.geojson`. They get their own
+  *Granice dzielnic* section in the map's layer panel and are **all off by
+  default** — tick a district to outline it and label it on the map, or tick the
+  section header to show all of them at once. Every section of that panel folds
+  away with the arrow next to its header, and a section with all its layers off
+  (the districts one, right after opening the map) starts folded. The file in the repo is already
+  reprojected from the source PUWG 2000 zone 7 grid (EPSG:2178) to WGS84 and
+  simplified to about 6 m, so generating the map needs no projection library.
 - Adding another portal means writing a `Source` subclass and registering it in
   `SOURCES`. The database, reporting, CSV and map layers need no changes.
 

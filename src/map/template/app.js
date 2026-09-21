@@ -109,7 +109,7 @@ legend.onAdd = () => {
   return div;
 };
 legend.addTo(map);
-/* ---------- warstwy: granice miasta, ogłoszenia według ceny za m², punkty (lodziarnie, markety) ---------- */
+/* ---------- warstwy: granice miasta i dzielnic, ogłoszenia według ceny za m², punkty (lodziarnie, markety) ---------- */
 // każda warstwa włączana i wyłączana w całości; ikona w panelu = ikona markerów
 const dot = c => `<i class="inline-block size-[11px] rounded-full" style="background:${c}"></i>`;
 // ogłoszenia rozłożone na warstwy według przedziału ceny za m² (rebuildMarkers)
@@ -126,29 +126,57 @@ const OVERLAYS = [{
   group: "Ceny mieszkań", visible: true, layer, swatch: dot(PAL[i] ?? NOPRICE),
 }))];
 for(const def of JSON.parse(document.getElementById("pois").textContent)){
-  const round = def.shape === "square" ? "rounded-[5px]" : "rounded-full";
+  // logo dostaje białą podkładkę z cieniem, rysunek ("plain") idzie na mapę bez tła,
+  // z cieniem po obrysie, żeby nie zlewał się z kafelkami
+  const plate = {circle: "rounded-full", square: "rounded-[5px]"}[def.shape];
   const icon = L.divIcon({className: "", iconSize: [26, 26], iconAnchor: [13, 13], popupAnchor: [0, -13],
-    html: `<img src="${def.icon}" alt="" class="size-[26px] ${round} border-2 border-white bg-white object-contain
-      shadow-[0_1px_4px_rgba(0,0,0,.4)]">`});
+    html: `<img src="${def.icon}" alt="" class="size-[26px] object-contain ${plate
+      ? `${plate} border-2 border-white bg-white shadow-[0_1px_4px_rgba(0,0,0,.4)]`
+      : "drop-shadow-[0_1px_2px_rgba(0,0,0,.5)]"}">`});
+  // punkt bez nazwy (zdarza się w danych OSM) ma w dymku sam adres zamiast pustego nagłówka
   const group = L.layerGroup(def.pts.map(([lat, lon, name, addr, hours]) =>
     L.marker([lat, lon], {icon, title: name, riseOnHover: true})
-      .bindPopup(`<b>${esc(name)}</b>` + (addr ? `<br>${esc(addr)}` : "") +
+      .bindPopup(`<b>${esc(name || addr || "bez nazwy")}</b>` + (name && addr ? `<br>${esc(addr)}` : "") +
         (hours ? `<br><span class="text-mut">godziny: ${esc(hours === "closed" ? "zamknięte" : hours)}</span>` : ""))));
   OVERLAYS.push({label: `${def.label} (${def.pts.length})`, group: def.group, visible: def.visible, layer: group,
-    swatch: `<img src="${def.icon}" alt="" class="size-[18px] bg-white object-contain ${def.shape === "square" ? "rounded-[3px]" : "rounded-full"}">`});
+    swatch: `<img src="${def.icon}" alt="" class="size-[18px] object-contain ${
+      plate ? `bg-white ${def.shape === "square" ? "rounded-[3px]" : "rounded-full"}` : ""}">`});
+}
+// granice dzielnic (18 obrysów): własna sekcja panelu, domyślnie wszystkie wyłączone;
+// obwód nieklikalny, żeby nie przechwytywał kliknięć w markery, a w środku dzielnicy
+// jej nazwa (podpis też nieklikalny, z białą obwódką, żeby był czytelny na mapie)
+for(const def of JSON.parse(document.getElementById("distdata").textContent)){
+  const border = L.polygon(def.rings, {color:"#7c3aed", weight:2, opacity:.8,
+    fillColor:"#7c3aed", fillOpacity:.05, interactive:false});
+  const name = L.marker(def.c, {interactive:false, keyboard:false, icon: L.divIcon({
+    className: "", iconSize: [0, 0], html: `<span class="dlabel">${esc(def.name)}</span>`})});
+  OVERLAYS.push({label: `${def.nr} — ${def.name}`, group: "Granice dzielnic", visible: false,
+    layer: L.layerGroup([border, name]),
+    swatch: `<i class="inline-block h-0 w-[18px] border-t-2 border-[#7c3aed]"></i>`});
 }
 OVERLAYS.filter(o => o.visible).forEach(o => o.layer.addTo(map));
 // w panelu najpierw warstwy bez grupy, potem sekcje grup w kolejności pojawienia się;
-// pole przy nagłówku sekcji włącza lub wyłącza wszystkie jej warstwy naraz
+// pole przy nagłówku sekcji włącza lub wyłącza wszystkie jej warstwy naraz,
+// a strzałka obok zwija i rozwija jej listę (pole zostaje, więc po zwinięciu
+// nadal widać, czy sekcja jest włączona w całości, czy tylko częściowo)
 const overlayGroups = [...new Set(OVERLAYS.map(o => o.group ?? null))]
   .sort((a, b) => (a !== null) - (b !== null));
+// sekcja, w której wszystkie warstwy są wyłączone (jak granice dzielnic), zaczyna zwinięta
+const overlayFolded = g => g !== null && OVERLAYS.filter(o => o.group === g).every(o => !o.visible);
 const overlayRow = o => `<label class="chk py-0.5 text-ink">
   <input type="checkbox" data-i="${OVERLAYS.indexOf(o)}" ${o.visible ? "checked" : ""}>
   <span class="grid w-[18px] place-items-center">${o.swatch}</span>${esc(o.label)}</label>`;
+const overlayHeader = (g, gi) => `<div class="mt-2 mb-1 flex items-center gap-1 border-t border-line pt-2">
+  <label class="chk f-title mb-0 grow"><input type="checkbox" data-g="${gi}"> ${esc(g)}</label>
+  <button type="button" data-fold="${gi}" title="Zwiń lub rozwiń" aria-expanded="${!overlayFolded(g)}"
+    class="-mr-1 grid size-5 shrink-0 -rotate-90 cursor-pointer place-items-center rounded text-mut
+      transition-transform hover:bg-acc-soft hover:text-ink aria-expanded:rotate-0">
+    <svg viewBox="0 0 24 24" class="size-3.5" fill="none" stroke="currentColor" stroke-width="2.5"
+      stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></button></div>`;
 const overlaySections = overlayGroups
-  .map((g, gi) => (g === null ? "" : `<label class="chk f-title mt-2 mb-1 border-t border-line pt-2">
-      <input type="checkbox" data-g="${gi}"> ${esc(g)}</label>`) +
-    OVERLAYS.filter(o => (o.group ?? null) === g).map(overlayRow).join(""))
+  .map((g, gi) => (g === null ? "" : overlayHeader(g, gi)) +
+    `<div data-rows="${gi}" ${overlayFolded(g) ? "hidden" : ""}>` +
+    OVERLAYS.filter(o => (o.group ?? null) === g).map(overlayRow).join("") + "</div>")
   .join("");
 // przycisk w prawym górnym rogu mapy rozwijający panel; otwarcie jednego panelu
 // zamyka pozostałe, kliknięcie w mapę zamyka wszystkie; setup(panel) podpina obsługę
@@ -160,8 +188,8 @@ function mapPanel(title, icon, body, setup){
     div.innerHTML = `<button type="button" title="${esc(title)}" aria-expanded="false"
         class="grid size-10 cursor-pointer place-items-center rounded-full bg-white text-ink
           shadow-[0_1px_5px_rgba(0,0,0,.3)] hover:bg-acc-soft on:bg-acc on:text-white">${icon}</button>
-      <div hidden class="absolute top-12 right-0 w-max rounded-lg bg-white px-3 py-2
-        shadow-[0_1px_5px_rgba(0,0,0,.25)]">${body}</div>`;
+      <div hidden class="absolute top-12 right-0 max-h-[min(70vh,calc(100vh-8rem))] w-max overflow-y-auto
+        rounded-lg bg-white px-3 py-2 shadow-[0_1px_5px_rgba(0,0,0,.25)]">${body}</div>`;
     L.DomEvent.disableClickPropagation(div);
     L.DomEvent.disableScrollPropagation(div);
     const btn = div.querySelector("button"), panel = div.querySelector("div");
@@ -206,6 +234,13 @@ mapPanel("Warstwy na mapie",
       if(g != null) OVERLAYS.forEach((o, j) => o.group === overlayGroups[+g] && setVisible(j, e.target.checked));
       else setVisible(+i, e.target.checked);
       syncGroups();
+    });
+    panel.addEventListener("click", e => {
+      const btn = e.target.closest("[data-fold]");
+      if(!btn) return;
+      const open = btn.getAttribute("aria-expanded") === "false";
+      btn.setAttribute("aria-expanded", open);
+      panel.querySelector(`[data-rows="${btn.dataset.fold}"]`).hidden = !open;
     });
     syncGroups();
   });

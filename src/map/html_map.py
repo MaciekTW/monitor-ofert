@@ -6,7 +6,7 @@ oraz drugą zakładką z historią rynku (liczba ofert, ceny i ich zmiany w czas
 
 Wygląd i logika strony są w katalogu template/ (szablon Jinja2 index.html
 oraz style.css, app.js, history.js i krakow_boundary.js wklejane do niego bez zmian;
-dodatkowe warstwy punktów, np. lodziarnie, w template/layers/;
+dodatkowe warstwy punktów, np. lodziarnie, i granice dzielnic w template/layers/;
 przystanki komunikacji miejskiej z modułu gtfs).
 Zewnętrzne biblioteki
 (Leaflet, Apache ECharts, Tailwind CSS w wersji przeglądarkowej) leżą w katalogu deps/
@@ -49,8 +49,10 @@ LAYERS_DIR = TEMPLATE_DIR / "layers"
 # i ikona SVG z katalogu template/layers/. Warstwy z tym samym "group" trafiają
 # w panelu do wspólnej sekcji z nagłówkiem; bez "group" są na górze panelu.
 # "shape": "square" rysuje marker jako zaokrąglony kwadrat zamiast koła
-# (dla kwadratowych logo, którym koło ucina rogi). "visible": False sprawia,
-# że warstwa jest po otwarciu mapy wyłączona i trzeba ją zaznaczyć w panelu.
+# (dla kwadratowych logo, którym koło ucina rogi), a "plain" zdejmuje białą
+# podkładkę i zostawia sam rysunek (dla ikon, które nie są logotypem).
+# "visible": False sprawia, że warstwa jest po otwarciu mapy wyłączona
+# i trzeba ją zaznaczyć w panelu.
 POI_LAYERS = [
     {
         "id": "goodlood",
@@ -82,6 +84,16 @@ POI_LAYERS = [
         "geojson": "auchan.geojson",
         "icon": "auchan.svg",
     },
+    {
+        "id": "theatre",
+        "label": "Teatry",
+        "group": "Rozrywka",
+        "visible": False,
+        # rysunek budynku, nie logotyp — bez białej podkładki pod ikoną
+        "shape": "plain",
+        "geojson": "theatres.geojson",
+        "icon": "theatre.svg",
+    },
 ]
 
 
@@ -91,6 +103,13 @@ TRANSIT_LAYERS = [
     {"id": "bus", "label": "Przystanki autobusowe", "icon": "bus.svg"},
     {"id": "tram", "label": "Przystanki tramwajowe", "icon": "tram.svg"},
 ]
+
+# Granice dzielnic Krakowa: obrysy 18 dzielnic z miejskiego portalu danych
+# (template/layers/districts.geojson). Plik jest już w WGS84 — przeliczenie
+# z układu 2000 strefa 7 (EPSG:2178), uproszczenie obrysów (~6 m) i obcięcie
+# zbędnych atrybutów zrobiono raz, przy dodawaniu pliku do repozytorium.
+# Na mapie mają w panelu warstw własną sekcję i domyślnie są wyłączone.
+DISTRICTS_GEOJSON = "districts.geojson"
 
 
 def make_env() -> Environment:
@@ -191,6 +210,61 @@ def poi_layers() -> list[dict]:
                 "shape": spec.get("shape", "circle"),
                 "icon": icon_data_uri(spec["icon"]),
                 "pts": points,
+            }
+        )
+    return layers
+
+
+def point_in_ring(lat: float, lon: float, ring: list[list[float]]) -> bool:
+    """Czy punkt leży wewnątrz obrysu (algorytm promienia poziomego)."""
+    inside = False
+    for (lat1, lon1), (lat2, lon2) in zip(ring, ring[-1:] + ring[:-1]):
+        if (lat1 > lat) != (lat2 > lat) and lon < (lon2 - lon1) * (lat - lat1) / (lat2 - lat1) + lon1:
+            inside = not inside
+    return inside
+
+
+def label_point(ring: list[list[float]]) -> list[float]:
+    """Miejsce na podpis dzielnicy: środek ciężkości obrysu, a gdy wypada poza nim
+    (dzielnice w kształcie podkowy) — środek najszerszego poziomego przekroju."""
+    area = lat = lon = 0.0
+    for (lat1, lon1), (lat2, lon2) in zip(ring, ring[-1:] + ring[:-1]):
+        cross = lon1 * lat2 - lon2 * lat1
+        area += cross
+        lat += (lat1 + lat2) * cross
+        lon += (lon1 + lon2) * cross
+    if area and point_in_ring(lat / (3 * area), lon / (3 * area), ring):
+        return [round(lat / (3 * area), 6), round(lon / (3 * area), 6)]
+
+    lats = [p[0] for p in ring]
+    best = (0.0, ring[0])
+    for step in range(1, 64):
+        y = min(lats) + (max(lats) - min(lats)) * step / 64
+        crossings = sorted(
+            lon1 + (lon2 - lon1) * (y - lat1) / (lat2 - lat1)
+            for (lat1, lon1), (lat2, lon2) in zip(ring, ring[-1:] + ring[:-1])
+            if (lat1 > y) != (lat2 > y)
+        )
+        for left, right in zip(crossings[::2], crossings[1::2]):
+            if right - left > best[0]:
+                best = (right - left, [round(y, 6), round((left + right) / 2, 6)])
+    return best[1]
+
+
+def district_layers() -> list[dict]:
+    """Granice dzielnic na mapę: [{"nr": numer, "name": nazwa,
+    "rings": [[[lat, lon], …], …], "c": [lat, lon] pod podpis}, …]."""
+    geojson = json.loads((LAYERS_DIR / DISTRICTS_GEOJSON).read_text(encoding="utf-8"))
+    layers = []
+    for feature in sorted(geojson["features"], key=lambda f: f["properties"]["id"]):
+        props = feature["properties"]
+        rings = [[[lat, lon] for lon, lat in ring] for ring in feature["geometry"]["coordinates"]]
+        layers.append(
+            {
+                "nr": props["nr"],
+                "name": props["nazwa"],
+                "rings": rings,
+                "c": label_point(max(rings, key=len)),
             }
         )
     return layers
@@ -394,6 +468,7 @@ def export_html(con: sqlite3.Connection, path: str, offline: bool = False) -> No
             offers=offers,
             hist=market_history(con),
             pois=poi_layers(),
+            districts=district_layers(),
             transit=transit_layers(offline),
         )
     )

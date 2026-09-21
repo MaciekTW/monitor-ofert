@@ -73,6 +73,13 @@
         @apply mb-2 text-xs text-mut;
     }
 
+    /* podpis dzielnicy na mapie — wyśrodkowany na punkcie, z białą poświatą,
+       żeby był czytelny nad kafelkami i markerami (warstwy granic w app.js) */
+    .dlabel {
+        @apply block -translate-x-1/2 -translate-y-1/2 text-center text-[12px]/[1.2] font-bold whitespace-nowrap text-[#5b21b6];
+        text-shadow: 0 0 4px #fff, 0 0 4px #fff, 0 0 4px #fff;
+    }
+
     .noimg {
         @apply flex h-[70px] w-[92px] shrink-0 items-center justify-center rounded-md bg-[#eef0f4] text-[22px] text-[#b6bdc9];
     }
