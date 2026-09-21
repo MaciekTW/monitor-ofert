@@ -1,0 +1,596 @@
+{
+  "type": "FeatureCollection",
+  "generator": "overpass-turbo",
+  "copyright": "The data included in this document is from www.openstreetmap.org. The data is made available under ODbL.",
+  "timestamp": "2026-09-21T13:12:31Z",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "relation/3915088",
+        "alt_name": "Plac Żydowski",
+        "amenity": "marketplace",
+        "check_date": "2025-09-11",
+        "landuse": "retail",
+        "name": "Plac Nowy",
+        "name:ko": "노비 광장",
+        "operator": "Jatka 2.0",
+        "type": "multipolygon",
+        "wikidata": "Q11008519",
+        "wikipedia": "pl:Plac Nowy w Krakowie",
+        "@geometry": "center"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9449523,
+          50.0517336
+        ]
+      },
+      "id": "relation/3915088"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "relation/4089550",
+        "amenity": "marketplace",
+        "landuse": "retail",
+        "name": "Plac Na Stawach",
+        "type": "multipolygon",
+        "@geometry": "center"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9204819,
+          50.0547069
+        ]
+      },
+      "id": "relation/4089550"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/25070800",
+        "addr:city": "Kraków",
+        "addr:city:simc": "0950463",
+        "addr:housenumber": "20",
+        "addr:postcode": "31-150",
+        "addr:street": "Rynek Kleparski",
+        "amenity": "marketplace",
+        "building": "roof",
+        "layer": "1",
+        "name": "Stary Kleparz",
+        "source:addr": "gugik.gov.pl",
+        "website": "https://www.starykleparz.com/",
+        "wikidata": "Q9324454",
+        "wikipedia": "pl:Rynek Kleparski w Krakowie",
+        "@geometry": "center"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.941027,
+          50.0673592
+        ]
+      },
+      "id": "way/25070800"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/25131803",
+        "addr:housenumber": "1",
+        "addr:street": "Długa",
+        "amenity": "marketplace",
+        "landuse": "retail",
+        "name": "Spółka Kupiecka Sp. z o.o. Nowy Kleparz Plac Targowy",
+        "short_name": "Nowy Kleparz",
+        "wheelchair": "yes",
+        "@geometry": "center"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9352601,
+          50.0730173
+        ]
+      },
+      "id": "way/25131803"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/25767937",
+        "amenity": "marketplace",
+        "name": "Rynek Dębnicki",
+        "wikidata": "Q9324446",
+        "wikipedia": "pl:Rynek Dębnicki w Krakowie",
+        "@geometry": "center"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.927016,
+          50.0516657
+        ]
+      },
+      "id": "way/25767937"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/34373106",
+        "addr:city": "Kraków",
+        "addr:postcode": "31-212",
+        "addr:street": "Plac Imbramowski",
+        "amenity": "marketplace",
+        "building": "roof",
+        "building:levels": "2",
+        "layer": "2",
+        "name": "Plac Imbramowski",
+        "opening_hours": "Mo-Sa 06:00-19:00",
+        "roof:shape": "flat",
+        "website": "https://placimbramowski.pl/",
+        "@geometry": "center"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9494137,
+          50.0880704
+        ]
+      },
+      "id": "way/34373106"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/54117394",
+        "addr:city": "Kraków",
+        "addr:street": "Bieńczycka",
+        "amenity": "marketplace",
+        "contact:email": "biuro@tomex.krakow.pl",
+        "contact:phone": "+48 12 6800100",
+        "contact:website": "http://www.tomexsa.pl/",
+        "landuse": "retail",
+        "name": "Centrum Handlowe Tomex",
+        "opening_hours": "Mo-Fr 08:00-17:00; Sa 08:00-15:00",
+        "wheelchair": "yes",
+        "@geometry": "center"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          20.0235328,
+          50.0786009
+        ]
+      },
+      "id": "way/54117394"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/83675542",
+        "addr:city": "Kraków",
+        "addr:country": "PL",
+        "addr:housenumber": "3",
+        "addr:street": "Grzegórzecka",
+        "amenity": "marketplace",
+        "landuse": "retail",
+        "name": "plac targowy koło Hali Targowej",
+        "short_name": "targ Hala Targowa",
+        "@geometry": "center"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9486451,
+          50.0574882
+        ]
+      },
+      "id": "way/83675542"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/107361430",
+        "addr:street": "Obrońców Krzyża",
+        "amenity": "marketplace",
+        "landuse": "retail",
+        "name": "Bieńczycki Plac Targowy",
+        "@geometry": "center"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          20.0323478,
+          50.0829555
+        ]
+      },
+      "id": "way/107361430"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/115973623",
+        "amenity": "marketplace",
+        "name": "Giełda (RTV, Komputerowa, Staroci, Zoologiczna)",
+        "@geometry": "center"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.8774088,
+          50.0804799
+        ]
+      },
+      "id": "way/115973623"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/128897385",
+        "amenity": "marketplace",
+        "building": "yes",
+        "check_date": "2025-07-26",
+        "name": "Centrum Handlowe Tandeta - Hala I",
+        "shop": "mall",
+        "short_name": "Tandeta",
+        "@geometry": "center"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9709739,
+          50.0434774
+        ]
+      },
+      "id": "way/128897385"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/128897386",
+        "amenity": "marketplace",
+        "check_date": "2025-06-29",
+        "contact:website": "http://king.biz.pl",
+        "name": "Centrum Targowe KING",
+        "@geometry": "center"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9699026,
+          50.0426353
+        ]
+      },
+      "id": "way/128897386"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/128897387",
+        "amenity": "marketplace",
+        "building": "yes",
+        "check_date": "2025-09-30",
+        "name": "Centrum Handlowe Tandeta - Hala II",
+        "shop": "mall",
+        "short_name": "Tandeta",
+        "@geometry": "center"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9714224,
+          50.0427856
+        ]
+      },
+      "id": "way/128897387"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/151507212",
+        "addr:city": "Kraków",
+        "addr:housenumber": "7",
+        "addr:postcode": "30-638",
+        "addr:street": "Białoruska",
+        "amenity": "marketplace",
+        "name": "Manhatan",
+        "source:addr": "EMUiA (emuia.gugik.gov.pl)",
+        "@geometry": "center"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9756716,
+          50.0168927
+        ]
+      },
+      "id": "way/151507212"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/155654449",
+        "addr:city": "Kraków",
+        "addr:street": "Półłanki",
+        "amenity": "marketplace",
+        "barrier": "fence",
+        "landuse": "retail",
+        "name": "Kompleks Handlowy Rybitwy",
+        "website": "https://khrybitwy.pl/",
+        "@geometry": "center"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          20.0398829,
+          50.0365509
+        ]
+      },
+      "id": "way/155654449"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/159657018",
+        "amenity": "marketplace",
+        "landuse": "retail",
+        "name": "Plac Borkowski",
+        "@geometry": "center"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9256156,
+          50.0124791
+        ]
+      },
+      "id": "way/159657018"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/221601362",
+        "addr:city": "Kraków",
+        "addr:place": "Osiedle Piastów",
+        "amenity": "marketplace",
+        "check_date": "2024-02-21",
+        "check_date:opening_hours": "2021-03-15",
+        "contact:fax": "+48 1206480116",
+        "contact:phone": "+48 12 6480116",
+        "landuse": "retail",
+        "name": "Plac Targowy \"Piast\"",
+        "opening_hours": "Mo-Su 07:00-20:00",
+        "operator": "P.P.H.U. \"Daniel\" S.C.",
+        "@geometry": "center"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          20.0133754,
+          50.1023226
+        ]
+      },
+      "id": "way/221601362"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/233073107",
+        "amenity": "marketplace",
+        "name": "Złoty wiek",
+        "@geometry": "center"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          20.0002486,
+          50.0948754
+        ]
+      },
+      "id": "way/233073107"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/344780335",
+        "amenity": "marketplace",
+        "name": "Plac Handlowy Kozłowek",
+        "@geometry": "center"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9851758,
+          50.0177722
+        ]
+      },
+      "id": "way/344780335"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/461173127",
+        "amenity": "marketplace",
+        "landuse": "retail",
+        "name": "Plac Nowowiejski",
+        "opening_hours": "Mo-Su 06:00-22:00",
+        "wheelchair": "limited",
+        "@geometry": "center"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9167345,
+          50.0706494
+        ]
+      },
+      "id": "way/461173127"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/591361231",
+        "addr:city": "Kraków",
+        "addr:country": "PL",
+        "addr:housenumber": "24",
+        "addr:postcode": "30-131",
+        "addr:street": "Młodej Polski",
+        "amenity": "marketplace",
+        "check_date:opening_hours": "2024-09-15",
+        "noname": "yes",
+        "opening_hours": "\"sprzedaż wg regulaminu może być od 6. do 22.\"",
+        "@geometry": "center"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.901176,
+          50.0746029
+        ]
+      },
+      "id": "way/591361231"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/619876943",
+        "amenity": "marketplace",
+        "name": "Minicentrum handlowe Włoska",
+        "@geometry": "center"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9701947,
+          50.01627
+        ]
+      },
+      "id": "way/619876943"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/632660160",
+        "amenity": "marketplace",
+        "@geometry": "center"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9952531,
+          50.023805
+        ]
+      },
+      "id": "way/632660160"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/957631921",
+        "addr:city": "Kraków",
+        "addr:street": "Christo Botewa",
+        "amenity": "marketplace",
+        "landuse": "retail",
+        "name": "Giełda Samochodowo-Handlowa w Krakowie",
+        "opening_hours": "Sa 06:00-12:00;Su 05:00-13:00",
+        "shop": "car_parts",
+        "website": "https://gieldakrakow.com/",
+        "@geometry": "center"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          20.0380785,
+          50.0367442
+        ]
+      },
+      "id": "way/957631921"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/963795021",
+        "addr:city": "Kraków",
+        "addr:country": "PL",
+        "addr:housenumber": "33",
+        "addr:place": "Osiedle Wandy",
+        "amenity": "marketplace",
+        "name:signed": "no",
+        "opening_hours": "Mo-Sa 06:00-17:00",
+        "wheelchair": "yes",
+        "@geometry": "center"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          20.0518408,
+          50.0692206
+        ]
+      },
+      "id": "way/963795021"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/5482865191",
+        "amenity": "marketplace",
+        "name": "Plac Targowy Prokocim",
+        "opening_hours": "Mo-Sa 08:00-17:00"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          20.0107375,
+          50.0170834
+        ]
+      },
+      "id": "node/5482865191"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/5482877176",
+        "addr:housenumber": "43",
+        "addr:street": "Beskidzka",
+        "amenity": "marketplace",
+        "name": "Plac Handlowy Beskidy",
+        "phone": "+48126556884",
+        "website": "placbeskidy.pl"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9489977,
+          50.0144112
+        ]
+      },
+      "id": "node/5482877176"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/5731901254",
+        "addr:city": "Kraków",
+        "addr:housenumber": "24c",
+        "addr:street": "Gromadzka",
+        "amenity": "marketplace",
+        "name": "Targ Ekosfera",
+        "opening_hours": "Fr 13:00-18:00, Sa 07:00-14:00",
+        "phone": "+48 506 783 746",
+        "website": "https://www.targekosfera.pl/"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9799547,
+          50.0420308
+        ]
+      },
+      "id": "node/5731901254"
+    }
+  ]
+}

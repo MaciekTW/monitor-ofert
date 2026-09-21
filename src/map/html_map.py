@@ -54,11 +54,29 @@ LAYERS_DIR = TEMPLATE_DIR / "layers"
 # "visible": False sprawia, że warstwa jest po otwarciu mapy wyłączona
 # i trzeba ją zaznaczyć w panelu. "brands" i "brands_except" zawężają plik do
 # punktów z danym tagiem brand:wikidata (albo do całej reszty), więc jeden
-# GeoJSON może dać kilka osobno przełączanych warstw.
+# GeoJSON może dać kilka osobno przełączanych warstw. Warstwa o kilku punktach
+# (jak zoo) może zamiast "geojson" podać "features" z obiektami GeoJSON wpisanymi
+# wprost — czytane są tak samo, więc osobny plik nie jest potrzebny.
 
 # Kina sieciowe rozpoznawane po tagu brand:wikidata z OSM: Cinema City
 # i Multikino. Kina bez tej marki (albo bez tagu) są na mapie jako studyjne.
 MULTIPLEX_BRANDS = ("Q543651", "Q1144802")
+
+# Zoo jest w Krakowie jedno, więc zamiast pliku wystarczy jeden obiekt GeoJSON
+# (way/25171269 z OSM). Z tagów zostały te, które mapa pokazuje w dymku:
+# nazwa, adres i godziny otwarcia.
+ZOO = [
+    {
+        "type": "Feature",
+        "properties": {
+            "@id": "way/25171269",
+            "addr:street": "Aleja Kasy Oszczędności Miasta Krakowa",
+            "name": "Ogród Zoologiczny w Krakowie",
+            "opening_hours": "Mo-Su 09:00-18:00",
+        },
+        "geometry": {"type": "Point", "coordinates": [19.8500484, 50.0531577]},
+    },
+]
 
 POI_LAYERS = [
     {
@@ -92,6 +110,16 @@ POI_LAYERS = [
         "icon": "auchan.svg",
     },
     {
+        "id": "marketplace",
+        "label": "Targowiska",
+        "group": "Handel",
+        "visible": False,
+        # rysunek pinezki, nie logotyp — bez białej podkładki pod ikoną
+        "shape": "plain",
+        "geojson": "marketplaces.geojson",
+        "icon": "pin-targowisko.svg",
+    },
+    {
         "id": "theatre",
         "label": "Teatry",
         "group": "Rozrywka",
@@ -120,6 +148,16 @@ POI_LAYERS = [
         "geojson": "cinemas.geojson",
         "icon": "kino-popcorn.svg",
         "brands_except": MULTIPLEX_BRANDS,
+    },
+    {
+        "id": "zoo",
+        "label": "Zoo",
+        "group": "Rozrywka",
+        "visible": False,
+        # rysunek zwierzęcia, nie logotyp — bez białej podkładki pod ikoną
+        "shape": "plain",
+        "features": ZOO,
+        "icon": "zoo-akcent.svg",
     },
 ]
 
@@ -216,9 +254,12 @@ def poi_layers() -> list[dict]:
     [lat, lon, nazwa, adres, godziny otwarcia]."""
     layers = []
     for spec in POI_LAYERS:
-        geojson = json.loads((LAYERS_DIR / spec["geojson"]).read_text(encoding="utf-8"))
+        if "geojson" in spec:
+            features = json.loads((LAYERS_DIR / spec["geojson"]).read_text(encoding="utf-8"))["features"]
+        else:
+            features = spec["features"]
         points = []
-        for feature in geojson["features"]:
+        for feature in features:
             geometry = feature.get("geometry") or {}
             if geometry.get("type") != "Point":
                 continue
