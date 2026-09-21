@@ -625,6 +625,7 @@ function currentFilter(){
   const q = currentQuery();
   const inDesc = $("#qdesc").checked;
   const freshDays = $("#fresh").value ? +$("#fresh").value : null;
+  const chgDays = $("#pchg").value ? +$("#pchg").value : null;
   const bounds = $("#bounds").checked ? map.getBounds() : null;
   return o => {
     if(srcOn.length < 2 && !srcOn.includes(o.s)) return false;
@@ -647,6 +648,8 @@ function currentFilter(){
       const t = o.c || o.fs;
       if(!t || (GEN - new Date(t)) > freshDays*864e5) return false;
     }
+    // oferta bez „pc” nigdy nie zmieniła ceny, więc odpada przy każdym oknie
+    if(chgDays != null && (!o.pc || (GEN - new Date(o.pc)) > chgDays*864e5)) return false;
     if(!allD && !dsel.has(o.d || "(nie podano)")) return false;
     if($("#onlydrop").checked && !(o._drop > 0)) return false;
     if($("#onlygeo").checked && o.lat == null) return false;
@@ -895,7 +898,7 @@ const soon = () => { clearTimeout(deb); deb = setTimeout(() => apply(), 220); };
   .forEach(s => $(s).addEventListener("input", soon));
 $("#qrows").addEventListener("change", e => { if(e.target.tagName === "SELECT") apply(); });
 $("#qadd").onclick = addQueryRow;
-["#qdesc","#market","#seller","#fresh","#sort","#onlydrop","#onlygeo"]
+["#qdesc","#market","#seller","#fresh","#pchg","#sort","#onlydrop","#onlygeo"]
   .forEach(s => $(s).addEventListener("change", () => apply()));
 $("#bounds").addEventListener("change", () => apply(false));
 map.on("moveend", () => { if($("#bounds").checked) apply(false); });
@@ -912,7 +915,7 @@ $("#clear").onclick = () => {
   ["#q","#pmin","#pmax","#amin","#amax","#mmin","#mmax"]
     .forEach(s => $(s).value = "");
   document.querySelectorAll("#qrows .qrow:has(select)").forEach(r => r.remove());
-  ["#market","#seller","#fresh"].forEach(s => $(s).value = "");
+  ["#market","#seller","#fresh","#pchg"].forEach(s => $(s).value = "");
   ["#onlydrop","#onlygeo","#bounds"].forEach(s => $(s).checked = false);
   $("#qdesc").checked = true;
   document.querySelectorAll("#rooms .chip").forEach(b => b.classList.remove("on"));

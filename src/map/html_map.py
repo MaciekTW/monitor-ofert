@@ -456,6 +456,14 @@ def export_html(con: sqlite3.Connection, path: str, offline: bool = False) -> No
     for offer_uid, ts, price in con.execute("SELECT offer_uid, ts, price FROM price_history ORDER BY ts"):
         history.setdefault(offer_uid, []).append([ts[:10], price])
 
+    # Znacznik ostatniej zmiany ceny — pierwszy wpis historii to cena z chwili
+    # dodania oferty, więc o zmianie mówimy dopiero od drugiego wpisu. W historii
+    # zostają same daty (krótszy plik), a tu pełny znacznik czasu, żeby filtr
+    # „ostatnia zmiana ceny” liczył godziny tak samo jak filtr „dodane”.
+    last_change = dict(
+        con.execute("SELECT offer_uid, MAX(ts) FROM price_history GROUP BY offer_uid HAVING COUNT(*) > 1")
+    )
+
     offers = []
     query = """SELECT uid, source, url, title, price, negotiable, area,
                       price_per_m, rooms, floor, market, district, business,
@@ -520,6 +528,7 @@ def export_html(con: sqlite3.Connection, path: str, offline: bool = False) -> No
         hist = history.get(uid) or []
         if len(hist) > 1:
             item["h"] = hist
+            item["pc"] = last_change[uid]
         offers.append(item)
 
     if not offers:
