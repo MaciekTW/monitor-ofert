@@ -222,6 +222,22 @@ def test_detail_market_and_floor(detail):
     assert m.to_float(detail.get("area")), f"area = {detail.get('area')!r}"
 
 
+def test_detail_build_year(detail):
+    """Rok budowy jest pozycją w tabelce „o budynku”, a nie osobnym polem —
+    sprawdzamy kształt tej listy i to, że etykieta nadal brzmi „Rok budowy”."""
+    rows = detail.get("buildingDetailedInformation")
+    assert isinstance(rows, list) and rows, f"buildingDetailedInformation = {rows!r}"
+    assert_all(
+        rows,
+        lambda r: isinstance(r, dict) and isinstance(r.get("label"), str),
+        "buildingDetailedInformation[].label",
+    )
+    labels = [r["label"] for r in rows]
+    assert "Rok budowy" in labels, f"brak pozycji „Rok budowy”; są: {labels}"
+    year = next(r.get("value") for r in rows if r["label"] == "Rok budowy")
+    assert m.to_year(year) is not None, f"to_year nie rozumie „{year!r}”"
+
+
 def test_detail_description(detail):
     assert isinstance(detail.get("description"), str) and detail["description"], "pusty opis oferty"
 

@@ -56,6 +56,11 @@
   <div class="mb-3.5"><h3 class="f-title">Rynek</h3><select id="market" class="field">
    <option value="">wszystkie</option><option>Pierwotny</option><option>Wtórny</option>
   </select></div>
+  <div id="ybox" class="mb-3.5" hidden><h3 class="f-title">Rok budowy</h3>
+   <div id="yrange" class="rng"><div class="rng-track"></div><div id="yfill" class="rng-fill"></div>
+    <input id="ymin" type="range" step="1"><input id="ymax" type="range" step="1"></div>
+   <div class="mt-1 flex justify-between text-[12.5px] tabular-nums"><span id="ylo"></span><span id="yhi"></span></div>
+   <p id="ynote" class="mt-1 text-[11px] leading-snug text-mut"></p></div>
   <div class="mb-3.5"><h3 class="f-title">Sprzedający</h3><select id="seller" class="field">
    <option value="">wszyscy</option><option value="0">osoba prywatna</option>
    <option value="1">firma / deweloper</option>

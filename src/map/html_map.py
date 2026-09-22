@@ -466,7 +466,7 @@ def export_html(con: sqlite3.Connection, path: str, offline: bool = False) -> No
 
     offers = []
     query = """SELECT uid, source, url, title, price, negotiable, area,
-                      price_per_m, rooms, floor, market, district, business,
+                      price_per_m, rooms, floor, market, build_year, district, business,
                       created_at, first_seen, lat, lon, map_radius, raw
                FROM offers WHERE active = 1"""
     for (
@@ -481,6 +481,7 @@ def export_html(con: sqlite3.Connection, path: str, offline: bool = False) -> No
         rooms,
         floor,
         market,
+        build_year,
         district,
         business,
         created,
@@ -515,6 +516,7 @@ def export_html(con: sqlite3.Connection, path: str, offline: bool = False) -> No
             "r": rooms,
             "f": floor,
             "mk": market,
+            "by": build_year,
             "d": district,
             "b": business,
             "c": created,

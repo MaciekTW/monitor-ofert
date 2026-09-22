@@ -614,6 +614,62 @@ function addQueryRow(){
   $("#qadd").before(row);
   row.querySelector("input").focus();
 }
+/* ---------- suwak dwustronny: rok budowy ---------- */
+/* Rok budowy podają tylko Otodom i Gratka — OLX go nie zbiera, a i tam trafiają
+   się oferty bez niego. Krańce suwaka biorą się z ofert, które rok mają;
+   dopóki stoi rozsunięty do końca, filtr nie działa. Po zawężeniu oferty bez
+   roku odpadają — tak samo jak przy cenie czy metrażu. */
+const YEARS = OFFERS.map(o => o.by).filter(v => v != null).sort((a,b) => a-b);
+const YMAX = YEARS.length ? YEARS[YEARS.length-1] : 0;
+/* Lewy kraniec to 1. percentyl zaokrąglony w dół do dziesięciolecia, a nie
+   najstarsza oferta: na Starówce trafiają się kamienice z XIV w. i przy skali
+   liniowej zjadłyby prawie całą długość suwaka, zostawiając ostatnie kilka
+   procent na lata, w których leży 90% ofert. Uchwyt dosunięty do lewego krańca
+   znaczy „bez dolnej granicy”, więc te najstarsze oferty i tak są w wynikach —
+   znikają dopiero wtedy, gdy dolną granicę świadomie podniesiemy. */
+const YTRUE = YEARS.length ? YEARS[0] : 0;
+const YMIN = YEARS.length
+  ? Math.max(YTRUE, Math.floor(YEARS[Math.floor(YEARS.length*.01)] / 10) * 10) : 0;
+const yLoEl = $("#ymin"), yHiEl = $("#ymax");
+const yearOn = () => YEARS.length && (+yLoEl.value > YMIN || +yHiEl.value < YMAX);
+function yearPaint(){
+  const lo = +yLoEl.value, hi = +yHiEl.value, span = (YMAX - YMIN) || 1;
+  $("#yfill").style.left = (lo - YMIN) / span * 100 + "%";
+  $("#yfill").style.width = (hi - lo) / span * 100 + "%";
+  // na lewym krańcu podpis pokazuje rok najstarszej oferty, bo tyle wtedy obejmuje
+  $("#ylo").textContent = lo > YMIN ? lo : YTRUE;
+  $("#yhi").textContent = hi;
+}
+function yearReset(){
+  yLoEl.value = YMIN; yHiEl.value = YMAX; yearPaint();
+}
+if(YEARS.length){
+  $("#ybox").hidden = false;
+  for(const el of [yLoEl, yHiEl]){ el.min = YMIN; el.max = YMAX; }
+  yearReset();
+  const without = OFFERS.length - YEARS.length;
+  // o OLX wspominamy tylko wtedy, gdy faktycznie jest w tej bazie
+  const olx = OFFERS.some(o => o.s === "olx" && o.by == null) ? ", w tym całe OLX" : "";
+  $("#ynote").textContent = without
+    ? `${without} z ${OFFERS.length} ofert nie podaje roku${olx} — po zawężeniu znikają z wyników`
+    : "";
+  for(const el of [yLoEl, yHiEl])
+    el.addEventListener("input", () => {
+      // uchwyty mogą się minąć — ten przesuwany spycha drugi przed sobą
+      if(+yLoEl.value > +yHiEl.value)
+        (el === yLoEl ? yHiEl : yLoEl).value = el.value;
+      yearPaint(); soon();
+    });
+  // gdy uchwyty stoją na sobie, na wierzch idzie ten bliższy kliknięciu —
+  // inaczej skrajnej wartości nie dałoby się już ruszyć
+  $("#yrange").addEventListener("pointerdown", e => {
+    const r = e.currentTarget.getBoundingClientRect();
+    const at = YMIN + (e.clientX - r.left) / r.width * (YMAX - YMIN);
+    const hi = Math.abs(at - +yHiEl.value) <= Math.abs(at - +yLoEl.value);
+    yHiEl.style.zIndex = hi ? 3 : 2;
+    yLoEl.style.zIndex = hi ? 2 : 3;
+  });
+}
 function currentFilter(){
   const roomsOn = [...document.querySelectorAll("#rooms .chip.on")]
     .map(b => +b.dataset.r);
@@ -627,6 +683,7 @@ function currentFilter(){
   const freshDays = $("#fresh").value ? +$("#fresh").value : null;
   const chgDays = $("#pchg").value ? +$("#pchg").value : null;
   const bounds = $("#bounds").checked ? map.getBounds() : null;
+  const yOn = yearOn(), yLo = +yLoEl.value, yHi = +yHiEl.value;
   return o => {
     if(srcOn.length < 2 && !srcOn.includes(o.s)) return false;
     const hit = w => o._txt.includes(w) || (inDesc && o._dtxt.includes(w));
@@ -641,6 +698,7 @@ function currentFilter(){
     const mmin=num("#mmin"), mmax=num("#mmax");
     if(mmin != null && (o.pm == null || o.pm < mmin)) return false;
     if(mmax != null && (o.pm == null || o.pm > mmax)) return false;
+    if(yOn && (o.by == null || (yLo > YMIN && o.by < yLo) || (yHi < YMAX && o.by > yHi))) return false;
     if(roomsOn.length && (o._rb == null || !roomsOn.includes(o._rb))) return false;
     if($("#market").value && o.mk !== $("#market").value) return false;
     if($("#seller").value !== "" && String(o.b) !== $("#seller").value) return false;
@@ -788,7 +846,7 @@ function openDetail(id, fromMap){
     ["Metraż", o.a ? o.a + " m²" : null],
     ["Cena za m²", o.pm ? fmtN(o.pm) + " zł" : null],
     ["Pokoje", o.r], ["Piętro", o.f],
-    ["Rynek", o.mk], ["Dzielnica", o.d],
+    ["Rynek", o.mk], ["Rok budowy", o.by], ["Dzielnica", o.d],
     ["Sprzedający", o.b ? "firma / deweloper" : "osoba prywatna"],
     ["Dodane", fmtDate(o.c)],
     ["Pierwszy raz widziana", fmtDate(o.fs)],
@@ -918,6 +976,7 @@ $("#clear").onclick = () => {
   ["#market","#seller","#fresh","#pchg"].forEach(s => $(s).value = "");
   ["#onlydrop","#onlygeo","#bounds"].forEach(s => $(s).checked = false);
   $("#qdesc").checked = true;
+  yearReset();
   document.querySelectorAll("#rooms .chip").forEach(b => b.classList.remove("on"));
   document.querySelectorAll("#portals .chip").forEach(b => b.classList.add("on"));
   document.querySelectorAll(".dbox").forEach(b => b.checked = true);

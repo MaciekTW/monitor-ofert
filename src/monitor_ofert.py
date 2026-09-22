@@ -212,6 +212,20 @@ def to_float(value) -> float | None:
         return None
 
 
+def to_year(value) -> int | None:
+    """Rok budowy z tego, co podał portal (Otodom: „2018”, Gratka: „2018”).
+
+    Dolna granica jest celowo niska: w ofertach ze Starówki trafiają się
+    kamienice z XIV w. (1343, 1450) i to prawdziwe daty — odsiewamy tylko
+    oczywiste śmieci w rodzaju „2” i „20”. Górna przepuszcza inwestycje
+    w budowie, których rok oddania jest jeszcze przed nami."""
+    try:
+        year = int(str(value).strip()[:4])
+    except (TypeError, ValueError):
+        return None
+    return year if 1200 <= year <= datetime.now().year + 15 else None
+
+
 def fmt_price(value) -> str:
     if value is None:
         return "brak ceny"
@@ -842,6 +856,7 @@ def parse_offer_otodom(item: dict) -> dict:
         "rooms": rooms,
         "floor": _oto_floor(target.get("Floor_no")),
         "market": _OTO_MARKET.get(str(item.get("market") or ad.get("market"))),
+        "build_year": to_year(target.get("Build_year")),
         "city": city,
         "district": district,
         "business": business,
@@ -916,12 +931,16 @@ GRA_SEARCH_QUERY = """query getPropertyListingData($url: String!) {
 }"""
 
 # strona pojedynczej oferty: rynek, dokładne piętro i powierzchnia, opis, zdjęcia
+# buildingDetailedInformation to lista etykieta/wartość, taka sama jak tabelka
+# „o budynku” na stronie oferty — rok budowy jest w niej pozycją „Rok budowy”
+# (obok np. materiału i ogrzewania), a nie osobnym polem.
 GRA_DETAIL_QUERY = """query getPropertyDetails($url: String!) {
   getProperty(url: $url) {
     marketType
     floor
     area
     description
+    buildingDetailedInformation { label value }
     photos { id name }
   }
 }"""
@@ -1071,6 +1090,19 @@ def fetch_gratka_detail(offer_path: str, delay: float) -> dict | None:
     if not prop:
         return None
     slim = {k: prop.get(k) for k in ("marketType", "floor", "area", "description") if prop.get(k) is not None}
+    # klucz wstawiamy zawsze, także gdy oferta roku nie podaje — jego obecność
+    # odróżnia szczegóły pobrane tym zapytaniem od zapisanych starszą wersją
+    # skryptu, które trzeba dociągnąć ponownie (patrz GratkaSource.enrich)
+    slim["buildYear"] = to_year(
+        next(
+            (
+                row.get("value")
+                for row in (prop.get("buildingDetailedInformation") or [])
+                if isinstance(row, dict) and str(row.get("label") or "").strip().lower() == "rok budowy"
+            ),
+            None,
+        )
+    )
     images = [
         GRA_THUMB.format(id=photo["id"], name=photo.get("name") or "zdjecie")
         for photo in (prop.get("photos") or [])[:8]
@@ -1222,6 +1254,7 @@ def parse_offer_gratka(item: dict) -> dict:
         "rooms": item.get("numberOfRooms"),
         "floor": _gra_floor(item, detail),
         "market": _GRA_MARKET.get(detail.get("marketType")),
+        "build_year": to_year(detail.get("buildYear")),
         "city": city,
         "district": district,
         # ogłoszenia prywatne są na Gratce rzadkością — niemal wszystko
@@ -1289,6 +1322,9 @@ def parse_offer_olx(offer: dict) -> dict:
         "rooms": val("rooms", "label") or val("rooms"),
         "floor": val("floor_select", "label") or val("floor", "label"),
         "market": val("market", "label") or val("market"),
+        # OLX nie zbiera roku budowy — w parametrach oferty jest tylko rodzaj
+        # zabudowy (blok / kamienica / apartamentowiec)
+        "build_year": None,
         "city": loc_name("city"),
         "district": loc_name("district"),
         "business": 1 if offer.get("business") else 0,
@@ -1317,6 +1353,7 @@ OFFER_COLUMNS = (
     "rooms",
     "floor",
     "market",
+    "build_year",
     "city",
     "district",
     "business",
@@ -1336,6 +1373,7 @@ def init_schema(con: sqlite3.Connection) -> None:
             url TEXT, title TEXT,
             price REAL, currency TEXT, negotiable INTEGER,
             area REAL, price_per_m REAL, rooms TEXT, floor TEXT, market TEXT,
+            build_year INTEGER,
             city TEXT, district TEXT, business INTEGER,
             created_at TEXT, last_refresh TEXT,
             lat REAL, lon REAL, map_radius REAL,
@@ -1368,7 +1406,8 @@ def migrate_db(con: sqlite3.Connection) -> None:
     1) baza jednoportalowa (klucz = numer oferty OLX) → wieloportalowa
        (klucz uid „olx:123”/„oto:456” + kolumna source), razem z historią cen,
     2) uzupełnienie współrzędnych z zapisanego surowego JSON-a ofert,
-    3) jednorazowa poprawka dat dodania ofert Otodom (patrz _oto_created_at)."""
+    3) dołożenie kolumny z rokiem budowy i odczytanie go z zapisanego JSON-a,
+    4) jednorazowa poprawka dat dodania ofert Otodom (patrz _oto_created_at)."""
     offer_cols = {row[1] for row in con.execute("PRAGMA table_info(offers)")}
     if "uid" not in offer_cols:
         log("(dostosowuję bazę do obsługi wielu portali — chwilka...)")
@@ -1410,6 +1449,35 @@ def migrate_db(con: sqlite3.Connection) -> None:
     if filled:
         con.commit()
         log(f"(uzupełniono współrzędne {filled} ofert z danych już zapisanych w bazie)")
+
+    # rok budowy doszedł później — kolumnę dokładamy, a wartości wyjmujemy
+    # z surowego JSON-a już zapisanych ofert (Otodom trzyma go w szczegółach
+    # od początku; Gratka dopiero od wersji, która o niego pyta — resztę jej
+    # ofert dociąga enrich, patrz GratkaSource.enrich)
+    # (kolumny czytamy ponownie — etap 1 mógł przebudować tabelę od zera)
+    if "build_year" not in {row[1] for row in con.execute("PRAGMA table_info(offers)")}:
+        con.execute("ALTER TABLE offers ADD COLUMN build_year INTEGER")
+    if meta_get(con, "fix:build_year") is None:
+        filled = 0
+        for uid, source, raw in con.execute(
+            "SELECT uid, source, raw FROM offers WHERE raw IS NOT NULL AND source IN ('otodom', 'gratka')"
+        ).fetchall():
+            try:
+                item = json.loads(raw)
+            except ValueError:
+                continue
+            if source == "otodom":
+                year = to_year(((item.get("_ad") or {}).get("target") or {}).get("Build_year"))
+            else:
+                year = to_year((item.get("_detail") or {}).get("buildYear"))
+            if year is None:
+                continue
+            con.execute("UPDATE offers SET build_year = ? WHERE uid = ?", (year, uid))
+            filled += 1
+        meta_set(con, "fix:build_year", "1")
+        con.commit()
+        if filled:
+            log(f"(odczytano rok budowy {filled} ofert z danych już zapisanych w bazie)")
 
     # starsze wersje zapisywały jako datę dodania Otodom datę odświeżenia
     if meta_get(con, "fix:otodom_created_at") is None:
@@ -1702,7 +1770,7 @@ class GratkaSource(Source):
         return fetch_new_quick_gratka(self.url, known_ids, self.delay)
 
     def enrich(self, items, con):
-        stored = {}
+        stored, stale = {}, 0
         for offer_id, raw in con.execute(
             "SELECT id, raw FROM offers WHERE source = ? AND raw IS NOT NULL",
             (self.name,),
@@ -1711,8 +1779,18 @@ class GratkaSource(Source):
                 detail = json.loads(raw).get(self.detail_key)
             except ValueError:
                 continue
-            if detail:
+            # szczegóły zapisane wersją sprzed roku budowy nie mają klucza
+            # „buildYear” — pomijamy je tutaj, żeby enrich_gratka dociągnął je
+            # ponownie (jednorazowo, przy pierwszym pełnym skanie po zmianie)
+            if detail and "buildYear" in detail:
                 stored[offer_id] = detail
+            elif detail:
+                stale += 1
+        if stale:
+            log(
+                f"[Gratka] {stale} ofert ma szczegóły zapisane bez roku budowy — "
+                "dociągam je jeszcze raz (jednorazowo, przy kolejnych uruchomieniach już nie)."
+            )
         enrich_gratka(items, stored, self.delay)
 
     def parse(self, raw):
@@ -1740,7 +1818,7 @@ def export_csv(con: sqlite3.Connection, path: str) -> None:
     """Zapis aktywnych ofert do CSV (średnik + BOM → otwiera się wprost w Excelu)."""
     rows = con.execute("""
         SELECT source, id, title, price, price_per_m, area, rooms, floor,
-               market, district, city, business, negotiable, lat, lon,
+               market, build_year, district, city, business, negotiable, lat, lon,
                created_at, first_seen, url
         FROM offers WHERE active = 1
         ORDER BY price_per_m IS NULL, price_per_m
@@ -1755,6 +1833,7 @@ def export_csv(con: sqlite3.Connection, path: str) -> None:
         "pokoje",
         "pietro",
         "rynek",
+        "rok_budowy",
         "dzielnica",
         "miasto",
         "od_firmy",

@@ -104,6 +104,58 @@
         text-shadow: 0 0 4px #fff, 0 0 4px #fff, 0 0 4px #fff;
     }
 
+    /* Suwak dwustronny (rok budowy): dwa zwykłe input[type=range] nałożone
+       na siebie nad wspólną belką. Same pola są przezroczyste i nie łapią
+       kliknięć — łapią je tylko uchwyty, więc da się chwycić ten pod spodem.
+       Belkę i zaznaczony wycinek rysują .rng-track i .rng-fill, bo natywnego
+       tła ścieżki nie da się pokolorować spójnie w obu silnikach. */
+    .rng {
+        @apply relative h-5 w-full;
+    }
+
+    .rng-track,
+    .rng-fill {
+        @apply pointer-events-none absolute top-1/2 h-1 -translate-y-1/2 rounded-full;
+    }
+
+    .rng-track {
+        @apply inset-x-0 bg-line;
+    }
+
+    .rng-fill {
+        @apply bg-acc;
+    }
+
+    .rng input[type="range"] {
+        @apply pointer-events-none absolute inset-0 m-0 h-5 w-full bg-transparent;
+        appearance: none;
+        -webkit-appearance: none;
+    }
+
+    .rng input[type="range"]::-webkit-slider-thumb {
+        @apply pointer-events-auto size-4 cursor-grab rounded-full border-2 border-white bg-acc
+          shadow-[0_1px_3px_rgba(15,25,40,.35)];
+        -webkit-appearance: none;
+    }
+
+    .rng input[type="range"]::-moz-range-thumb {
+        @apply pointer-events-auto size-4 cursor-grab rounded-full border-2 border-white bg-acc
+          shadow-[0_1px_3px_rgba(15,25,40,.35)];
+        box-sizing: border-box;
+    }
+
+    .rng input[type="range"]::-moz-range-track {
+        @apply bg-transparent;
+    }
+
+    .rng input[type="range"]:focus-visible::-webkit-slider-thumb {
+        @apply outline-2 outline-offset-2 outline-acc-soft;
+    }
+
+    .rng input[type="range"]:focus-visible::-moz-range-thumb {
+        @apply outline-2 outline-offset-2 outline-acc-soft;
+    }
+
     .noimg {
         @apply flex h-[70px] w-[92px] shrink-0 items-center justify-center rounded-md bg-[#eef0f4] text-[22px] text-[#b6bdc9];
     }

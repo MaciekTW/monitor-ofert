@@ -172,9 +172,20 @@ skipped is marked as failed, so a blocked runner never looks green.
   larger searches the script automatically splits the fetch into price ranges.
   Gratka serves results down to the last page, so its listings are read page by
   page instead.
-- **Gratka** keeps the market type (primary/secondary), the description and the
-  photos on the offer page only, so the script fetches those once per listing
-  and reuses them on later scans.
+- **Gratka** keeps the market type (primary/secondary), the build year, the
+  description and the photos on the offer page only, so the script fetches those
+  once per listing and reuses them on later scans.
+- **Build year** comes from Otodom and Gratka only — OLX does not collect it at
+  all (its listings carry just a building type: block, tenement, apartment
+  building). Coverage on the two portals that do have it is around 94–95%; for
+  developments still under construction the year is the planned completion date,
+  which is why values a few years into the future are normal. The map's *Rok
+  budowy* filter is a two-handle slider: left handle at the far end means "no
+  lower bound", so the oldest tenements stay in the results until the bound is
+  deliberately raised, and narrowing the range drops every listing without a
+  year (all of OLX among them). Listings whose Gratka details were saved before
+  this field existed are re-fetched once, on the first full scan after the
+  upgrade — that run is noticeably longer and says so.
 - Bus and tram stops on the map come from the public GTFS timetables of ZTP
   Kraków (MPK and Mobilis buses, trams). The archives (~30 MB) are cached in
   `.cache/gtfs/` and downloaded again only when the server has a newer version;

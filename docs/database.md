@@ -26,6 +26,7 @@ erDiagram
         TEXT    rooms
         TEXT    floor
         TEXT    market
+        INTEGER build_year
         TEXT    city
         TEXT    district
         INTEGER business "0/1"
@@ -76,6 +77,7 @@ offers that disappear from the portal are only marked inactive.
 | `rooms` | TEXT | Human-readable label, e.g. `1 pokój`, `2 pokoje`. |
 | `floor` | TEXT | Floor label as shown by the portal, e.g. `Parter`. |
 | `market` | TEXT | `Pierwotny` (primary) / `Wtórny` (secondary) / `NULL`. |
+| `build_year` | INTEGER | Year the building was built. Only Otodom and Gratka provide it (~94–95% of their listings); OLX doesn't collect it at all, so its rows are always `NULL`. For developments under construction it is the planned completion year, so values a few years ahead are normal. Values outside 1200–(current year + 15) are dropped as typos (`to_year`). |
 | `city` | TEXT | City name. |
 | `district` | TEXT | District name. |
 | `business` | INTEGER | `1` if listed by an agency / developer, `0` for private sellers. |
@@ -86,7 +88,7 @@ offers that disappear from the portal are only marked inactive.
 | `first_seen` | TEXT | Local timestamp of the scan that first found the offer. |
 | `last_seen` | TEXT | Local timestamp of the most recent scan that found the offer. |
 | `active` | INTEGER | `1` = present in the last full scan of its portal, `0` = withdrawn. Set back to `1` if the offer reappears. |
-| `raw` | TEXT | Full source JSON of the offer. For Otodom it may include an `_ad` key, and for Gratka a `_detail` key, with details fetched from the offer page (description, photos, coordinates, market type, …), carried over between scans. |
+| `raw` | TEXT | Full source JSON of the offer. For Otodom it may include an `_ad` key, and for Gratka a `_detail` key, with details fetched from the offer page (description, photos, coordinates, market type, build year, …), carried over between scans. Gratka's `_detail.buildYear` is written on every fetch, `null` included — its presence is what tells details fetched by the query that asks for the build year apart from older ones, which have to be fetched again. |
 
 `first_seen`, `last_seen` and `price_history.ts` are local time in
 `YYYY-MM-DDTHH:MM:SS` format (no timezone).
@@ -113,6 +115,7 @@ Key/value store for run state.
 | `api_params::<search_url>` | JSON object with cached OLX API parameters (`category_id`, `region_id`, `city_id`, …) for that URL. |
 | `api_params` | Legacy (single-URL) version of the above, read only as a fallback. |
 | `fix:otodom_created_at` | `1` once the one-off Otodom `created_at` correction migration has run. |
+| `fix:build_year` | `1` once `build_year` has been read out of the already stored `raw` JSON. |
 
 ## Sync lifecycle
 
@@ -136,6 +139,12 @@ versions:
   `offer_uid`.
 - **Coordinates backfill:** fills missing `lat` / `lon` / `map_radius` for OLX
   offers from the stored `raw` JSON.
+- **Build year:** adds the `build_year` column and fills it from the already
+  stored `raw` JSON (Otodom `_ad.target.Build_year`, Gratka `_detail.buildYear`);
+  guarded by the `fix:build_year` meta key. Gratka listings whose details were
+  saved before the field existed have nothing to read there — those are
+  re-fetched from the portal on the next full scan (see `GratkaSource.enrich`),
+  not by this migration.
 - **Otodom `created_at` fix:** recomputes `created_at` from `raw` (older
   versions stored the refresh date instead); guarded by the
   `fix:otodom_created_at` meta key.

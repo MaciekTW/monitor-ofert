@@ -172,6 +172,12 @@ def test_ad_target_details(ad):
     assert m._oto_floor(target["Floor_no"]) is not None, (
         f"_oto_floor nie rozumie target.Floor_no = {target['Floor_no']!r}"
     )
+    # roku budowy nie podaje każda oferta (ma go ok. 94%), więc samego klucza
+    # nie wymagamy — ale jeśli jest, to musi dać się odczytać
+    if target.get("Build_year") is not None:
+        assert m.to_year(target["Build_year"]) is not None, (
+            f"to_year nie rozumie target.Build_year = {target['Build_year']!r}"
+        )
 
 
 def test_ad_images(ad):
