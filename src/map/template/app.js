@@ -81,35 +81,83 @@ const map = L.map("map", {preferCanvas:true}).setView([cLat, cLon], 12);
    wracał jako "Access blocked". Publiczne kafelki CARTO (te same dane OSM,
    styl Voyager) nie mają tego wymogu i działają z pliku lokalnego. Od sierpnia 2026 CARTO
    wymaga klucza (CARTO_API_KEY) — bez niego kafelki mają napis „API KEY REQUIRED”. */
-/* dwa podkłady do wyboru w panelu „Podkład i granice”; pierwszy jest włączony na starcie */
+const carto = style => `https://{s}.basemaps.cartocdn.com/rastertiles/${style}/{z}/{x}/{y}{r}.png` +
+  (META.carto ? "?key=" + encodeURIComponent(META.carto) : "");
+const CARTO_OPTS = {maxZoom:20, subdomains:"abcd",
+  attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+             +' &middot; &copy; <a href="https://carto.com/attributions">CARTO</a>'};
+// miniatura podkładu to zwykłe kafelki z tych samych źródeł, wzięte z okolicy środka
+// mapy — pokazują dokładnie to, co się włączy, i nie trzeba trzymać obrazków w repo
+const THUMB_Z = 14, thumbN = 2 ** THUMB_Z, rad = cLat * Math.PI / 180;
+const THUMB = {z: THUMB_Z, r: "", s: "a",
+  x: Math.floor((cLon + 180) / 360 * thumbN),
+  y: Math.floor((1 - Math.log(Math.tan(rad) + 1 / Math.cos(rad)) / Math.PI) / 2 * thumbN)};
+/* Strategiczna mapa hałasu Krakowa 2022 (MSIP, ArcGIS MapServer). WMS jest tam wyłączony,
+   ale REST-owy /export sam przelicza obraz na EPSG:3857 i nie wymaga Referera, więc działa
+   z pliku lokalnego — kafelek to po prostu wycinek mapy o granicach tego kafelka.
+   Warstwy 1, 5 i 8 to L_DWN hałasu drogowego, szynowego (tramwaje i kolej) i przemysłowego;
+   gdzie się nakładają, serwer rysuje drogowy na wierzchu (to nie jest suma decybeli).
+   Obraz powstaje na żądanie, stąd kafelki 512 px (czterokrotnie mniej zapytań)
+   i ograniczenie do okolic Krakowa, poza którym mapa i tak jest pusta. */
+const EARTH = 20037508.342789244;
+const noiseUrl = (x0, y0, x1, y1, size) =>
+  "https://msip.um.krakow.pl/arcgis/rest/services/Mapa_halasu_2022/8_2_MH_2022_IMISJA_5/MapServer/export" +
+  `?bbox=${x0},${y0},${x1},${y1}&bboxSR=3857&imageSR=3857&size=${size},${size}` +
+  "&format=png32&transparent=true&layers=show:1,5,8&f=image";
+const NoiseLayer = L.TileLayer.extend({
+  getTileUrl(coords){
+    const [nw, se] = this._tileCoordsToNwSe(coords).map(p => this._map.options.crs.project(p));
+    return noiseUrl(nw.x, se.y, se.x, nw.y, this.getTileSize().x);
+  },
+});
+const thumbM = 2 * EARTH / thumbN;
+const noiseThumb = noiseUrl(THUMB.x * thumbM - EARTH, EARTH - (THUMB.y + 1) * thumbM,
+  (THUMB.x + 1) * thumbM - EARTH, EARTH - THUMB.y * thumbM, 256);
+// przedziały L_DWN (wskaźnik dobowy z karą za wieczór i noc) i kolory jak w legendzie serwisu
+const NOISE_PAL = [["50–55","#ffbf0f"],["55–60","#fc8a1e"],["60–65","#fd5805"],["65–70","#de3e3e"],
+  ["70–75","#b17ed9"],["75–80","#03abe2"],["od 80","#004ce6"]];
+const noiseLegend = L.control({position:"bottomleft"});
+noiseLegend.onAdd = () => {
+  const div = L.DomUtil.create("div",
+    "rounded-lg bg-white px-2.5 py-2 text-[11.5px]/[1.55] shadow-[0_1px_5px_rgba(0,0,0,.25)]");
+  div.innerHTML = "<b>hałas L<sub>DWN</sub>, dB</b><br>" + NOISE_PAL.map(([l, c]) =>
+    `<i class="mr-1.5 inline-block size-[11px] rounded-sm align-[-1px]" style="background:${c}"></i>${l}`)
+    .join("<br>");
+  return div;
+};
+// warstwa podkładu: kafelki Leafleta i miniatura z tego samego źródła
+const tiles = (url, opts) => ({layer: L.tileLayer(url, opts), thumb: L.Util.template(url, THUMB)});
+/* trzy podkłady do wyboru w panelu „Podkład i granice”; pierwszy jest włączony na starcie.
+   Podkład z kilku warstw (hałas) nakłada je w podanej kolejności — zIndex trzyma podpisy
+   ulic nad hałasem, a miniatura składa się z kafelków wszystkich warstw */
 const BASEMAPS = [{
   label: "Mapa",
-  url: "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png" +
-    (META.carto ? "?key=" + encodeURIComponent(META.carto) : ""),
-  opts: {maxZoom:20, subdomains:"abcd",
-    attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-               +' &middot; &copy; <a href="https://carto.com/attributions">CARTO</a>'},
+  parts: [tiles(carto("voyager"), CARTO_OPTS)],
 }, {
   /* Ortofotomapa GUGiK (WMTS w EPSG:3857, czyli siatka kafelków taka sama jak w OSM):
      darmowa, bez klucza i bez wymogu Referera, więc działa też z pliku lokalnego.
      Zdjęcia kończą się na zoomie 19 (~10 cm/px) — wyżej maxNativeZoom rozciąga
      ostatni poziom, zamiast prosić o kafelek, którego serwis nie ma. */
   label: "Zdjęcia lotnicze",
-  url: "https://mapy.geoportal.gov.pl/wss/service/PZGIK/ORTO/WMTS/StandardResolution" +
+  parts: [tiles("https://mapy.geoportal.gov.pl/wss/service/PZGIK/ORTO/WMTS/StandardResolution" +
     "?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=ORTOFOTOMAPA&STYLE=default" +
     "&FORMAT=image/jpeg&TILEMATRIXSET=EPSG:3857&TILEMATRIX=EPSG:3857:{z}&TILEROW={y}&TILECOL={x}",
-  opts: {maxZoom:20, maxNativeZoom:19,
-    attribution:'ortofotomapa &copy; <a href="https://www.geoportal.gov.pl">GUGiK</a>'},
+    {maxZoom:20, maxNativeZoom:19,
+      attribution:'ortofotomapa &copy; <a href="https://www.geoportal.gov.pl">GUGiK</a>'})],
+}, {
+  // jasna mapa bez podpisów, na niej hałas, a na wierzchu same podpisy CARTO
+  label: "Hałas",
+  legend: noiseLegend,
+  parts: [tiles(carto("light_nolabels"), CARTO_OPTS), {
+    layer: new NoiseLayer("", {tileSize: 512, opacity: .7, zIndex: 2, maxZoom: 20,
+      bounds: L.latLngBounds(KRAKOW_BOUNDARY).pad(.05),
+      attribution: 'mapa hałasu 2022 &copy; <a href="https://msip.krakow.pl">MSIP Kraków</a>'}),
+    thumb: noiseThumb,
+  }, tiles(carto("light_only_labels"), {...CARTO_OPTS, zIndex: 3})],
 }];
-// miniatura podkładu to zwykły kafelek z tego samego źródła, wzięty z okolicy środka
-// mapy — pokazuje dokładnie to, co się włączy, i nie trzeba trzymać obrazków w repo
-const THUMB_Z = 14, thumbN = 2 ** THUMB_Z, rad = cLat * Math.PI / 180;
-const THUMB = {z: THUMB_Z, r: "", s: "a",
-  x: Math.floor((cLon + 180) / 360 * thumbN),
-  y: Math.floor((1 - Math.log(Math.tan(rad) + 1 / Math.cos(rad)) / Math.PI) / 2 * thumbN)};
 for(const b of BASEMAPS){
-  b.layer = L.tileLayer(b.url, b.opts);
-  b.thumb = L.Util.template(b.url, THUMB);
+  b.layer = b.parts.length > 1 ? L.layerGroup(b.parts.map(p => p.layer)) : b.parts[0].layer;
+  if(b.legend) b.layer.on("add", () => b.legend.addTo(map)).on("remove", () => b.legend.remove());
 }
 BASEMAPS[0].layer.addTo(map);
 // skala kolorów: kwintyle ceny za m² liczone raz, z całego zbioru
@@ -201,8 +249,10 @@ const overlayHeader = (g, gi) => `<div class="mt-2 mb-1 flex items-center gap-1 
       stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></button></div>`;
 const baseRows = `<div class="flex gap-2 py-0.5">` + BASEMAPS.map((b, i) => `<label class="bmap">
   <input type="radio" name="basemap" data-b="${i}" class="sr-only" ${i ? "" : "checked"}>
-  <img src="${b.thumb}" alt=""><span>${esc(b.label)}</span></label>`).join("") + `</div>`;
-// warstwy panelu „Podkład i granice” (granice miasta i dzielnic) kontra reszta w „Warstwach”;
+  <span class="relative flex">${b.parts.map((p, j) => `<img src="${p.thumb}" alt=""${j ? ` class="absolute inset-0"
+    style="background:none;box-shadow:none;opacity:${p.layer.options.opacity}"` : ""}>`).join("")}</span>
+  <span>${esc(b.label)}</span></label>`).join("") + `</div>`;
+// warstwy panelu „Podkład i granice” (granice miasta i dzielnic) kontra reszta w „Obiektach”;
 // numery grup zostają globalne, bo po nich panel odnajduje swoje pola i sekcje
 const overlaySections = which => overlayGroups
   .map(g => [g, OVERLAYS.filter(o => (o.group ?? null) === g && panelOf(o) === which)])
@@ -276,12 +326,12 @@ const overlayPanel = panel => {
   });
   syncGroups();
 };
-mapPanel("Warstwy na mapie",
+mapPanel("Obiekty na mapie",
   `<svg viewBox="0 0 24 24" class="size-5" fill="none" stroke="currentColor" stroke-width="2"
     stroke-linejoin="round"><path d="M12 3 2 8l10 5 10-5z"/><path d="m2 13 10 5 10-5"/></svg>`,
-  `<h3 class="f-title">Warstwy</h3>${overlaySections("layers")}`,
+  `<h3 class="f-title">Obiekty</h3>${overlaySections("layers")}`,
   overlayPanel);
-// podkład (mapa albo zdjęcia lotnicze) razem z granicami, bo to też rysunek tła
+// podkład (mapa, zdjęcia lotnicze albo hałas) razem z granicami, bo to też rysunek tła
 mapPanel("Podkład i granice",
   `<svg viewBox="0 0 24 24" class="size-5" fill="none" stroke="currentColor" stroke-width="2"
     stroke-linejoin="round"><path d="m3 6 6-3 6 3 6-3v15l-6 3-6-3-6 3z"/><path d="M9 3v15M15 6v15"/></svg>`,

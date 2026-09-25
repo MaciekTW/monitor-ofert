@@ -217,6 +217,14 @@ skipped is marked as failed, so a blocked runner never looks green.
   (the districts one, right after opening the map) starts folded. The file in the repo is already
   reprojected from the source PUWG 2000 zone 7 grid (EPSG:2178) to WGS84 and
   simplified to about 6 m, so generating the map needs no projection library.
+- The third basemap, *Hałas*, is the city's 2022 strategic noise map: road,
+  tram and rail, and industrial noise (L<sub>DWN</sub>, the day–evening–night
+  indicator) drawn over a plain light CARTO map, with street names on top and a
+  dB legend in the corner. Where sources overlap the image shows road noise on
+  top rather than a combined level. Nothing is embedded: the page asks the MSIP
+  Kraków ArcGIS server (`msip.um.krakow.pl`) for images in the map's projection,
+  which needs no key and works from a local file. The server renders every image
+  on demand, so after panning or zooming the noise takes a moment to catch up.
 - Adding another portal means writing a `Source` subclass and registering it in
   `SOURCES`. The database, reporting, CSV and map layers need no changes.
 

@@ -44,8 +44,8 @@ TEMPLATE_DIR = Path(__file__).parent / "template"
 DEPS_DIR = Path(__file__).parents[2] / "deps"  # np. js/leaflet.js, css/leaflet.css
 LAYERS_DIR = TEMPLATE_DIR / "layers"
 
-# Dodatkowe warstwy punktów na mapie, włączane i wyłączane w całości przyciskiem
-# warstw. Każda to plik GeoJSON z punktami (np. eksport z overpass-turbo)
+# Dodatkowe warstwy punktów na mapie, włączane i wyłączane w całości w panelu
+# „Obiekty na mapie”. Każda to plik GeoJSON z punktami (np. eksport z overpass-turbo)
 # i ikona SVG z katalogu template/layers/. Warstwy z tym samym "group" trafiają
 # w panelu do wspólnej sekcji z nagłówkiem; bez "group" są na górze panelu.
 # "shape": "square" rysuje marker jako zaokrąglony kwadrat zamiast koła
