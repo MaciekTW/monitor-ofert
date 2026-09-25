@@ -116,6 +116,7 @@ Key/value store for run state.
 | `api_params` | Legacy (single-URL) version of the above, read only as a fallback. |
 | `fix:otodom_created_at` | `1` once the one-off Otodom `created_at` correction migration has run. |
 | `fix:build_year` | `1` once `build_year` has been read out of the already stored `raw` JSON. |
+| `fix:otodom_columns` | `1` once the one-off Otodom `floor` / `market` / `build_year` / `currency` restore migration has run. |
 
 ## Sync lifecycle
 
@@ -148,6 +149,14 @@ versions:
 - **Otodom `created_at` fix:** recomputes `created_at` from `raw` (older
   versions stored the refresh date instead); guarded by the
   `fix:otodom_created_at` meta key.
+- **Otodom floor / market / currency restore:** older versions parsed known
+  Otodom offers without their stored `_ad` details on a plain list scan and
+  overwrote `floor`, `market` and `build_year` with NULL, and always stored
+  `currency` as `PLN` (some offers are priced in EUR). This re-parses the
+  stored `raw`: `floor` / `market` / `build_year` are only filled in, never
+  cleared, and `currency` is taken from `totalPrice.currency`; guarded by the
+  `fix:otodom_columns` meta key. Since then `OtodomSource.enrich` puts the
+  stored `_ad` back before parsing.
 
 Separately, if the default `oferty.db` doesn't exist but the legacy
 `olx_oferty.db` does, the file is renamed to `oferty.db` on startup.

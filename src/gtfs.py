@@ -84,6 +84,10 @@ NIGHT_SHARE = 0.5
 # wspólny rozkład, czwartek i piątek bywają inne) z najbliższych czterech tygodni
 REFERENCE_WEEKDAYS = (1, 2)
 REFERENCE_HORIZON_DAYS = 28
+# archiwum przed zmianą rozkładu zawiera też poprzednią wersję (inne service_id,
+# przemianowane przystanki z nowym stop_id) — liczą się tylko kursy jeżdżące
+# w tygodniu od dnia odniesienia, żeby linie weekendowe zostały na mapie
+RUNNING_DAYS = 7
 WEEKDAY_COLUMNS = ("monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday")
 
 
@@ -144,18 +148,25 @@ def reference_day(calendars: list, today: date) -> date:
     return days[0]
 
 
-def read_feed(archive: Path, services: frozenset) -> tuple[dict[str, dict], set[str], dict[str, list]]:
-    """Jedno archiwum → (słupki, linie nocne, trasy linii).
+def read_feed(archive: Path, active, day: date) -> tuple[dict[str, dict], set[str], dict[str, list]]:
+    """Jedno archiwum → (słupki, linie nocne, trasy linii); active to kalendarz
+    archiwum z read_calendar, day to dzień odniesienia.
+
+    Brane są tylko kursy jeżdżące w ciągu RUNNING_DAYS od dnia odniesienia —
+    pomija to poprzednią wersję rozkładu, którą archiwum zawiera przed zmianą.
 
     Słupki to te, z których faktycznie odjeżdża jakiś kurs (pomija np. zajezdnie):
     {stop_code: {"name", "lat", "lon", "lines": {linia: liczba odjazdów}}}. Linie
-    zatrzymujące się na słupku są ze wszystkich kursów w archiwum, a odjazdy tylko
-    z kursów z services (dzień odniesienia) i tylko tam, gdzie można wsiąść —
-    linia, która tego dnia nie kursuje, ma 0 odjazdów.
+    zatrzymujące się na słupku są ze wszystkich tych kursów, a odjazdy tylko
+    z kursów w dniu odniesienia i tylko tam, gdzie można wsiąść — linia, która
+    tego dnia nie kursuje, ma 0 odjazdów. Nazwa i położenie słupka są z tego
+    stop_id, który ma najwięcej odjazdów (przemianowany słupek ma nowe stop_id).
 
     Trasy: {linia: [{"dir", "to", "shape": [[lat, lon], …], "stops": [[lat, lon, nazwa, stop_code], …]}]}
     — w każdym kierunku wariant z najczęstszym przebiegiem (shape_id), z przystankami
     jednego jego kursu."""
+    services = active(day)
+    running = frozenset().union(*(active(day + timedelta(n)) for n in range(RUNNING_DAYS)))
     with zipfile.ZipFile(archive) as z:
         rows, c = table(z, "routes.txt")
         route_line = {row[c["route_id"]]: row[c["route_short_name"]] for row in rows}
@@ -164,6 +175,8 @@ def read_feed(archive: Path, services: frozenset) -> tuple[dict[str, dict], set[
         variants: Counter = Counter()  # (linia, kierunek, shape_id) → liczba kursów
         variant_trip: dict[tuple, tuple] = {}  # (linia, kierunek, shape_id) → (trip_id, cel)
         for row in rows:
+            if row[c["service_id"]] not in running:
+                continue
             trip, line = row[c["trip_id"]], route_line[row[c["route_id"]]]
             trip_line[trip] = line
             if row[c["service_id"]] in services:
@@ -194,6 +207,8 @@ def read_feed(archive: Path, services: frozenset) -> tuple[dict[str, dict], set[
         trip_start: dict[str, str] = {}
         for row in rows:
             trip, dep = row[trip_i], row[dep_i]
+            if trip not in trip_line:
+                continue
             lines = stop_lines.setdefault(row[stop_i], Counter())
             # pickup_type 1 = nie można wsiąść (np. przystanek końcowy) — to nie odjazd
             boarding = trip in counted and (pickup_i is None or row[pickup_i] != "1")
@@ -205,6 +220,7 @@ def read_feed(archive: Path, services: frozenset) -> tuple[dict[str, dict], set[
 
         rows, c = table(z, "stops.txt")
         posts: dict[str, dict] = {}
+        post_departures: dict[str, int] = {}  # stop_code → odjazdy stop_id, z którego jest nazwa
         stop_info: dict[str, list] = {}
         for row in rows:
             stop_info[row[c["stop_id"]]] = [
@@ -216,16 +232,16 @@ def read_feed(archive: Path, services: frozenset) -> tuple[dict[str, dict], set[
             lines = stop_lines.get(row[c["stop_id"]])
             if not lines:
                 continue
-            post = posts.setdefault(
-                row[c["stop_code"]],
-                {
-                    "name": row[c["stop_name"]],
-                    "lat": float(row[c["stop_lat"]]),
-                    "lon": float(row[c["stop_lon"]]),
-                    "lines": Counter(),
-                },
-            )
+            code, departures = row[c["stop_code"]], sum(lines.values())
+            post = posts.setdefault(code, {"lines": Counter()})
             post["lines"].update(lines)
+            if departures > post_departures.get(code, -1):
+                post_departures[code] = departures
+                post.update(
+                    name=row[c["stop_name"]],
+                    lat=float(row[c["stop_lat"]]),
+                    lon=float(row[c["stop_lon"]]),
+                )
 
         wanted_shapes = {shape for shape, _, _ in main_variant.values() if shape}
         shape_points: dict[str, list] = {}
@@ -282,7 +298,7 @@ def load(offline: bool = False, today: date | None = None) -> tuple[dict[str, di
     day = reference_day(list(calendars.values()), today or date.today())
     result: dict[str, dict] = {}
     for name, archive in archives.items():
-        posts, night, routes = read_feed(archive, calendars[name](day))
+        posts, night, routes = read_feed(archive, calendars[name], day)
         network = result.setdefault(FEEDS[name], {"posts": {}, "night": set(), "routes": {}})
         network["night"] |= night
         network["routes"].update(routes)

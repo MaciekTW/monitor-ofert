@@ -782,7 +782,31 @@ def _oto_floor(value) -> str | None:
         return "Parter"
     if "cellar" in raw or "basement" in raw:
         return "Suterena"
+    if "higher_10" in raw:
+        return "Powyżej 10"
+    if "garret" in raw:
+        return "Poddasze"
     return None
+
+
+# piętro z listy wyników (floorNumber) — zapasowo, gdy nie ma strony oferty;
+# etykiety jak w _oto_floor i u pozostałych portali
+_OTO_FLOOR_NUMBER = {
+    "CELLAR": "Suterena",
+    "GROUND": "Parter",
+    "FIRST": "1",
+    "SECOND": "2",
+    "THIRD": "3",
+    "FOURTH": "4",
+    "FIFTH": "5",
+    "SIXTH": "6",
+    "SEVENTH": "7",
+    "EIGHTH": "8",
+    "NINTH": "9",
+    "TENTH": "10",
+    "ABOVE_TENTH": "Powyżej 10",
+    "GARRET": "Poddasze",
+}
 
 
 def _oto_created_at(item: dict, ad: dict) -> str | None:
@@ -810,6 +834,9 @@ def parse_offer_otodom(item: dict) -> dict:
 
     def money(node):
         return to_float(node.get("value")) if isinstance(node, dict) else None
+
+    def currency(node):
+        return node.get("currency") if isinstance(node, dict) else None
 
     price = money(item.get("totalPrice"))
     area = to_float(item.get("areaInSquareMeters"))
@@ -849,12 +876,12 @@ def parse_offer_otodom(item: dict) -> dict:
         "url": f"https://www.otodom.pl/pl/oferta/{slug}",
         "title": (item.get("title") or "").strip(),
         "price": price,
-        "currency": "PLN",
+        "currency": currency(item.get("totalPrice")) or currency(item.get("pricePerSquareMeter")) or "PLN",
         "negotiable": 0,
         "area": area,
         "price_per_m": ppm,
         "rooms": rooms,
-        "floor": _oto_floor(target.get("Floor_no")),
+        "floor": _oto_floor(target.get("Floor_no")) or _OTO_FLOOR_NUMBER.get(str(item.get("floorNumber"))),
         "market": _OTO_MARKET.get(str(item.get("market") or ad.get("market"))),
         "build_year": to_year(target.get("Build_year")),
         "city": city,
@@ -1402,12 +1429,15 @@ def init_db(path: str) -> sqlite3.Connection:
 
 def migrate_db(con: sqlite3.Connection) -> None:
     """Dostosowuje bazy założone starszymi wersjami skryptu — bez ponownego
-    pobierania czegokolwiek. Trzy etapy:
+    pobierania czegokolwiek. Etapy:
     1) baza jednoportalowa (klucz = numer oferty OLX) → wieloportalowa
        (klucz uid „olx:123”/„oto:456” + kolumna source), razem z historią cen,
     2) uzupełnienie współrzędnych z zapisanego surowego JSON-a ofert,
     3) dołożenie kolumny z rokiem budowy i odczytanie go z zapisanego JSON-a,
-    4) jednorazowa poprawka dat dodania ofert Otodom (patrz _oto_created_at)."""
+    4) jednorazowa poprawka dat dodania ofert Otodom (patrz _oto_created_at),
+    5) jednorazowe przeliczenie piętra, rynku, roku budowy i waluty ofert
+       Otodom (piętro/rynek/rok kasowane przy zwykłych skanach — patrz
+       OtodomSource.enrich; waluta zawsze zapisywana jako PLN)."""
     offer_cols = {row[1] for row in con.execute("PRAGMA table_info(offers)")}
     if "uid" not in offer_cols:
         log("(dostosowuję bazę do obsługi wielu portali — chwilka...)")
@@ -1499,6 +1529,40 @@ def migrate_db(con: sqlite3.Connection) -> None:
             log(
                 f"(poprawiono datę dodania {fixed} ofert Otodom — wcześniej "
                 "zapisywana była data ostatniego odświeżenia)"
+            )
+
+    # starsze wersje przy zwykłym skanie parsowały znane oferty Otodom bez
+    # zapisanych szczegółów i nadpisywały piętro, rynek i rok budowy NULL-em
+    # (patrz OtodomSource.enrich), a walutę zawsze zapisywały jako PLN —
+    # przeliczamy je z zapisanego JSON-a
+    if meta_get(con, "fix:otodom_columns") is None:
+        fixed = 0
+        for uid, floor, market, build_year, currency, raw in con.execute(
+            "SELECT uid, floor, market, build_year, currency, raw FROM offers "
+            "WHERE source = 'otodom' AND raw IS NOT NULL"
+        ).fetchall():
+            try:
+                parsed = parse_offer_otodom(json.loads(raw))
+            except ValueError:
+                continue
+            new = (
+                parsed["floor"] or floor,
+                parsed["market"] or market,
+                parsed["build_year"] or build_year,
+                parsed["currency"],
+            )
+            if new != (floor, market, build_year, currency):
+                con.execute(
+                    "UPDATE offers SET floor = ?, market = ?, build_year = ?, currency = ? WHERE uid = ?",
+                    new + (uid,),
+                )
+                fixed += 1
+        meta_set(con, "fix:otodom_columns", "1")
+        con.commit()
+        if fixed:
+            log(
+                f"(uzupełniono piętro, rynek, rok budowy lub walutę {fixed} ofert Otodom "
+                "z danych zapisanych w bazie)"
             )
 
 
@@ -1728,13 +1792,26 @@ class OtodomSource(Source):
         return fetch_new_quick_otodom(self.url, known_ids, self.delay)
 
     def enrich(self, items, con):
-        have_detail = {
-            row[0]
-            for row in con.execute(
-                "SELECT id FROM offers WHERE source = ? AND lat IS NOT NULL",
-                (self.name,),
-            )
-        }
+        """Ofertom znanym z poprzednich uruchomień podkładamy szczegóły zapisane
+        wtedy w bazie (jak GratkaSource.enrich): piętro, rynek i rok budowy są
+        kolumnami bazy, a lista wyników ich nie ma — bez tego zwykły skan
+        nadpisałby je NULL-em. Stronę oferty pobieramy tylko dla ofert bez
+        współrzędnych, bo te są wyłącznie na niej."""
+        have_detail, stored = set(), {}
+        for offer_id, has_coords, detail in con.execute(
+            "SELECT id, lat IS NOT NULL, json_extract(raw, '$._ad') FROM offers WHERE source = ?",
+            (self.name,),
+        ):
+            if has_coords:
+                have_detail.add(offer_id)
+            if detail:
+                try:
+                    stored[offer_id] = json.loads(detail)
+                except ValueError:
+                    pass
+        for item in items:
+            if "_ad" not in item and item.get("id") in stored:
+                item["_ad"] = stored[item["id"]]
         enrich_otodom(items, have_detail, self.delay)
 
     def parse(self, raw):

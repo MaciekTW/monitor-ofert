@@ -113,6 +113,14 @@ def test_item_rooms_use_known_enum(items):
     assert not unknown, f"nieznane wartości roomsNumber: {unknown}"
 
 
+def test_item_floor_uses_known_enum(items):
+    """floorNumber z listy to zapasowe piętro, gdy nie ma strony oferty."""
+    values = {i.get("floorNumber") for i in items} - {None}
+    assert values, "żadna oferta nie ma floorNumber"
+    unknown = values - set(m._OTO_FLOOR_NUMBER)
+    assert not unknown, f"nieznane wartości floorNumber: {unknown}"
+
+
 def test_item_location(items):
     assert_all(
         items,
