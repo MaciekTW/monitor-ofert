@@ -1,0 +1,640 @@
+{
+  "type": "FeatureCollection",
+  "generator": "Overpass API 0.7.62.11 87bfad18",
+  "copyright": "The data included in this document is from www.openstreetmap.org. The data is made available under ODbL.",
+  "timestamp": "2026-10-04T17:17:07Z",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/618288410",
+        "addr:city": "Kraków",
+        "addr:housenumber": "31",
+        "addr:street": "Agatowa",
+        "building": "yes",
+        "check_date": "2024-07-15",
+        "name": "ATUT Złocień",
+        "opening_hours": "Mo-Sa 6:30 - 22:00; Su 9:00-20:00",
+        "payment:cash": "yes",
+        "payment:visa": "yes",
+        "shop": "mall",
+        "start_date": "2019-05-16",
+        "toilets": "no"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          20.0497335,
+          50.0226686
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/991931101",
+        "addr:city": "Kraków",
+        "addr:housenumber": "16",
+        "addr:postcode": "31-586",
+        "addr:street": "Galicyjska",
+        "building": "retail",
+        "building:levels": "1",
+        "max_level": "0",
+        "min_level": "0",
+        "name": "Atut Galicyjska",
+        "opening_hours": "Mo-Fr 06:00-22:00; Sa 08:00-20:00",
+        "shop": "mall",
+        "source:building": "EGiB"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          20.006652,
+          50.058782
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/1308671214",
+        "addr:city": "Kraków",
+        "addr:housenumber": "33",
+        "addr:postcode": "30-392",
+        "addr:street": "Czerwone Maki",
+        "building": "retail",
+        "building:levels": "2",
+        "check_date:opening_hours": "2025-05-03",
+        "name": "Atut Ruczaj",
+        "opening_hours:signed": "no",
+        "roof:levels": "0",
+        "shop": "mall",
+        "toilets": "no",
+        "wheelchair": "yes"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.8863173,
+          50.0117461
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/1118447916",
+        "addr:city": "Kraków",
+        "addr:housenumber": "19",
+        "addr:postcode": "30-392",
+        "addr:street": "Karola Bunscha",
+        "building": "retail",
+        "building:levels": "2",
+        "check_date:opening_hours": "2025-05-01",
+        "name": "Atut Ruczaj 2",
+        "opening_hours:signed": "no",
+        "roof:levels": "0",
+        "shop": "mall",
+        "source:building": "EGiB",
+        "toilets": "no"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.8862135,
+          50.013069
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/48306888",
+        "addr:city": "Kraków",
+        "addr:housenumber": "11",
+        "addr:postcode": "30-644",
+        "addr:street": "Generała Henryka Kamieńskiego",
+        "building": "retail",
+        "building:levels": "2",
+        "building:levels:underground": "1",
+        "internet_access": "yes",
+        "name": "Bonarka City Center",
+        "shop": "mall",
+        "wikidata": "Q11688594",
+        "wikipedia": "pl:Bonarka City Center"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9512154,
+          50.0279696
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/25486689",
+        "addr:city": "Kraków",
+        "addr:country": "PL",
+        "addr:housenumber": "37",
+        "addr:postcode": "31-876",
+        "addr:street": "Aleja Generała Tadeusza Bora-Komorowskiego",
+        "building": "retail",
+        "building:levels": "2",
+        "height": "7",
+        "max_level": "1",
+        "min_level": "0",
+        "name": "Centrum Handlowe Krokus",
+        "opening_hours": "Mo-We,Sa 07:30-22:00; Th,Fr 07:30-23:00",
+        "operator": "Mayland",
+        "shop": "mall",
+        "source:building": "BDOT",
+        "source:geometry": "EGiB",
+        "start_date": "1997-10",
+        "toilets": "yes",
+        "website": "https://www.chkrokus.pl/",
+        "wheelchair": "yes"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9815751,
+          50.0874568
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/128897385",
+        "building": "yes",
+        "building:colour": "#00458C",
+        "check_date": "2025-07-26",
+        "name": "Centrum Handlowe Tandeta - Hala I",
+        "shop": "mall"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9709739,
+          50.0434774
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/128897387",
+        "building": "yes",
+        "building:colour": "#00458C",
+        "check_date": "2025-09-30",
+        "name": "Centrum Handlowe Tandeta - Hala II",
+        "shop": "mall"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9714224,
+          50.0427856
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/179465887",
+        "addr:city": "Kraków",
+        "addr:housenumber": "2",
+        "addr:postcode": "31-870",
+        "addr:street": "Mieczysława Medweckiego",
+        "building": "retail",
+        "building:levels": "1",
+        "check_date:opening_hours": "2021-08-19",
+        "name": "Centrum Nowe Czyżyny",
+        "opening_hours": "Mo-Sa 09:00-21:00; Su 10:00-20:00",
+        "phone": "+48 12 297 30 12",
+        "roof:levels": "0",
+        "roof:shape": "flat",
+        "shop": "mall",
+        "website": "https://www.nowe-czyzyny.pl/"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          20.0164208,
+          50.0771383
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/294702945",
+        "addr:city": "Kraków",
+        "addr:housenumber": "41",
+        "addr:postcode": "31-876",
+        "addr:street": "Aleja Generała Tadeusza Bora-Komorowskiego",
+        "building": "yes",
+        "building:levels": "3",
+        "max_level": "2",
+        "min_level": "0",
+        "name": "Centrum Serenada",
+        "operator": "Mayland Real Estate",
+        "shop": "mall",
+        "website": "https://www.centrumserenada.pl",
+        "wheelchair": "yes",
+        "wikidata": "Q48850157",
+        "wikipedia": "pl:Centrum Handlowe Serenada"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9857681,
+          50.088042
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/54413496",
+        "addr:city": "Kraków",
+        "addr:country": "PL",
+        "addr:housenumber": "1",
+        "addr:street": "Władysława Broniewskiego",
+        "building": "retail",
+        "building:levels": "2",
+        "check_date:opening_hours": "2026-08-27",
+        "name": "Dom Handlowy Wanda",
+        "opening_hours": "Mo-Fr 09:00-20:00; Sa 09:00-15:00",
+        "shop": "mall",
+        "short_name": "DH Wanda",
+        "toilets": "no"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          20.0189262,
+          50.0859046
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/106742915",
+        "addr:housenumber": "37",
+        "addr:postcode": "30-392",
+        "addr:street": "Profesora Michała Bobrzyńskiego",
+        "building": "commercial",
+        "building:levels": "2",
+        "name": "Europejskie Centrum Handlowe",
+        "name:en": "European Trade Center",
+        "name:pl": "Europejskie Centrum Handlowe",
+        "opening_hours": "Mo-Sa 07:30-21:30; Su 10:00-19:00",
+        "operator": "AFI PROJECT 3 sp. z o.o.",
+        "shop": "mall",
+        "toilets": "yes"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.8932321,
+          50.017569
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/212501809",
+        "addr:city": "Kraków",
+        "addr:housenumber": "61",
+        "addr:postcode": "31-346",
+        "addr:street": "Stawowa",
+        "building": "retail",
+        "building:levels": "2",
+        "changing_table": "yes",
+        "check_date": "2025-08-23",
+        "internet_access": "wlan",
+        "name": "Galeria Bronowice",
+        "opening_hours": "Mo-Sa 09:00-21:00; Su 10:00-21:00",
+        "phone": "+48 664 633 955",
+        "roof:levels": "1",
+        "roof:shape": "flat",
+        "shop": "mall",
+        "toilets": "yes",
+        "website": "https://galeriabronowice.pl/",
+        "wheelchair": "yes",
+        "wikidata": "Q19400627",
+        "wikipedia": "pl:Galeria Bronowice"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.8980363,
+          50.092088
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/1042023157",
+        "addr:city": "Kraków",
+        "addr:housenumber": "34",
+        "addr:street": "Podgórska",
+        "building": "retail",
+        "contact:facebook": "galeriakazimierz",
+        "contact:instagram": "galeriakazimierz",
+        "email": "galeriakazimierz@cbre.com",
+        "internet_access": "wlan",
+        "name": "Galeria Kazimierz",
+        "name:ar": "مول",
+        "name:bg": "галерея каземеж",
+        "opening_hours": "Mo-Sa 10:00-21:00; Su 10:00-20:00",
+        "shop": "mall",
+        "toilets:wheelchair": "yes",
+        "website": "https://www.galeriakazimierz.pl/",
+        "wheelchair": "yes",
+        "wikidata": "Q5518445",
+        "wikipedia": "pl:Galeria Kazimierz"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9554834,
+          50.0534909
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/87527970",
+        "addr:city": "Kraków",
+        "addr:housenumber": "5",
+        "addr:postcode": "31-154",
+        "addr:street": "Pawia",
+        "building": "retail",
+        "building:levels": "3",
+        "email": "galeria@galeria-krakowska.pl",
+        "fax": "+48 12 4289920",
+        "internet_access": "wlan",
+        "name": "Galeria Krakowska",
+        "name:de": "Krakauer Kaufgalerie",
+        "name:en": "Galeria Krakowska",
+        "name:pl": "Galeria Krakowska",
+        "name:zh": "克拉科夫之廊",
+        "opening_hours": "Mo-Sa 09:00-22:00; Su 10:00-21:00",
+        "phone": "+48 12 4289900",
+        "shop": "mall",
+        "toilets": "yes",
+        "website": "https://www.galeriakrakowska.pl/",
+        "wheelchair": "yes",
+        "wikidata": "Q5518441",
+        "wikipedia": "pl:Galeria Krakowska"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9461509,
+          50.067596
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/29431436",
+        "addr:city": "Kraków",
+        "addr:country": "PL",
+        "addr:housenumber": "259",
+        "addr:postcode": "30-663",
+        "addr:street": "Wielicka",
+        "building": "retail",
+        "name": "Galeria Mozaika",
+        "shop": "mall",
+        "website": "https://www.galeriamozaika.pl",
+        "wheelchair": "yes"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9962773,
+          50.0136557
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/128897384",
+        "addr:city": "Kraków",
+        "addr:country": "PL",
+        "addr:housenumber": "18",
+        "addr:postcode": "30-553",
+        "addr:street": "Powstańców Wielkopolskich",
+        "building": "yes",
+        "building:colour": "#32332E",
+        "check_date": "2025-09-15",
+        "name": "King Square",
+        "shop": "mall",
+        "website": "http://www.king-square.pl/"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9700441,
+          50.0432026
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/164250193",
+        "addr:city": "Kraków",
+        "addr:housenumber": "67",
+        "addr:postcode": "31-580",
+        "addr:street": "Aleja Pokoju",
+        "building": "retail",
+        "building:levels": "2",
+        "check_date": "2026-08-05",
+        "name": "M1 Kraków",
+        "opening_hours": "Mo-Sa 09:00-21:00; Su 10:00-20:00",
+        "operator": "Metro Properties",
+        "shop": "mall",
+        "start_date": "2001-10",
+        "toilets": "yes",
+        "website": "https://m1krakow.pl/"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9995894,
+          50.0638145
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/27718045",
+        "addr:city": "Kraków",
+        "addr:housenumber": "62",
+        "addr:postcode": "30-418",
+        "addr:street": "Zakopiańska",
+        "air_conditioning": "yes",
+        "building": "retail",
+        "building:levels": "1",
+        "check_date": "2026-08-04",
+        "contact:fax": "+48 12 2617232",
+        "contact:phone": "+48 12 2617100",
+        "email": "zakopianka@epp-poland.com",
+        "internet_access": "wlan",
+        "internet_access:fee": "no",
+        "internet_access:ssid": "ZAKORIANKA_FREE_Wi-Fi",
+        "name": "Park Handlowy Zakopianka",
+        "name:en": "Retail Park Zakopianka",
+        "name:pl": "Park Handlowy Zakopianka",
+        "opening_hours": "Mo-Sa 09:00-21:00",
+        "shop": "mall",
+        "toilets": "yes",
+        "website": "https://www.zakopianka.pl/",
+        "wheelchair": "yes"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9326056,
+          50.0138573
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/1384066908",
+        "addr:city": "Kraków",
+        "addr:country": "PL",
+        "addr:housenumber": "13",
+        "addr:street": "Rynek Główny",
+        "name": "Pasaż 13",
+        "shop": "mall"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9380055,
+          50.0602021
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/233371611",
+        "addr:city": "Kraków",
+        "addr:country": "PL",
+        "addr:housenumber": "54",
+        "addr:postcode": "30-347",
+        "addr:street": "Kapelanka",
+        "building": "supermarket",
+        "height": "10",
+        "level": "0",
+        "name": "Pasaż Kapelanka",
+        "opening_hours": "Mo-Sa 09:00-21:00; Su off",
+        "owner": "Echo Investment",
+        "roof:colour": "grey",
+        "shop": "mall",
+        "url": "https://biznes.lovekrakow.pl/aktualnosci/echo-investment-kupilo-tesco-przy-kapelance-powstana-setki-mieszkan_38834.html",
+        "website": "https://pasazkapelanka.pl/",
+        "wheelchair": "yes"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9241936,
+          50.0326488
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/300526190",
+        "building": "yes",
+        "building:levels": "2",
+        "building:min_level": "1",
+        "building:part": "shell",
+        "int_name": "Pasaż Ruczaj",
+        "level": "0",
+        "name": "Pasaż Ruczaj",
+        "shop": "mall",
+        "type": "building"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9025619,
+          50.0209445
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/128241895",
+        "addr:city": "Kraków",
+        "addr:country": "PL",
+        "addr:housenumber": "105",
+        "addr:postcode": "30-418",
+        "addr:street": "Zakopiańska",
+        "building": "retail",
+        "internet_access": "wlan",
+        "name": "Solvay Park",
+        "opening_hours": "Mo-Sa 08:00-23:00; Su 09:00-22:00",
+        "phone": "+48 12 257 39 10",
+        "shop": "mall",
+        "toilets": "yes",
+        "website": "https://www.solvaypark.pl/",
+        "wikidata": "Q11811500",
+        "wikipedia": "pl:Park Solvay w Krakowie"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9275304,
+          50.0141761
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "way/337263839",
+        "addr:city": "Kraków",
+        "addr:housenumber": "133a",
+        "addr:postcode": "30-698",
+        "addr:street": "Myślenicka",
+        "building": "retail",
+        "building:levels": "2",
+        "name": "Swoszowice Centrum",
+        "opening_hours": "Mo-Fr 09:00-19:00; Sa 09:00-16:00",
+        "roof:levels": "0",
+        "shop": "mall",
+        "toilets": "yes",
+        "website": "https://swoszowicecentrum.pl/"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          19.9459471,
+          49.9936681
+        ]
+      }
+    }
+  ]
+}

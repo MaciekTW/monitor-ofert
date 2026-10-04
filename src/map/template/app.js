@@ -211,7 +211,9 @@ for(const def of JSON.parse(document.getElementById("pois").textContent)){
     L.marker([lat, lon], {icon, title: name, riseOnHover: true})
       .bindPopup(`<b>${esc(name || addr || "bez nazwy")}</b>` + (name && addr ? `<br>${esc(addr)}` : "") +
         (hours ? `<br><span class="text-mut">godziny: ${esc(hours === "closed" ? "zamknięte" : hours)}</span>` : ""))));
-  OVERLAYS.push({label: `${def.label} (${def.pts.length})`, group: def.group, visible: def.visible, layer: group,
+  // licznik tylko przy kilku punktach — przy jednym (zoo, pojedyncze centrum handlowe) nic nie mówi
+  OVERLAYS.push({label: def.pts.length > 1 ? `${def.label} (${def.pts.length})` : def.label,
+    group: def.group, visible: def.visible, folded: def.folded, layer: group,
     swatch: `<img src="${def.icon}" alt="" class="size-[18px] object-contain ${
       plate ? `bg-white ${def.shape === "square" ? "rounded-[3px]" : "rounded-full"}` : ""}">`});
 }
@@ -234,9 +236,11 @@ OVERLAYS.filter(o => o.visible).forEach(o => o.layer.addTo(map));
 // nadal widać, czy sekcja jest włączona w całości, czy tylko częściowo)
 const overlayGroups = [...new Set(OVERLAYS.map(o => o.group ?? null))]
   .sort((a, b) => (a !== null) - (b !== null));
-// sekcja, w której wszystkie warstwy są wyłączone (jak granice dzielnic), zaczyna zwinięta
+// sekcja, w której wszystkie warstwy są wyłączone (jak granice dzielnic), zaczyna zwinięta,
+// tak samo jak sekcja z warstwą oznaczoną "folded" (centra handlowe)
 const panelOf = o => o.panel ?? "layers";
-const overlayFolded = g => g !== null && OVERLAYS.filter(o => o.group === g).every(o => !o.visible);
+const overlayFolded = g => g !== null &&
+  (OVERLAYS.some(o => o.group === g && o.folded) || OVERLAYS.filter(o => o.group === g).every(o => !o.visible));
 const overlayRow = o => `<label class="chk py-0.5 text-ink">
   <input type="checkbox" data-i="${OVERLAYS.indexOf(o)}" ${o.visible ? "checked" : ""}>
   <span class="grid w-[18px] place-items-center">${o.swatch}</span>${esc(o.label)}</label>`;

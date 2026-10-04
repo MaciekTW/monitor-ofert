@@ -52,7 +52,8 @@ LAYERS_DIR = TEMPLATE_DIR / "layers"
 # (dla kwadratowych logo, którym koło ucina rogi), a "plain" zdejmuje białą
 # podkładkę i zostawia sam rysunek (dla ikon, które nie są logotypem).
 # "visible": False sprawia, że warstwa jest po otwarciu mapy wyłączona
-# i trzeba ją zaznaczyć w panelu. "brands" i "brands_except" zawężają plik do
+# i trzeba ją zaznaczyć w panelu. "folded": True zwija po otwarciu mapy całą
+# sekcję jej grupy, nawet jeśli część warstw jest włączona. "brands" i "brands_except" zawężają plik do
 # punktów z danym tagiem brand:wikidata (albo do całej reszty), więc jeden
 # GeoJSON może dać kilka osobno przełączanych warstw. Warstwa o kilku punktach
 # (jak zoo) może zamiast "geojson" podać "features" z obiektami GeoJSON wpisanymi
@@ -170,6 +171,29 @@ POI_LAYERS = [
     },
 ]
 
+# Centra handlowe z OSM (shop=mall, template/layers/malls.geojson): każde to osobna
+# warstwa w sekcji „Centra handlowe”, żeby dało się je przełączać pojedynczo.
+# Rozpoznawane po @id z OSM; centra z własnym logo mają je w MALL_LOGOS jako
+# (ikona, kształt), reszta dostaje wspólną pinezkę mall.svg. Po otwarciu mapy
+# włączone są tylko największe galerie z MALLS_VISIBLE, a sama sekcja jest zwinięta,
+# bo jej długa lista zasłaniałaby resztę panelu.
+MALLS_GEOJSON = "malls.geojson"
+MALL_LOGOS = {
+    "way/48306888": ("mall-bonarka.svg", "circle"),  # Bonarka City Center
+    "way/1042023157": ("mall-galeria-kazimierz.svg", "square"),  # Galeria Kazimierz
+    "way/87527970": ("mall-galeria-krakowska.svg", "circle"),  # Galeria Krakowska
+    "way/164250193": ("mall-m1.svg", "circle"),  # M1 Kraków
+}
+MALLS_VISIBLE = {
+    "way/48306888",  # Bonarka City Center
+    "way/294702945",  # Centrum Serenada
+    "way/212501809",  # Galeria Bronowice
+    "way/1042023157",  # Galeria Kazimierz
+    "way/87527970",  # Galeria Krakowska
+    "way/164250193",  # M1 Kraków
+    "way/27718045",  # Park Handlowy Zakopianka
+}
+
 
 # Przystanki komunikacji miejskiej z rozkładów GTFS ZTP (moduł gtfs), z ikonami
 # z template/layers/. Na mapie mają osobny przycisk i panel (app.js).
@@ -258,11 +282,35 @@ def icon_data_uri(name: str) -> str:
     return "data:image/svg+xml;base64," + base64.b64encode(icon_svg(name).encode("utf-8")).decode("ascii")
 
 
+def mall_layers() -> list[dict]:
+    """Specyfikacje warstw (jak w POI_LAYERS) dla centrów handlowych:
+    po jednej na każdy punkt z MALLS_GEOJSON."""
+    features = json.loads((LAYERS_DIR / MALLS_GEOJSON).read_text(encoding="utf-8"))["features"]
+    specs = []
+    for feature in sorted(features, key=lambda f: f["properties"].get("name", "")):
+        osm_id = feature["properties"]["@id"]
+        # pinezka to rysunek, nie logotyp — bez białej podkładki pod ikoną
+        icon, shape = MALL_LOGOS.get(osm_id, ("mall.svg", "plain"))
+        specs.append(
+            {
+                "id": "mall-" + osm_id.replace("/", "-"),
+                "label": feature["properties"].get("name") or "Centrum handlowe",
+                "group": "Centra handlowe",
+                "visible": osm_id in MALLS_VISIBLE,
+                "folded": True,
+                "shape": shape,
+                "features": [feature],
+                "icon": icon,
+            }
+        )
+    return specs
+
+
 def poi_layers() -> list[dict]:
-    """Warstwy z POI_LAYERS: ikona jako data URI i kompaktowa lista punktów
-    [lat, lon, nazwa, adres, godziny otwarcia]."""
+    """Warstwy z POI_LAYERS i mall_layers(): ikona jako data URI i kompaktowa
+    lista punktów [lat, lon, nazwa, adres, godziny otwarcia]."""
     layers = []
-    for spec in POI_LAYERS:
+    for spec in POI_LAYERS + mall_layers():
         if "geojson" in spec:
             features = json.loads((LAYERS_DIR / spec["geojson"]).read_text(encoding="utf-8"))["features"]
         else:
@@ -289,6 +337,7 @@ def poi_layers() -> list[dict]:
                 "label": spec["label"],
                 "group": spec.get("group"),
                 "visible": spec.get("visible", True),
+                "folded": spec.get("folded", False),
                 "shape": spec.get("shape", "circle"),
                 "icon": icon_data_uri(spec["icon"]),
                 "pts": points,
