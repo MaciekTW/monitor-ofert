@@ -852,15 +852,15 @@ def parse_offer_otodom(item: dict) -> dict:
             rooms = "1 pokój" if n == 1 else (f"{n} pokoje" if n < 5 else f"{n} pokoi")
 
     loc = item.get("location") or {}
-    city = district = None
-    addr = loc.get("address") or {}
-    if isinstance(addr.get("city"), dict):
-        city = addr["city"].get("name")
+    levels = {}
     for node in (loc.get("reverseGeocoding") or {}).get("locations") or []:
-        if isinstance(node, dict) and node.get("locationLevel") == "district":
-            district = node.get("name")
-            break
-    district = district or ad.get("district")
+        if isinstance(node, dict) and node.get("name"):
+            levels.setdefault(node.get("locationLevel"), node["name"])
+    # od października 2026 Otodom zwraca address.city = null — miasto jest
+    # już tylko w reverseGeocoding (poziom city_or_village)
+    addr_city = (loc.get("address") or {}).get("city")
+    city = levels.get("city_or_village") or (addr_city.get("name") if isinstance(addr_city, dict) else None)
+    district = levels.get("district") or ad.get("district")
 
     coords = ad.get("coordinates") or {}
     agency = item.get("agency")

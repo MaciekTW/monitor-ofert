@@ -121,20 +121,28 @@ def test_item_floor_uses_known_enum(items):
     assert not unknown, f"nieznane wartości floorNumber: {unknown}"
 
 
+def has_level(item: dict, level: str) -> bool:
+    return any(
+        n.get("locationLevel") == level and n.get("name")
+        for n in dig(item, "location.reverseGeocoding.locations")
+    )
+
+
 def test_item_location(items):
+    """parse_offer_otodom bierze miasto i dzielnicę z reverseGeocoding
+    (address.city Otodom zwraca jako null)."""
     assert_all(
         items,
-        lambda i: isinstance(dig(i, "location.address.city.name"), str),
-        "location.address.city.name",
+        lambda i: has_level(i, "city_or_village"),
+        "location.reverseGeocoding.locations[] z locationLevel=city_or_village",
     )
     assert_some(
         items,
-        lambda i: any(
-            n.get("locationLevel") == "district" and n.get("name")
-            for n in dig(i, "location.reverseGeocoding.locations")
-        ),
+        lambda i: has_level(i, "district"),
         "location.reverseGeocoding.locations[] z locationLevel=district",
     )
+    parsed = [m.parse_offer_otodom(i) for i in items]
+    assert_all(parsed, lambda o: isinstance(o["city"], str) and o["city"], "city po parse_offer_otodom")
 
 
 def test_item_first_created_date(items):
