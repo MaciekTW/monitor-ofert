@@ -11,6 +11,7 @@ from collections import Counter
 
 import pytest
 
+import dedup
 import monitor_ofert as m
 from tests.contract.helpers import assert_all, assert_some, dig, fetch
 
@@ -230,3 +231,41 @@ def test_offer_photos_and_description(offers):
         lambda o: isinstance(o.get("description"), str) and o["description"],
         "description",
     )
+
+
+# ------------------------------------------- pola dla deduplikacji (dedup.listing)
+
+
+def test_offer_seller_name(offers):
+    """Zgodność sprzedającego między portalami: user.company_name albo user.name."""
+    assert_all(offers, lambda o: isinstance(o.get("user"), dict), "user (obiekt)")
+    assert_all(
+        offers, lambda o: "name" in o["user"] and "company_name" in o["user"], "user.name i user.company_name"
+    )
+    assert_some(
+        offers, lambda o: o["user"]["name"] or o["user"]["company_name"], "niepusta nazwa sprzedającego"
+    )
+    listings = [dedup.listing(m.parse_offer_olx(o), o, "") for o in offers]
+    assert_some(listings, lambda item: item["who"], "sprzedający po dedup.listing")
+
+
+def test_offer_links_to_otodom_source(offers):
+    """Reguła „link”: oferta przeniesiona z Otodomu ma jego adres w external_url,
+    a ten kończy się identyfikatorem „-ID…”, tym samym co adres oferty na Otodomie.
+    Bez tego znikają wszystkie pewne połączenia OLX–Otodom."""
+    assert_some(
+        offers, lambda o: (o.get("partner") or {}).get("code") == "otodom_pl", "partner.code = otodom_pl"
+    )
+    linked = [o for o in offers if "otodom.pl" in (o.get("external_url") or "")]
+    assert linked, "żadna oferta z pierwszej strony nie ma adresu Otodomu w external_url"
+    assert_all(linked, lambda o: dedup.otodom_id(o["external_url"]), "external_url zakończony „-ID…”")
+    listings = [dedup.listing(m.parse_offer_olx(o), o, "") for o in linked]
+    assert_all(listings, lambda item: item["link"], "link po dedup.listing")
+
+    # adres z OLX prowadzi do oferty o tym samym identyfikatorze (także po przekierowaniu)
+    url = linked[0]["external_url"]
+    resp = fetch(url, as_json=False)
+    if resp.status_code in (404, 410):
+        pytest.skip(f"HTTP {resp.status_code}: {url} — oferta zniknęła z Otodomu, zanim test ją otworzył")
+    assert resp.status_code == 200, f"{url}: HTTP {resp.status_code}"
+    assert dedup.otodom_id(resp.url) == dedup.otodom_id(url), f"{url} prowadzi do {resp.url}"

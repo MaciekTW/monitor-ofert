@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48">
+  <!-- tarcza z samolotem widzianym z góry; własny rysunek, nie logotyp lotniska -->
+  <circle cx="24" cy="24" r="22" fill="#1F3A5F" stroke="#FFFFFF" stroke-width="3"/>
+  <path transform="translate(8.4 8) scale(1.3)" fill="#FFFFFF"
+        d="M12 2.5c.9 0 1.5 1 1.5 2.5v4.5L21 14v1.8l-7.500-2.200v4.700L16 20v1.500l-4-1-4 1V20l2.500-1.700v-4.700L3 15.800V14l7.500-4.500V5c0-1.500.6-2.500 1.500-2.500z"/>
+</svg>

@@ -37,12 +37,50 @@ for(const o of OFFERS){
   o._txt = (o.t || "").toLowerCase();
   o._dtxt = (o.dsc || "").toLowerCase();
 }
+/* ---------- to samo ogłoszenie na kilku portalach ---------- */
+/* „g” to numer grupy ofert, które przy generowaniu mapy (dedup.py) uznano za jedno
+   ogłoszenie wystawione na różnych portalach — w grupie jest najwyżej jedna oferta
+   z portalu, a oferta bez duplikatów pola „g” nie ma. Przełącznik nad listą zwija
+   każdą grupę w jedną pozycję; linki do wszystkich portali są w szczegółach oferty. */
+const PORTAL_ORDER = ["otodom", "gratka", "olx"];  // przy tej samej cenie: od najpełniejszych danych
+const GROUPS = new Map();
+for(const o of OFFERS) if(o.g != null) GROUPS.set(o.g, [...(GROUPS.get(o.g) || []), o]);
+const UNIQUE = OFFERS.length - [...GROUPS.values()].reduce((n, g) => n + g.length - 1, 0);
+let dedupOn = GROUPS.size > 0;
+// wszystkie kopie ogłoszenia: najpierw ono samo, potem pozostałe portale
+const copies = o => o.g == null ? [o] : [o, ...GROUPS.get(o.g).filter(x => x !== o)
+  .sort((a, b) => PORTAL_ORDER.indexOf(a.s) - PORTAL_ORDER.indexOf(b.s))];
+// grupę reprezentuje najtańsza kopia spośród tych, które przeszły filtry
+// (cena bywa nieaktualna tylko na jednym portalu), a przy równej cenie kolejność portali;
+// ceny porównywane w pełnych złotych, bo portale różnie zaokrąglają grosze
+const zl = o => o.p == null ? null : Math.round(o.p);
+const repOrder = (a, b) => ((zl(a) ?? Infinity) - (zl(b) ?? Infinity))
+  || PORTAL_ORDER.indexOf(a.s) - PORTAL_ORDER.indexOf(b.s);
+function uniqueOnly(list){
+  const rep = new Map();
+  for(const o of list){
+    if(o.g == null) continue;
+    const r = rep.get(o.g);
+    if(!r || repOrder(o, r) < 0) rep.set(o.g, o);
+  }
+  return list.filter(o => o.g == null || rep.get(o.g) === o);
+}
+const portalName = o => PORTAL[o.s] || o.s;
+// podpis portalu na karcie: po zwinięciu wszystkie portale ogłoszenia,
+// w pełnej liście własny portal i wzmianka o pozostałych
+function portalLabel(o){
+  const [, ...rest] = copies(o);
+  if(!rest.length) return portalName(o);
+  return dedupOn ? [o, ...rest].map(portalName).join(" + ")
+    : `${portalName(o)} (też ${rest.map(portalName).join(", ")})`;
+}
 document.title = `Mieszkania ${META.city} — mapa ofert OLX`;
 $("#hd").textContent = `Mieszkania — ${META.city}`;
 const perSrc = OFFERS.reduce((m,o) => (m[o.s]=(m[o.s]||0)+1, m), {});
 $("#hdsub").textContent = `stan z ${GEN.toLocaleString("pl-PL",
   {dateStyle:"medium", timeStyle:"short"})} · ` +
-  Object.entries(perSrc).map(([s,n]) => `${PORTAL[s]||s}: ${n}`).join(" · ");
+  Object.entries(perSrc).map(([s,n]) => `${PORTAL[s]||s}: ${n}`).join(" · ") +
+  (GROUPS.size ? ` · bez duplikatów: ${UNIQUE}` : "");
 
 /* ---------- wykresy (Apache ECharts) ---------- */
 // ECharts rysuje na canvasie, który nie rozumie var(--…) — kolory jak w @theme w style.css
@@ -343,10 +381,12 @@ mapPanel("Podkład i granice",
    <h3 class="f-title mt-2 border-t border-line pt-2">Granice</h3>${overlaySections("base")}`,
   overlayPanel);
 
-/* ---------- komunikacja miejska: przystanki z rozkładów GTFS ---------- */
+/* ---------- komunikacja: przystanki i stacje kolejowe z rozkładów GTFS ---------- */
 // każdy rodzaj (autobusy, tramwaje) ma dwie grupy markerów: przystanki zagregowane
 // (jeden punkt na przystanek) i pojedyncze słupki; na mapie jest tylko wybrana,
-// a przy „tylko po przybliżeniu” dopiero od wybranego poziomu przybliżenia
+// a przy „tylko po przybliżeniu” dopiero od wybranego poziomu przybliżenia.
+// Stacje kolejowe (posts: null) słupków nie mają — w obu widokach są tym samym punktem,
+// a ich „linie” to numery linii (SKA1) i kategorie pociągów (IC, REG)
 const TRANSIT_DATA = JSON.parse(document.getElementById("transit").textContent);
 const TRANSIT = TRANSIT_DATA.layers;
 // filtry przystanków: minLines — co najmniej tyle linii (liczba z ikony), minDepartures —
@@ -407,24 +447,37 @@ for(const t of TRANSIT){
     m.lineCount = deps.length;
     m.departures = total;
     return m
-      .bindTooltip(`${title}<br>${deps.length} ${plural(deps.length, "linia", "linie", "linii")}: ` +
-        `${day} ${plural(day, "dzienna", "dzienne", "dziennych")}, ` +
-        `${night} ${plural(night, "nocna", "nocne", "nocnych")}` +
+      .bindTooltip(`${title}<br>${deps.length} ${plural(deps.length, "linia", "linie", "linii")}` +
+        // podział na dzienne i nocne tylko tam, gdzie linie nocne w ogóle są (kolej ich nie ma)
+        (nightSet.size ? `: ${day} ${plural(day, "dzienna", "dzienne", "dziennych")}, ` +
+          `${night} ${plural(night, "nocna", "nocne", "nocnych")}` : "") +
         `<br><span class="text-mut">${departuresText(total)} (${transitDay})</span>`,
         {direction: "top"})
       .bindPopup(`${title}<div class="text-[11.5px] text-mut">odjazdy: ${transitDay}` +
-        (post ? "" : ", wszystkie słupki") + `</div>
+        (post || !t.posts ? "" : ", wszystkie słupki") + `</div>
         <div class="mt-1.5 w-60 space-y-1.5">${groups}</div>
         <div class="mt-1.5 text-[11px] text-mut">kliknij numer linii, żeby zobaczyć trasę</div>`);
   };
   t.on = false;
   // wszystkie markery; do warstw na mapie trafiają tylko te, które przechodzą filtr (filterTransit)
   t.stopMarkers = t.stops.map(([lat, lon, name, number, deps]) => marker(lat, lon, name, number, null, deps));
-  t.postMarkers = t.posts.map(([lat, lon, name, code, deps]) =>
-    marker(lat, lon, name, code, code.split("-").pop(), deps));
-  t.grouped = L.layerGroup();
-  t.single = L.layerGroup();
+  t.postMarkers = t.posts ? t.posts.map(([lat, lon, name, code, deps]) =>
+    marker(lat, lon, name, code, code.split("-").pop(), deps)) : t.stopMarkers;
+  // źródło danych, które wymaga podpisu, pojawia się w rogu mapy razem z warstwą
+  t.grouped = L.layerGroup([], {attribution: t.attribution});
+  t.single = L.layerGroup([], {attribution: t.attribution});
 }
+// pojedyncze punkty panelu (lotnisko): zwykły marker z dymkiem, włączany swoim polem,
+// niezależny od filtrów przystanków i od poziomu przybliżenia
+const TRANSIT_POINTS = TRANSIT_DATA.points.map(def => {
+  const icon = L.divIcon({className: "", iconSize: [30, 30], iconAnchor: [15, 15], popupAnchor: [0, -15],
+    html: `<img src="${def.icon}" alt="" class="size-[30px] drop-shadow-[0_1px_2px_rgba(0,0,0,.5)]">`});
+  const layer = L.layerGroup(def.pts.map(([lat, lon, name, addr]) =>
+    L.marker([lat, lon], {icon, title: name, riseOnHover: true})
+      .bindPopup(`<b>${esc(name)}</b>` + (addr ? `<br>${esc(addr)}` : ""))));
+  if(def.visible) layer.addTo(map);
+  return {...def, layer};
+});
 const stopFilterOk = m => m.lineCount >= transitOpt.minLines && m.departures >= transitOpt.minDepartures;
 function filterTransit(){
   for(const t of TRANSIT){
@@ -491,11 +544,13 @@ async function toggleRoute(kind, line, code){
   }
   if(shownRoute !== `${kind}:${line}`) return;  // w międzyczasie kliknięto inną linię
   const variants = routes[kind]?.[line];
+  const t = TRANSIT.find(x => x.id === kind);
   if(!variants?.length){
-    showRouteBox(`<b>linia ${esc(line)}</b><br><span class="text-bad">brak trasy w danych — wygeneruj mapę ponownie</span>`);
+    // kategoria pociągu (IC, REG) jeździ wieloma trasami, więc nie ma czego narysować
+    showRouteBox(`<b>${esc(line)}</b><br>` + (t.noroute ? `<span class="text-mut">${esc(t.noroute)}</span>`
+      : `<span class="text-bad">brak trasy w danych — wygeneruj mapę ponownie</span>`));
     return;
   }
-  const t = TRANSIT.find(x => x.id === kind);
   const night = t.night.includes(t.lines.indexOf(line));
   // kierunki zatrzymujące się na klikniętym słupku (albo przystanku) — pozostałe bledsze
   const here = variants.map(v => v.stops.some(s => s[3] === code || s[3].split("-")[0] === code));
@@ -537,14 +592,17 @@ function syncTransit(){
   }
 }
 map.on("zoomend", syncTransit);
-if(TRANSIT.length) mapPanel("Komunikacja miejska",
+if(TRANSIT.length || TRANSIT_POINTS.length) mapPanel("Komunikacja",
   `<svg viewBox="0 0 24 24" class="size-5" fill="none" stroke="currentColor" stroke-width="2"
     stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="14" height="15" rx="3"/>
     <path d="M5 11h14M9 6.5h6M7.5 18v2.5M16.5 18v2.5"/></svg>`,
-  `<h3 class="f-title">Komunikacja miejska</h3>` +
+  `<h3 class="f-title">Komunikacja</h3>` +
   TRANSIT.map((t, i) => `<label class="chk py-0.5 text-ink"><input type="checkbox" data-t="${i}">
     <span class="grid w-[18px] place-items-center"><img src="${t.iconUrl("")}" alt="" class="h-[18px] w-3"></span>
     <span>${esc(t.label)} (<span data-count="${i}">${t.stops.length}</span>)</span></label>`).join("") +
+  TRANSIT_POINTS.map((p, i) => `<label class="chk py-0.5 text-ink"><input type="checkbox" data-p="${i}"
+    ${p.visible ? "checked" : ""}><span class="grid w-[18px] place-items-center"><img src="${p.icon}" alt=""
+    class="size-[16px]"></span>${esc(p.label)}</label>`).join("") +
   `<h3 class="f-title mt-2 border-t border-line pt-2">Pokazuj</h3>
   <nav class="flex gap-1 rounded-lg bg-page p-1">
     <button type="button" class="tab on grow" data-grouped="1">przystanki</button>
@@ -587,8 +645,9 @@ if(TRANSIT.length) mapPanel("Komunikacja miejska",
       refresh();
     });
     panel.addEventListener("input", e => {
-      const {t, opt} = e.target.dataset;
-      if(t != null) TRANSIT[+t].on = e.target.checked;
+      const {t, opt, p} = e.target.dataset;
+      if(p != null) e.target.checked ? TRANSIT_POINTS[+p].layer.addTo(map) : TRANSIT_POINTS[+p].layer.remove();
+      else if(t != null) TRANSIT[+t].on = e.target.checked;
       else if(opt === "zoomOnly") transitOpt.zoomOnly = e.target.checked;
       else if(opt === "minZoom") transitOpt.minZoom = +e.target.value;
       else if(opt === "minLines" || opt === "minDepartures"){
@@ -787,8 +846,10 @@ let filtered = [], shown = 0;
 const CHUNK = 80;
 function apply(refitMarkers = true){
   const pass = currentFilter();
-  filtered = OFFERS.filter(pass).sort(SORTS[$("#sort").value]);
-  $("#cnt").textContent = `${filtered.length} z ${OFFERS.length}`;
+  // najpierw filtry, potem zwijanie: grupa zostaje, gdy pasuje choć jedna jej kopia
+  const passed = OFFERS.filter(pass);
+  filtered = (dedupOn ? uniqueOnly(passed) : passed).sort(SORTS[$("#sort").value]);
+  $("#cnt").textContent = `${filtered.length} z ${dedupOn ? UNIQUE : OFFERS.length}`;
   renderStats(); renderHisto();
   if(refitMarkers) rebuildMarkers(filtered);
   $("#cards").scrollTop = 0;
@@ -846,7 +907,7 @@ function cardHTML(o){
     : `<div class="noimg">🏠</div>`;
   const badges = (o._new ? `<span class="badge bg-[#e3f4ea] text-good">NOWA</span>` : "") +
     (o._drop > 0 ? `<span class="badge bg-[#fdecec] text-bad">-${(o._drop*100).toFixed(0)}%</span>` : "");
-  const meta = [PORTAL[o.s] || o.s, o.a ? o.a + " m²" : null,
+  const meta = [portalLabel(o), o.a ? o.a + " m²" : null,
     o.pm ? fmtN(o.pm) + " zł/m²" : null,
     o.r || null, o.d || null].filter(Boolean).join(" · ");
   return `<div class="card flex cursor-pointer gap-2.5 border-b border-line px-3 py-2.5
@@ -895,8 +956,18 @@ function openDetail(id, fromMap){
         rounded-md object-cover opacity-65 on:opacity-100 on:outline-2 on:outline-acc"
         onerror="this.remove()">`).join("") + `</div>` : "")
     : "";
+  // linki do wszystkich portali, na których jest to ogłoszenie (także w pełnej liście);
+  // cenę przy linku widać tylko wtedy, gdy portale podają różne
+  const all = copies(o);
+  const pricesDiffer = new Set(all.map(zl)).size > 1;
+  const links = (all.length > 1 ? `<div class="mt-4 text-[12.5px] text-mut">To samo ogłoszenie jest na
+      ${all.length} portalach${pricesDiffer ? " — <b class=\"text-bad\">ceny się różnią</b>" : ""}:</div>` : "") +
+    all.map((x, i) => `<a href="${esc(x.u)}" target="_blank" rel="noopener"
+       class="${all.length > 1 ? "mt-1.5" : "mt-4"} block rounded-[9px] border border-acc p-3 text-center font-semibold ${
+         i ? "bg-white text-acc hover:bg-acc-soft" : "bg-acc text-white hover:bg-acc/90"} last:mb-1.5">
+       Otwórz ogłoszenie na ${esc(portalName(x))} ↗${pricesDiffer ? ` · ${fmtP(x.p)}` : ""}</a>`).join("");
   const grid = [
-    ["Portal", PORTAL[o.s] || o.s],
+    ["Portal", all.map(portalName).join(", ")],
     ["Metraż", o.a ? o.a + " m²" : null],
     ["Cena za m²", o.pm ? fmtN(o.pm) + " zł" : null],
     ["Pokoje", o.r], ["Piętro", o.f],
@@ -938,9 +1009,7 @@ function openDetail(id, fromMap){
     (o.rad > 0 ? `<div class="mt-2 text-xs text-mut">📍 Sprzedający podał lokalizację
        przybliżoną (±${fmtN(o.rad)} m) — pinezka wskazuje okolicę.</div>` : "") +
     (o.dsc ? `<div class="mt-3 text-[13.5px] whitespace-pre-line">${esc(o.dsc)}</div>` : "") +
-    `<a href="${esc(o.u)}" target="_blank" rel="noopener"
-       class="mt-4 mb-1.5 block rounded-[9px] bg-acc p-3 text-center font-semibold text-white hover:bg-acc/90">
-       Otwórz ogłoszenie na ${PORTAL[o.s] || "portalu"} ↗</a>`;
+    links;
   const th = $("#thumbs");
   if(th) th.addEventListener("click", e => {
     if(e.target.tagName !== "IMG") return;
@@ -1023,6 +1092,22 @@ $("#dall").onclick = () => {
   document.querySelectorAll(".dbox").forEach(b => b.checked = true); apply(); };
 $("#dnone").onclick = () => {
   document.querySelectorAll(".dbox").forEach(b => b.checked = false); apply(); };
+// przełącznik „bez duplikatów / wszystkie oferty” — to tryb widoku, nie filtr,
+// więc „Wyczyść filtry” go nie rusza; bez grup (np. baza z jednego portalu) jest ukryty
+if(GROUPS.size){
+  $("#dedup").hidden = false;
+  $("#dedupnote").textContent = `${OFFERS.length - UNIQUE} duplikatów`;
+  $("#dedupnote").title = `${GROUPS.size} ogłoszeń jest na więcej niż jednym portalu`;
+  $("#dedup").addEventListener("click", e => {
+    const b = e.target.closest("[data-dedup]");
+    if(!b || (b.dataset.dedup === "1") === dedupOn) return;
+    dedupOn = b.dataset.dedup === "1";
+    $("#dedup").querySelectorAll("[data-dedup]").forEach(x => x.classList.toggle("on", x === b));
+    // otwarta oferta mogła zniknąć z listy (zastąpiła ją inna kopia) — nie zostawiamy zaznaczenia
+    selId = null;
+    apply();
+  });
+}
 $("#clear").onclick = () => {
   ["#q","#pmin","#pmax","#amin","#amax","#mmin","#mmax"]
     .forEach(s => $(s).value = "");

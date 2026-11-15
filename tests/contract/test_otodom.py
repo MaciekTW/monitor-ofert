@@ -10,6 +10,7 @@ from urllib.parse import urlparse
 
 import pytest
 
+import dedup
 import monitor_ofert as m
 from tests.contract.helpers import assert_all, assert_some, dig, fetch
 
@@ -214,3 +215,36 @@ def test_ad_text_fields(ad):
     assert isinstance(created, str) and created.endswith("Z"), f"createdAt nie jest datą UTC: {created!r}"
     assert dig(ad, "market") in m._OTO_MARKET, f"nieznany market: {ad['market']!r}"
     assert isinstance(dig(ad, "advertType"), str)
+
+
+# ------------------------------------------- pola dla deduplikacji (dedup.listing)
+
+
+def test_offer_url_ends_with_otodom_id(items):
+    """Reguła „link”: OLX wskazuje ofertę Otodomu po identyfikatorze z końca adresu („…-ID4uaVC”)."""
+    parsed = [m.parse_offer_otodom(i) for i in items]
+    assert_all(parsed, lambda o: dedup.otodom_id(o["url"]), "url zakończony „-ID…”")
+    # Otodom bywa, że wydaje tę samą ofertę drugi raz pod innym numerem (dedup wybiera
+    # wtedy krótszy), ale jeden identyfikator nie może oznaczać dwóch różnych adresów
+    urls: dict[str, set] = {}
+    for offer in parsed:
+        urls.setdefault(dedup.otodom_id(offer["url"]), set()).add(offer["url"])
+    shared = {key: sorted(found) for key, found in urls.items() if len(found) > 1}
+    assert not shared, f"jeden identyfikator w kilku różnych adresach: {shared}"
+
+
+def test_item_seller_street_and_development(items):
+    """Potwierdzenia reguły „cechy”: sprzedający (agency.name), ulica
+    (location.address.street.name) i nazwa inwestycji (developmentTitle)."""
+    assert_some(items, lambda i: isinstance((i.get("agency") or {}).get("name"), str), "agency.name")
+    assert_all(items, lambda i: "street" in dig(i, "location.address"), "location.address.street")
+    assert_some(
+        items,
+        lambda i: isinstance((i["location"]["address"]["street"] or {}).get("name"), str),
+        "location.address.street.name",
+    )
+    assert_all(items, lambda i: "developmentTitle" in i, "developmentTitle")
+    listings = [dedup.listing(m.parse_offer_otodom(i), i, "") for i in items]
+    assert_some(listings, lambda item: item["who"], "sprzedający po dedup.listing")
+    assert_some(listings, lambda item: item["street"], "ulica po dedup.listing")
+    assert_all(listings, lambda item: item["otodom"], "identyfikator Otodomu po dedup.listing")

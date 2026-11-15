@@ -104,6 +104,15 @@
    </select>
    <span id="cnt" class="text-[12.5px] whitespace-nowrap text-mut"></span>
   </div>
+  <div id="dedup" hidden class="flex items-center gap-2 border-b border-line px-3 py-1.5">
+   <nav class="flex gap-1 rounded-lg bg-page p-1">
+    <button type="button" class="tab on whitespace-nowrap" data-dedup="1"
+      title="To samo ogłoszenie z kilku portali jako jedna pozycja, z linkami do każdego portalu">Bez duplikatów</button>
+    <button type="button" class="tab whitespace-nowrap" data-dedup="0"
+      title="Każde ogłoszenie z każdego portalu osobno">Wszystkie oferty</button>
+   </nav>
+   <span id="dedupnote" class="text-[11.5px]/[1.3] whitespace-nowrap text-mut"></span>
+  </div>
   <div id="cards" class="flex-1 overflow-y-auto"></div>
  </aside>
 </div>

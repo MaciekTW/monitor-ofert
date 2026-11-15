@@ -10,6 +10,7 @@ from urllib.parse import urlparse
 
 import pytest
 
+import dedup
 import monitor_ofert as m
 from tests.contract.helpers import assert_all, assert_some, dig, fetch, post_json
 
@@ -261,3 +262,25 @@ def test_detail_of_missing_offer_is_null():
     """Zniknięta oferta ma dać null, a nie błąd — na tym stoi obsługa 'None'."""
     data = gql(m.GRA_DETAIL_QUERY, {"url": "/nieruchomosci/mieszkanie-krakow-nieistniejace/ob/1"})
     assert data.get("getProperty") is None, "API zwróciło ofertę pod zmyślonym adresem"
+
+
+# ------------------------------------------- pola dla deduplikacji (dedup.listing)
+
+
+def test_node_seller_street_and_development_names(nodes):
+    """Potwierdzenia reguły „cechy”: sprzedający (contact.company.name), ulica
+    (location.street) i nazwa inwestycji (development.name)."""
+    assert_some(
+        nodes,
+        lambda n: isinstance(((n.get("contact") or {}).get("company") or {}).get("name"), str),
+        "contact.company.name",
+    )
+    assert_all(nodes, lambda n: "street" in dig(n, "location"), "location.street")
+    assert_some(
+        nodes, lambda n: isinstance(n["location"]["street"], str) and n["location"]["street"], "ulica"
+    )
+    with_development = [n for n in nodes if n.get("development")]
+    assert_all(with_development, lambda n: isinstance(n["development"].get("name"), str), "development.name")
+    listings = [dedup.listing(m.parse_offer_gratka(n), n, "") for n in nodes]
+    assert_some(listings, lambda item: item["who"], "sprzedający po dedup.listing")
+    assert_some(listings, lambda item: item["street"], "ulica po dedup.listing")

@@ -2,6 +2,7 @@
 """
 Interaktywna mapa HTML — generuje pojedynczy, samowystarczalny plik HTML
 z mapą (Leaflet), listą i filtrami aktywnych ofert zapisanych w bazie
+(z przełącznikiem zwijającym to samo ogłoszenie z kilku portali w jedną pozycję — moduł dedup)
 oraz drugą zakładką z historią rynku (liczba ofert, ceny i ich zmiany w czasie).
 
 Wygląd i logika strony są w katalogu template/ (szablon Jinja2 index.html
@@ -28,6 +29,7 @@ from pathlib import Path
 from jinja2 import Environment, FileSystemLoader, StrictUndefined, select_autoescape
 from markupsafe import Markup
 
+import dedup
 import gtfs
 
 
@@ -195,12 +197,49 @@ MALLS_VISIBLE = {
 }
 
 
-# Przystanki komunikacji miejskiej z rozkładów GTFS ZTP (moduł gtfs), z ikonami
-# z template/layers/. Na mapie mają osobny przycisk i panel (app.js).
+# Przystanki komunikacji miejskiej z rozkładów GTFS ZTP i stacje kolejowe
+# z ogólnopolskiego rozkładu (moduł gtfs), z ikonami z template/layers/.
+# Na mapie mają osobny przycisk i panel „Komunikacja” (app.js). "single": True —
+# punkt nie dzieli się na słupki (stacja kolejowa to jeden punkt, perony mają te
+# same współrzędne), więc przełącznik „przystanki / każdy słupek” go nie zmienia;
+# "noroute" to podpowiedź po kliknięciu linii, która nie ma stałej trasy.
 TRANSIT_LAYERS = [
     {"id": "bus", "label": "Przystanki autobusowe", "icon": "bus.svg"},
     {"id": "tram", "label": "Przystanki tramwajowe", "icon": "tram.svg"},
+    {
+        "id": "rail",
+        "label": "Stacje i przystanki kolejowe",
+        "icon": "train.svg",
+        "single": True,
+        "attribution": gtfs.RAIL_ATTRIBUTION,
+        "noroute": "to kategoria pociągu, a nie linia — nie ma jednej stałej trasy",
+    },
 ]
+# Pojedyncze punkty w panelu „Komunikacja”, wpisane na sztywno: [lat, lon, nazwa, adres].
+# Lotnisko jest w okolicy jedno, a jego położenie się nie zmienia, więc nie ma po co
+# sięgać po dane — współrzędne to środek terminalu pasażerskiego T1 z OSM (way/444536543),
+# czyli miejsce, do którego się dojeżdża (środek całego lotniska wypada na pasie startowym).
+# Punkt jest na mapie zawsze, gdy jego pole jest zaznaczone — filtry przystanków
+# i „tylko po przybliżeniu” go nie dotyczą.
+TRANSIT_POINTS = [
+    {
+        "id": "airport",
+        "label": "Lotnisko",
+        "icon": "airport.svg",
+        "visible": True,
+        "pts": [
+            [
+                50.072546,
+                19.801520,
+                "Kraków Airport im. Jana Pawła II (KRK)",
+                "ul. Kpt. Mieczysława Medweckiego 1, Balice",
+            ]
+        ],
+    },
+]
+# stacje kolejowe są brane z prostokąta wokół ofert, powiększonego o tyle stopni
+# (~10 km) — żeby objąć też przystanki tuż za granicą miasta
+RAIL_MARGIN = (0.09, 0.14)  # (szerokość, długość geograficzna)
 
 # Granice dzielnic Krakowa: obrysy 18 dzielnic z miejskiego portalu danych
 # (template/layers/districts.geojson). Plik jest już w WGS84 — przeliczenie
@@ -406,15 +445,36 @@ def line_order(line: str):
     return (0, int(line), "") if line.isdigit() else (1, 0, line)
 
 
-def transit_layers(offline: bool = False) -> dict:
+def rail_bounds(offers: list[dict]) -> tuple[float, float, float, float] | None:
+    """Prostokąt (lat min, lon min, lat max, lon max), z którego mapa bierze stacje
+    kolejowe: 1.–99. percentyl współrzędnych ofert (pojedyncza oferta z błędną
+    lokalizacją nie rozciąga go na pół kraju) z marginesem RAIL_MARGIN."""
+    points = [(o["lat"], o["lon"]) for o in offers if o["lat"] is not None and o["lon"] is not None]
+    if not points:
+        return None
+    lats, lons = sorted(p[0] for p in points), sorted(p[1] for p in points)
+    low, high = len(points) // 100, len(points) - 1 - len(points) // 100
+    return (
+        lats[low] - RAIL_MARGIN[0],
+        lons[low] - RAIL_MARGIN[1],
+        lats[high] + RAIL_MARGIN[0],
+        lons[high] + RAIL_MARGIN[1],
+    )
+
+
+def transit_layers(offline: bool = False, bounds: tuple[float, float, float, float] | None = None) -> dict:
     """Przystanki na mapę: {"day": dzień odniesienia dla odjazdów (RRRR-MM-DD),
-    "routes": adres file:// skryptu z trasami linii (gtfs.write_routes), "layers": [...]},
+    "routes": adres file:// skryptu z trasami linii (gtfs.write_routes), "layers": [...],
+    "points": punkty z TRANSIT_POINTS z ikoną jako data URI},
     gdzie każda warstwa ma:
     - svg: ikonę z „{n}” w miejscu liczby linii (app.js wstawia liczbę),
     - lines: posortowane numery linii i night: indeksy linii nocnych,
     - stops: przystanki zagregowane [lat, lon, nazwa, numer przystanku, [[indeks linii, odjazdy], …]],
-    - posts: pojedyncze słupki [lat, lon, nazwa, stop_code, [[indeks linii, odjazdy], …]]."""
-    networks, day = gtfs.load(offline)
+    - posts: pojedyncze słupki [lat, lon, nazwa, stop_code, [[indeks linii, odjazdy], …]]
+      albo None dla warstwy "single" (stacje kolejowe), gdzie słupków nie ma,
+    - attribution, noroute: opcjonalne, przepisane z TRANSIT_LAYERS.
+    bounds: prostokąt, z którego mają być stacje kolejowe (None = bez kolei)."""
+    networks, day = gtfs.load(offline, rail_bounds=bounds)
     routes = gtfs.write_routes(networks).as_uri() if networks else None
     layers = []
     for spec in TRANSIT_LAYERS:
@@ -422,6 +482,8 @@ def transit_layers(offline: bool = False) -> dict:
         if not network or not network["posts"]:
             continue
         posts = network["posts"]
+        # stacja kolejowa jest już jednym punktem — bez grupowania po numerze słupka
+        grouped = posts if spec.get("single") else gtfs.group_posts(posts)
         lines = sorted(set().union(*(p["lines"] for p in posts.values())), key=line_order)
         index = {line: i for i, line in enumerate(lines)}
 
@@ -443,15 +505,20 @@ def transit_layers(offline: bool = False) -> dict:
                 "night": sorted(index[line] for line in network["night"] if line in index),
                 "stops": [
                     [round(s["lat"], 6), round(s["lon"], 6), s["name"], number, departures(s)]
-                    for number, s in sorted(gtfs.group_posts(posts).items(), key=lambda item: item[1]["name"])
+                    for number, s in sorted(grouped.items(), key=lambda item: item[1]["name"])
                 ],
-                "posts": [
+                "posts": None
+                if spec.get("single")
+                else [
                     [round(p["lat"], 6), round(p["lon"], 6), p["name"], code, departures(p)]
                     for code, p in sorted(posts.items())
                 ],
+                "attribution": spec.get("attribution"),
+                "noroute": spec.get("noroute"),
             }
         )
-    return {"day": day.isoformat() if day else None, "routes": routes, "layers": layers}
+    points = [{**spec, "icon": icon_data_uri(spec["icon"])} for spec in TRANSIT_POINTS]
+    return {"day": day.isoformat() if day else None, "routes": routes, "layers": layers, "points": points}
 
 
 def market_history(con: sqlite3.Connection) -> dict:
@@ -514,6 +581,7 @@ def export_html(con: sqlite3.Connection, path: str, offline: bool = False) -> No
     )
 
     offers = []
+    listings = []  # te same oferty w postaci dla dedup.find_duplicates
     query = """SELECT uid, source, url, title, price, negotiable, area,
                       price_per_m, rooms, floor, market, build_year, district, business,
                       created_at, first_seen, lat, lon, map_radius, raw
@@ -581,11 +649,46 @@ def export_html(con: sqlite3.Connection, path: str, offline: bool = False) -> No
             item["h"] = hist
             item["pc"] = last_change[uid]
         offers.append(item)
+        listings.append(
+            dedup.listing(
+                {
+                    "uid": uid,
+                    "source": source,
+                    "url": url,
+                    "title": title,
+                    "price": price,
+                    "area": area,
+                    "rooms": rooms,
+                    "floor": floor,
+                    "market": market,
+                    "build_year": build_year,
+                    "created_at": created,
+                    "lat": lat,
+                    "lon": lon,
+                    "map_radius": radius,
+                },
+                raw_offer,
+                desc,
+            )
+        )
 
     if not offers:
         raise RuntimeError(
             "Baza nie zawiera aktywnych ofert — najpierw uruchom skrypt bez --offline, żeby pobrać dane."
         )
+
+    # to samo ogłoszenie na kilku portalach: oferty z jednej grupy dostają wspólny
+    # numer „g”, po którym strona zwija je w jedną pozycję (przełącznik nad listą)
+    groups = dedup.find_duplicates(listings)
+    group_of = {uid: number for number, group in enumerate(groups) for uid in group}
+    for item in offers:
+        if item["id"] in group_of:
+            item["g"] = group_of[item["id"]]
+    unique = len(offers) - len(group_of) + len(groups)
+    log(
+        f"Deduplikacja: {len(group_of)} ofert to {len(groups)} ogłoszeń powtórzonych na kilku portalach "
+        f"— unikalnych ofert jest {unique} z {len(offers)}."
+    )
 
     cities = Counter(row[0] for row in con.execute("SELECT city FROM offers WHERE active = 1") if row[0])
     meta = {
@@ -611,7 +714,7 @@ def export_html(con: sqlite3.Connection, path: str, offline: bool = False) -> No
             hist=market_history(con),
             pois=poi_layers(),
             districts=district_layers(),
-            transit=transit_layers(offline),
+            transit=transit_layers(offline, rail_bounds(offers)),
         )
     )
     with open(path, "w", encoding="utf-8") as f:

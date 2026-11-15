@@ -13,7 +13,8 @@ local SQLite database. Every run after that only reports:
 - listings that **came back** after disappearing.
 
 It can also export the active listings to CSV, or render them as a
-single-file **interactive map** with filters.
+single-file **interactive map** with filters, where a listing posted on several
+portals can be shown once, with links to all of them.
 
 ## Requirements
 
@@ -99,6 +100,40 @@ uv run src/monitor_ofert.py --offline --html mapa.html
 
 Note: the script's console output and `--help` text are in Polish.
 
+## Duplicates across portals
+
+The same listing is often posted on two or three portals, where it gets a
+different id each time, so the database holds it as separate rows. When the map
+is generated, `src/dedup.py` groups those rows, and a switch above the list
+chooses between **Bez duplikatów** (one entry per listing — the default) and
+**Wszystkie oferty** (every row, as before). In both views the offer's detail
+panel links to every portal the listing is on, with each portal's price when
+they differ. A collapsed group is shown through its cheapest copy, and it stays
+in the results as long as any of its copies passes the filters. The database
+itself is not touched, and the *Historia rynku* tab still counts raw listings.
+
+The matching is deliberately conservative — a missed duplicate costs one extra
+card, a wrong merge hides a flat:
+
+- A pair always needs the same area (to 0.01 m²) and room count, plus one of:
+  the link OLX keeps to the Otodom offer it was imported from; the same price
+  and a matching description; the same price and floor confirmed by location,
+  street or seller (stricter for round prices); or a near-identical description
+  with a price up to 10% apart or the floor off by one — those two only for
+  second-hand flats in buildings at least three years old. A matching
+  description is never enough on its own, because every unit of a development
+  shares one.
+- The pair must be unambiguous: clearly better than any other candidate of both
+  offers. Identical units of one development (same area, price and floor) stay
+  separate unless coordinates, title, date or text tell them apart.
+- A group holds at most one offer per portal, so two listings from the same
+  portal are never merged — not even through a third one.
+
+On the November 2026 database (31 088 active listings) this finds 7 024 groups
+and leaves 23 337 unique listings, in about a second. Run without the OLX links,
+the same rules rediscover 95% of those 2 116 known pairs, with one pairing that
+differs from the link.
+
 ## Included data
 
 This repo ships a real snapshot so you can look at the output without
@@ -145,7 +180,11 @@ would silently break the map rather than the script: `stop_code` in the
 `NNN-NN` form with one stop name per number across all archives, times past
 midnight written as 24:xx+, a reference weekday with service in every archive,
 route shapes for all trips, and a plausible number of stops, lines and night
-lines. A server that stops answering `304 Not Modified` is reported as a
+lines. The nationwide rail feed gets the same treatment (platforms attached to
+their station, train vs replacement-bus routes, lines shared between operators,
+a calendar covering the coming weekdays), and the portal tests also cover the
+fields only the duplicate matching reads: the Otodom link OLX keeps, the id at
+the end of an Otodom address, and seller, street and development names. A server that stops answering `304 Not Modified` is reported as a
 skipped test (the map still works, it just re-downloads ~30 MB each time). They need network access and take about
 a minute (requests are deliberately paced).
 
@@ -190,7 +229,7 @@ skipped is marked as failed, so a blocked runner never looks green.
   Kraków (MPK and Mobilis buses, trams). The archives (~30 MB) are cached in
   `.cache/gtfs/` and downloaded again only when the server has a newer version;
   with `--offline` the cached copy is used, and without one the stop layers are
-  left out. Stops have their own *Komunikacja miejska* button on the map: bus
+  left out. Stops have their own *Komunikacja* button on the map: bus
   and tram stops are off by default, and the panel switches between one marker
   per stop and one per stop post, and between showing them only from a chosen
   zoom level (15 by default) or always. Sliders filter stops by a minimum
@@ -207,6 +246,24 @@ skipped is marked as failed, so a blocked runner never looks green.
   map: generating it writes them to `.cache/gtfs/routes.js`, which the page
   loads on the first click. If the map is opened on another computer or the
   cache was cleared, it says the route data is missing — generate the map again.
+- Railway stations and stops are a third layer of the same *Komunikacja* panel
+  (off by default, like the others). They come from *Polish Trains*, the
+  nationwide GTFS feed Mikołaj Kuranowski builds from PKP PLK data
+  (<https://mkuran.pl/gtfs/>): one archive (~27 MB, refreshed daily, cached like
+  the ZTP ones) covering every operator, Koleje Małopolskie, Polregio and PKP
+  Intercity included. Only stations inside the rectangle around the listings
+  (plus about 10 km) are read. A station is one marker — platforms are not
+  shown separately, so the stop/post switch does not change it. Its "lines" are
+  what the timetable calls them: line numbers (SKA1, K63) and, for long-distance
+  trains, the train category (IC, EIP, TLK). Replacement buses are left out.
+  Clicking a numbered line draws its whole route; a category has no single
+  route, and the map says so. Departures use the same reference day as the city
+  stops. With the layer on, the map's corner credits the feed, as its licence
+  asks.
+- The same panel has a *Lotnisko* checkbox (on by default): one marker at the
+  passenger terminal of Kraków Airport. Its position is hardcoded in
+  `TRANSIT_POINTS` (`src/map/html_map.py`), so it needs no data source and is
+  not affected by the stop filters or the zoom threshold.
 - The 18 Kraków district boundaries come from the city's open data portal and
   live in `src/map/template/layers/districts.geojson`. They get their own
   *Granice dzielnic* section in the map's *Podkład i granice* panel (next to the

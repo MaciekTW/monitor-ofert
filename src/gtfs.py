@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
-"""Przystanki komunikacji miejskiej w Krakowie z rozkładów GTFS ZTP.
+"""Przystanki komunikacji miejskiej w Krakowie z rozkładów GTFS ZTP
+oraz stacje i przystanki kolejowe z ogólnopolskiego rozkładu „Polish Trains”.
 
 Archiwa (autobusy MPK, autobusy Mobilis, tramwaje) są pobierane do lokalnej
 kopii w .cache/gtfs/ i odświeżane tylko wtedy, gdy serwer ma nowszą wersję
@@ -11,7 +12,13 @@ Liczba odjazdów dotyczy jednego dnia odniesienia — najbliższego wtorku lub
 środy z typowym rozkładem dnia roboczego (reference_day).
 
 Przebiegi tras linii (główny wariant w każdym kierunku) są zapisywane osobno do
-.cache/gtfs/routes.js, który mapa wczytuje dopiero po kliknięciu linii (write_routes)."""
+.cache/gtfs/routes.js, który mapa wczytuje dopiero po kliknięciu linii (write_routes).
+
+Kolej (read_rail) pochodzi z jednego archiwum na całą Polskę, które Mikołaj
+Kuranowski buduje z danych PKP PLK (https://mkuran.pl/gtfs/): wszyscy przewoźnicy
+naraz, w tym Koleje Małopolskie, Polregio i PKP Intercity. Z archiwum brane są
+tylko stacje w podanym prostokącie (okolica ofert), a „linią” jest oznaczenie
+z rozkładu — numer linii (SKA1, K63) albo kategoria pociągu (IC, EIP, TLK)."""
 
 from __future__ import annotations
 
@@ -31,6 +38,19 @@ GTFS_URL = "https://gtfs.ztp.krakow.pl/"
 CACHE_DIR = Path(__file__).parents[1] / ".cache" / "gtfs"
 ROUTES_FILE = CACHE_DIR / "routes.js"
 
+# Kolej: jedno archiwum na całą Polskę, odświeżane codziennie (~27 MB). Licencja
+# wymaga podania źródeł, stąd RAIL_ATTRIBUTION na mapie przy włączonych stacjach.
+RAIL_URL = "https://mkuran.pl/gtfs/"
+RAIL_FEED = "polish_trains.zip"
+RAIL_ATTRIBUTION = (
+    'kolej: <a href="https://mkuran.pl/gtfs/">Mikołaj Kuranowski</a>, dane '
+    '<a href="https://www.plk-sa.pl/klienci-i-kontrahenci/api-otwarte-dane">PKP PLK</a>'
+)
+RAIL_ROUTE_TYPE = "2"  # w routes.txt: pociąg; 3 to zastępcza komunikacja autobusowa
+# linia o stałej trasie ma ją w nazwie („Kraków Lotnisko — Kraków Główny — Wieliczka”),
+# kategoria pociągu (IC, REG) nie — i dla niej jedna trasa na mapie nic by nie znaczyła
+RAIL_FIXED_ROUTE = " — "
+
 # archiwum → rodzaj przystanku
 FEEDS = {
     "GTFS_KRK_A.zip": "bus",  # autobusy MPK
@@ -43,9 +63,9 @@ def log(msg: str = "") -> None:
     print(msg, flush=True)
 
 
-def download(name: str, offline: bool = False) -> Path | None:
-    """Zwraca ścieżkę do aktualnej kopii archiwum; pobiera je tylko, gdy na
-    serwerze jest nowsza wersja. Bez sieci używa starej kopii, jeśli jest."""
+def download(name: str, offline: bool = False, base: str = GTFS_URL) -> Path | None:
+    """Zwraca ścieżkę do aktualnej kopii archiwum; pobiera je (spod adresu base)
+    tylko, gdy na serwerze jest nowsza wersja. Bez sieci używa starej kopii, jeśli jest."""
     path = CACHE_DIR / name
     if offline:
         return path if path.exists() else None
@@ -53,7 +73,7 @@ def download(name: str, offline: bool = False) -> Path | None:
     if path.exists():
         headers["If-Modified-Since"] = formatdate(path.stat().st_mtime, usegmt=True)
     try:
-        with urlopen(Request(GTFS_URL + name, headers=headers), timeout=60) as resp:
+        with urlopen(Request(base + name, headers=headers), timeout=120) as resp:
             data = resp.read()
             modified = resp.headers.get("Last-Modified")
     except HTTPError as exc:
@@ -278,11 +298,162 @@ def read_feed(archive: Path, active, day: date) -> tuple[dict[str, dict], set[st
     return posts, night, routes
 
 
-def load(offline: bool = False, today: date | None = None) -> tuple[dict[str, dict], date | None]:
-    """({"bus": {"posts": {stop_code: słupek}, "night": {linie nocne}, "routes": {linia: trasy}}, "tram": {...}},
-    dzień odniesienia). Słupek wspólny dla autobusów MPK i Mobilis ma zsumowane
-    linie i odjazdy obu przewoźników. Brak archiwum (np. bez sieci) = brak jego
-    słupków i linii."""
+def read_rail(archive: Path, active, day: date, bounds: tuple[float, float, float, float]) -> dict:
+    """Ogólnopolskie archiwum kolejowe → stacje i przystanki w prostokącie
+    bounds = (lat min, lon min, lat max, lon max), w tej samej postaci co sieć
+    z load(): {"posts": {id stacji: {"name", "lat", "lon", "lines"}}, "night": set(),
+    "routes": {linia: trasy}}.
+
+    Stacja to parent_station z archiwum — perony i tory (osobne stop_id o tych
+    samych współrzędnych) zlewają się w jeden punkt. Linie łączą przewoźników
+    (SKA2 jeżdżą Koleje Małopolskie i Polregio), a autobusy zastępcze są pomijane.
+    Odjazdy liczone jak w read_feed: kursy z dnia odniesienia, na których można
+    wsiąść; linia kursująca tylko w inne dni tygodnia ma 0.
+
+    Trasy są tylko dla linii o stałej trasie (RAIL_FIXED_ROUTE) i w całości —
+    także poza prostokątem — żeby było widać, dokąd pociąg jedzie."""
+    lat_min, lon_min, lat_max, lon_max = bounds
+    services = active(day)
+    running = frozenset().union(*(active(day + timedelta(n)) for n in range(RUNNING_DAYS)))
+    with zipfile.ZipFile(archive) as z:
+        rows, c = table(z, "stops.txt")
+        station_of: dict[str, str] = {}  # stop_id peronu → id stacji
+        stations: dict[str, list] = {}  # id stacji → [lat, lon, nazwa, id]
+        for row in rows:
+            stop, parent = row[c["stop_id"]], row[c["parent_station"]]
+            station_of[stop] = parent or stop
+            if not parent:
+                stations[stop] = [
+                    float(row[c["stop_lat"]]),
+                    float(row[c["stop_lon"]]),
+                    row[c["stop_name"]],
+                    stop,
+                ]
+        local = {
+            sid
+            for sid, (lat, lon, _, _) in stations.items()
+            if lat_min <= lat <= lat_max and lon_min <= lon <= lon_max
+        }
+
+        rows, c = table(z, "routes.txt")
+        route_line, fixed = {}, set()
+        for row in rows:
+            if row[c["route_type"]] != RAIL_ROUTE_TYPE:
+                continue
+            route_line[row[c["route_id"]]] = row[c["route_short_name"]]
+            if RAIL_FIXED_ROUTE in row[c["route_long_name"]]:
+                fixed.add(row[c["route_short_name"]])
+
+        rows, c = table(z, "trips.txt")
+        trip_line, counted = {}, set()
+        trip_variant: dict[str, tuple] = {}  # trip_id → (linia, kierunek, shape_id, cel)
+        for row in rows:
+            line = route_line.get(row[c["route_id"]])
+            if line is None or row[c["service_id"]] not in running:
+                continue
+            trip = row[c["trip_id"]]
+            trip_line[trip] = line
+            if row[c["service_id"]] in services:
+                counted.add(trip)
+            if line in fixed:
+                trip_variant[trip] = (
+                    line,
+                    row[c["direction_id"]],
+                    row[c["shape_id"]],
+                    row[c["trip_headsign"]],
+                )
+
+        # pierwsze przejście: odjazdy ze stacji w prostokącie i kursy, które tam stają
+        rows, c = table(z, "stop_times.txt")
+        trip_i, stop_i, pickup_i = c["trip_id"], c["stop_id"], c["pickup_type"]
+        station_lines: dict[str, Counter] = {}
+        calling = set()
+        for row in rows:
+            trip = row[trip_i]
+            if trip not in trip_line:
+                continue
+            station = station_of.get(row[stop_i])
+            if station not in local:
+                continue
+            calling.add(trip)
+            station_lines.setdefault(station, Counter())[trip_line[trip]] += (
+                trip in counted and row[pickup_i] != "1"
+            )
+
+        # główny wariant linii w każdym kierunku: najczęstszy przebieg wśród kursów stąd
+        variants: Counter = Counter()
+        variant_trip: dict[tuple, tuple] = {}
+        for trip in calling:
+            if trip in trip_variant:
+                line, direction, shape, headsign = trip_variant[trip]
+                variants[line, direction, shape] += 1
+                variant_trip.setdefault((line, direction, shape), (trip, headsign))
+        main_variant: dict[tuple, tuple] = {}  # (linia, kierunek) → (shape_id, trip_id, cel)
+        for (line, direction, shape), _ in sorted(variants.items(), key=lambda kv: (-kv[1], kv[0])):
+            main_variant.setdefault((line, direction), (shape, *variant_trip[line, direction, shape]))
+
+        # drugie przejście: stacje na trasie kursów-wzorców (tylko tam, gdzie pociąg staje)
+        trip_stops: dict[str, list] = {trip: [] for _, trip, _ in main_variant.values()}
+        if trip_stops:
+            rows, c = table(z, "stop_times.txt")
+            seq_i, drop_i = c["stop_sequence"], c.get("drop_off_type")
+            for row in rows:
+                stops = trip_stops.get(row[trip_i])
+                if stops is None:
+                    continue
+                passing = row[pickup_i] == "1" and drop_i is not None and row[drop_i] == "1"
+                if not passing:
+                    stops.append((int(row[seq_i]), station_of.get(row[stop_i])))
+
+        wanted_shapes = {shape for shape, _, _ in main_variant.values() if shape}
+        shape_points: dict[str, list] = {}
+        if wanted_shapes:
+            rows, c = table(z, "shapes.txt")
+            id_i, seq_i, lat_i, lon_i = (
+                c["shape_id"],
+                c["shape_pt_sequence"],
+                c["shape_pt_lat"],
+                c["shape_pt_lon"],
+            )
+            for row in rows:
+                if row[id_i] in wanted_shapes:
+                    shape_points.setdefault(row[id_i], []).append(
+                        (int(row[seq_i]), float(row[lat_i]), float(row[lon_i]))
+                    )
+
+    routes: dict[str, list] = {}
+    for (line, direction), (shape, trip, headsign) in sorted(main_variant.items()):
+        stops = [stations[sid] for _, sid in sorted(trip_stops[trip]) if sid in stations]
+        points = [[lat, lon] for _, lat, lon in sorted(shape_points.get(shape, []))]
+        routes.setdefault(line, []).append(
+            {
+                "dir": direction,
+                "to": headsign,
+                "shape": points or [stop[:2] for stop in stops],
+                "stops": stops,
+            }
+        )
+    posts = {
+        sid: {"name": stations[sid][2], "lat": stations[sid][0], "lon": stations[sid][1], "lines": lines}
+        for sid, lines in station_lines.items()
+    }
+    return {"posts": posts, "night": set(), "routes": routes}
+
+
+def load(
+    offline: bool = False,
+    today: date | None = None,
+    rail_bounds: tuple[float, float, float, float] | None = None,
+) -> tuple[dict[str, dict], date | None]:
+    """({"bus": {"posts": {stop_code: słupek}, "night": {linie nocne}, "routes": {linia: trasy}}, "tram": {...},
+    "rail": {...}}, dzień odniesienia). Słupek wspólny dla autobusów MPK i Mobilis
+    ma zsumowane linie i odjazdy obu przewoźników. Brak archiwum (np. bez sieci) =
+    brak jego słupków i linii. Kolej (read_rail) jest dokładana tylko wtedy, gdy
+    podano rail_bounds — prostokąt, z którego mają być stacje."""
+    rail = download(RAIL_FEED, offline, RAIL_URL) if rail_bounds else None
+    if rail_bounds and rail is None:
+        log(f"⚠ Brak rozkładu kolejowego ({RAIL_FEED}) — mapa będzie bez stacji kolejowych.")
+    rail_calendar = read_calendar(rail) if rail else None
     archives = {}
     for name in FEEDS:
         archive = download(name, offline)
@@ -291,12 +462,18 @@ def load(offline: bool = False, today: date | None = None) -> tuple[dict[str, di
     missing = [name for name in FEEDS if name not in archives]
     if missing:
         log(f"⚠ Brak rozkładów GTFS ({', '.join(missing)}) — mapa będzie bez części przystanków.")
-    if not archives:
+    if not archives and not rail:
         return {}, None
 
     calendars = {name: read_calendar(archive) for name, archive in archives.items()}
-    day = reference_day(list(calendars.values()), today or date.today())
+    # dzień odniesienia wyznaczają rozkłady miejskie; kolej (inny wydawca, inny rytm
+    # aktualizacji) dostosowuje się do niego i decyduje tylko wtedy, gdy jest sama
+    day = reference_day(list(calendars.values()) or [rail_calendar], today or date.today())
     result: dict[str, dict] = {}
+    if rail:
+        network = read_rail(rail, rail_calendar, day, rail_bounds)
+        if network["posts"]:
+            result["rail"] = network
     for name, archive in archives.items():
         posts, night, routes = read_feed(archive, calendars[name], day)
         network = result.setdefault(FEEDS[name], {"posts": {}, "night": set(), "routes": {}})
@@ -312,7 +489,7 @@ def load(offline: bool = False, today: date | None = None) -> tuple[dict[str, di
 
 def write_routes(networks: dict[str, dict]) -> Path:
     """Zapisuje trasy linii jako skrypt ustawiający window.TRANSIT_ROUTES =
-    {"bus": {linia: trasy}, "tram": {...}}. Skrypt, a nie JSON, bo mapa otwierana
+    {"bus": {linia: trasy}, "tram": {...}, "rail": {...}}. Skrypt, a nie JSON, bo mapa otwierana
     z pliku (file://) może dołączyć lokalny <script src>, ale nie może pobrać
     lokalnego pliku przez fetch()."""
     data = {
