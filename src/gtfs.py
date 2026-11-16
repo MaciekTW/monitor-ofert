@@ -120,6 +120,29 @@ def table(z: zipfile.ZipFile, name: str):
     return rows, {col: i for i, col in enumerate(next(rows, []))}
 
 
+def minutes(clock: str) -> float | None:
+    """Godzina z rozkładu „HH:MM:SS” (także 24:xx i dalej) jako minuty od północy."""
+    parts = clock.split(":")
+    if len(parts) != 3 or not all(part.isdigit() for part in parts):
+        return None
+    return int(parts[0]) * 60 + int(parts[1]) + int(parts[2]) / 60
+
+
+def timed_stops(visits: list[tuple], info: dict[str, list]) -> list[list]:
+    """Przystanki kursu-wzorca w kolejności jazdy: [lat, lon, nazwa, kod, minuty od
+    pierwszego przystanku]. visits to (numer kolejny, id przystanku, godzina); minuty
+    są None, gdy rozkład nie podaje godziny — raport pokazuje wtedy trasę bez czasu."""
+    stops, start = [], None
+    for _, stop, clock in sorted(visits):
+        if stop not in info:
+            continue
+        at = minutes(clock)
+        if start is None:
+            start = at
+        stops.append([*info[stop], None if at is None or start is None else round(at - start, 1)])
+    return stops
+
+
 def ymd(text: str) -> date:
     return date(int(text[:4]), int(text[4:6]), int(text[6:8]))
 
@@ -182,7 +205,8 @@ def read_feed(archive: Path, active, day: date) -> tuple[dict[str, dict], set[st
     tego dnia nie kursuje, ma 0 odjazdów. Nazwa i położenie słupka są z tego
     stop_id, który ma najwięcej odjazdów (przemianowany słupek ma nowe stop_id).
 
-    Trasy: {linia: [{"dir", "to", "shape": [[lat, lon], …], "stops": [[lat, lon, nazwa, stop_code], …]}]}
+    Trasy: {linia: [{"dir", "to", "shape": [[lat, lon], …],
+    "stops": [[lat, lon, nazwa, stop_code, minuty jazdy od początku trasy], …]}]}
     — w każdym kierunku wariant z najczęstszym przebiegiem (shape_id), z przystankami
     jednego jego kursu."""
     services = active(day)
@@ -236,7 +260,7 @@ def read_feed(archive: Path, active, day: date) -> tuple[dict[str, dict], set[st
             if dep and (trip not in trip_start or dep < trip_start[trip]):
                 trip_start[trip] = dep
             if trip in trip_stops:
-                trip_stops[trip].append((int(row[seq_i]), row[stop_i]))
+                trip_stops[trip].append((int(row[seq_i]), row[stop_i], dep))
 
         rows, c = table(z, "stops.txt")
         posts: dict[str, dict] = {}
@@ -278,7 +302,7 @@ def read_feed(archive: Path, active, day: date) -> tuple[dict[str, dict], set[st
 
     routes: dict[str, list] = {}
     for (line, direction), (shape, trip, headsign) in sorted(main_variant.items()):
-        stops = [stop_info[stop] for _, stop in sorted(trip_stops[trip]) if stop in stop_info]
+        stops = timed_stops(trip_stops[trip], stop_info)
         points = [[lat, lon] for _, lat, lon in sorted(shape_points.get(shape, []))]
         routes.setdefault(line, []).append(
             {
@@ -396,14 +420,14 @@ def read_rail(archive: Path, active, day: date, bounds: tuple[float, float, floa
         trip_stops: dict[str, list] = {trip: [] for _, trip, _ in main_variant.values()}
         if trip_stops:
             rows, c = table(z, "stop_times.txt")
-            seq_i, drop_i = c["stop_sequence"], c.get("drop_off_type")
+            seq_i, drop_i, dep_i = c["stop_sequence"], c.get("drop_off_type"), c["departure_time"]
             for row in rows:
                 stops = trip_stops.get(row[trip_i])
                 if stops is None:
                     continue
                 passing = row[pickup_i] == "1" and drop_i is not None and row[drop_i] == "1"
                 if not passing:
-                    stops.append((int(row[seq_i]), station_of.get(row[stop_i])))
+                    stops.append((int(row[seq_i]), station_of.get(row[stop_i]), row[dep_i]))
 
         wanted_shapes = {shape for shape, _, _ in main_variant.values() if shape}
         shape_points: dict[str, list] = {}
@@ -423,7 +447,7 @@ def read_rail(archive: Path, active, day: date, bounds: tuple[float, float, floa
 
     routes: dict[str, list] = {}
     for (line, direction), (shape, trip, headsign) in sorted(main_variant.items()):
-        stops = [stations[sid] for _, sid in sorted(trip_stops[trip]) if sid in stations]
+        stops = timed_stops(trip_stops[trip], stations)
         points = [[lat, lon] for _, lat, lon in sorted(shape_points.get(shape, []))]
         routes.setdefault(line, []).append(
             {
@@ -499,8 +523,8 @@ def write_routes(networks: dict[str, dict]) -> Path:
                     **variant,
                     "shape": [[round(lat, 5), round(lon, 5)] for lat, lon in variant["shape"]],
                     "stops": [
-                        [round(lat, 5), round(lon, 5), name, code]
-                        for lat, lon, name, code in variant["stops"]
+                        [round(lat, 5), round(lon, 5), name, code, *rest]
+                        for lat, lon, name, code, *rest in variant["stops"]
                     ],
                 }
                 for variant in variants

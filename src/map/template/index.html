@@ -167,10 +167,15 @@
 <script id="pois" type="application/json">{{ pois | tojson }}</script>
 <script id="distdata" type="application/json">{{ districts | tojson }}</script>
 <script id="transit" type="application/json">{{ transit | tojson }}</script>
+<script id="osmdata" type="application/json">{{ osm | tojson }}</script>
+<script id="walkdata" type="application/json">{{ walk | tojson }}</script>
+<script id="reportcfg" type="application/json">{{ report | tojson }}</script>
 <script>{{ include_raw("krakow_boundary.js") }}</script>
 <script>
 {{ include_raw("app.js") }}</script>
 <script>
 {{ include_raw("history.js") }}</script>
+<script>
+{{ include_raw("report.js") }}</script>
 </body>
 </html>

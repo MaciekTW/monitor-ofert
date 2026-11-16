@@ -660,16 +660,121 @@ if(TRANSIT.length || TRANSIT_POINTS.length) mapPanel("Komunikacja",
   });
 const markers = new Map();
 let selId = null;
-function baseStyle(o){
-  return {radius:6, weight:1, color:"#fff", fillColor:colorOf(o.pm),
-          fillOpacity:.88};
+
+/* ---------- porównanie ofert: lista wybranych ---------- */
+/* Do porównania wybiera się od 2 do CMP_MAX ofert — przyciskiem na karcie, w szczegółach
+   oferty albo (po włączeniu w panelu) klikaniem w oferty na mapie. Wybrane mają na mapie
+   pomarańczową obwódkę, a lista zostaje w localStorage. Samo zestawienie rysuje report.js
+   (openCompare), bo korzysta z tych samych wyliczeń co raport o mieszkaniu. */
+const CMP_MAX = 4, CMP_STORE = "monitor-ofert:porownanie", CMP_COLOR = "#eb6834";
+let compareIds = [], comparePick = false;
+try {
+  compareIds = JSON.parse(localStorage.getItem(CMP_STORE) || "[]")
+    .filter(id => OFFERS.some(o => o.id === id)).slice(0, CMP_MAX);
+} catch { /* bez zapamiętanej listy */ }
+// krótki komunikat na dole ekranu, opcjonalnie z przyciskiem akcji; znika sam
+let toastTimer;
+function toast(text, action, run){
+  let box = $("#toast");
+  if(!box){
+    document.body.insertAdjacentHTML("beforeend", `<div id="toast" hidden class="fixed bottom-5 left-1/2 z-1250 flex
+      -translate-x-1/2 items-center gap-3 rounded-xl bg-ink px-4 py-2.5 text-[13px] text-white shadow-[0_6px_24px_rgba(15,25,40,.35)]"></div>`);
+    box = $("#toast");
+  }
+  box.innerHTML = `<span>${esc(text)}</span>` + (action ? `<button type="button" class="cursor-pointer rounded-md bg-white px-2.5 py-1
+    font-semibold text-ink hover:bg-acc-soft">${esc(action)}</button>` : "");
+  if(action) box.querySelector("button").onclick = () => { box.hidden = true; run(); };
+  box.hidden = false;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => box.hidden = true, 4500);
 }
+const cmpButton = id => compareIds.includes(id)
+  ? `<span class="font-semibold" style="color:${CMP_COLOR}">✓ w porównaniu</span>` : "+ porównaj";
+const startCompare = () => openCompare([...compareIds], {list: true});
+function toggleCompare(id){
+  const at = compareIds.indexOf(id);
+  if(at >= 0) compareIds.splice(at, 1);
+  else if(compareIds.length >= CMP_MAX)
+    return toast(`Do porównania można wybrać najwyżej ${CMP_MAX} oferty — usuń którąś z listy.`);
+  else compareIds.push(id);
+  try { localStorage.setItem(CMP_STORE, JSON.stringify(compareIds)); } catch { /* bez zapisu */ }
+  syncCompare(id);
+  if(at < 0) compareIds.length < 2 ? toast("Dodano do porównania — wybierz jeszcze co najmniej jedną ofertę.")
+    : toast(`W porównaniu: ${compareIds.length} z ${CMP_MAX} ofert.`, "Porównaj", startCompare);
+}
+// po zmianie listy: obwódka na mapie, przycisk na karcie i w szczegółach, panel z listą
+let renderComparePanel = () => {};
+function syncCompare(id){
+  const o = OFFERS.find(x => x.id === id), m = markers.get(id);
+  if(m && id !== selId) m.setStyle(baseStyle(o));
+  document.querySelectorAll(`.card[data-id="${id}"] [data-cmp]`).forEach(b => b.innerHTML = cmpButton(id));
+  const inDetail = $("#dcmp");
+  if(inDetail?.dataset.id === id) inDetail.innerHTML = compareIds.includes(id) ? "✓ W porównaniu — usuń" : "+ Dodaj do porównania";
+  renderComparePanel();
+}
+function baseStyle(o){
+  const picked = compareIds.includes(o.id);
+  return {radius: picked ? 8 : 6, weight: picked ? 3 : 1, color: picked ? CMP_COLOR : "#fff",
+          fillColor:colorOf(o.pm), fillOpacity:.88};
+}
+mapPanel("Porównanie ofert",
+  `<svg viewBox="0 0 24 24" class="size-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+    stroke-linejoin="round"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="14" y="4" width="7" height="16" rx="1.5"/></svg>`,
+  `<h3 class="f-title">Porównanie ofert</h3><div data-cmp-body class="w-64 whitespace-normal"></div>`,
+  panel => {
+    const button = panel.previousElementSibling;
+    button.classList.add("relative");
+    button.insertAdjacentHTML("beforeend", `<span data-cmp-count hidden class="absolute -top-1 -right-1 grid h-[18px] min-w-[18px]
+      place-items-center rounded-full px-1 text-[11px] font-bold text-white" style="background:${CMP_COLOR}"></span>`);
+    renderComparePanel = () => {
+      const list = compareIds.map(id => OFFERS.find(o => o.id === id));
+      const count = button.querySelector("[data-cmp-count]");
+      count.hidden = !list.length;
+      count.textContent = list.length;
+      panel.querySelector("[data-cmp-body]").innerHTML = `
+        <p class="mb-2 text-[12.5px] text-mut">Wybierz od 2 do ${CMP_MAX} ofert: przyciskiem „+ porównaj” na liście,
+          w szczegółach oferty albo klikając je na mapie.</p>
+        ${list.map(o => `<div class="flex items-center gap-1.5 border-b border-line py-1">
+          <button type="button" data-cmp-show="${esc(o.id)}" title="Pokaż ofertę" class="min-w-0 flex-1 cursor-pointer text-left hover:text-acc">
+            <span class="block truncate text-[12.5px] font-semibold">${esc(o.t)}</span>
+            <span class="block truncate text-[11.5px] text-mut">${[fmtP(o.p), o.a ? o.a + " m²" : null, o.d].filter(Boolean).map(esc).join(" · ")}</span></button>
+          <button type="button" data-cmp-drop="${esc(o.id)}" title="Usuń z porównania"
+            class="cursor-pointer px-1 text-mut hover:text-bad">✕</button></div>`).join("")
+          || `<p class="rounded-md bg-page px-2 py-1.5 text-[12.5px] text-mut">Nie wybrano jeszcze żadnej oferty.</p>`}
+        <label class="chk mt-2 text-ink"><input type="checkbox" data-cmp-pick ${comparePick ? "checked" : ""}>
+          wybieraj klikaniem w oferty na mapie</label>
+        <div class="mt-2 flex gap-1.5">
+          <button type="button" data-cmp-go ${list.length < 2 ? "disabled" : ""} class="grow cursor-pointer rounded-lg bg-acc px-3 py-1.5
+            font-semibold text-white hover:bg-acc/90 disabled:cursor-default disabled:opacity-40">Porównaj${list.length ? ` (${list.length})` : ""}</button>
+          <button type="button" data-cmp-clear ${list.length ? "" : "disabled"} class="cursor-pointer rounded-lg border border-line bg-white px-3 py-1.5
+            hover:bg-acc-soft disabled:cursor-default disabled:opacity-40">Wyczyść</button></div>`;
+    };
+    panel.addEventListener("click", e => {
+      const b = e.target.closest("button");
+      if(!b) return;
+      if(b.dataset.cmpDrop) toggleCompare(b.dataset.cmpDrop);
+      else if(b.dataset.cmpShow) openDetail(b.dataset.cmpShow, false);
+      else if("cmpGo" in b.dataset) startCompare();
+      else if("cmpClear" in b.dataset) [...compareIds].forEach(toggleCompare);
+    });
+    panel.addEventListener("change", e => {
+      if(!("cmpPick" in e.target.dataset)) return;
+      comparePick = e.target.checked;
+      // w trybie wybierania kursor nad ofertą podpowiada, że kliknięcie dodaje, a nie otwiera
+      map.getContainer().classList.toggle("cmp-pick", comparePick);
+    });
+    renderComparePanel();
+  });
 function rebuildMarkers(list){
   priceLayers.forEach(l => l.clearLayers()); markers.clear();
   for(const o of list){
     if(o.lat == null) continue;
     const m = L.circleMarker([o.lat, o.lon], baseStyle(o))
-      .on("click", () => openDetail(o.id, true))
+      .on("click", e => {
+        if(!comparePick) return openDetail(o.id, true);
+        L.DomEvent.stopPropagation(e);  // kliknięcie nie zamyka panelu z listą porównania
+        toggleCompare(o.id);
+      })
       .bindTooltip(`${esc(o.t)}<br><b>${fmtP(o.p)}</b>` +
         (o.pm ? ` · ${fmtN(o.pm)} zł/m²` : ""), {direction:"top", opacity:.94});
     m.addTo(priceLayers[bucketOf(o.pm)]);
@@ -914,7 +1019,9 @@ function cardHTML(o){
       hover:bg-[#f7f9fc] sel:bg-acc-soft" data-id="${o.id}">${img}<div>
     <h4 class="mb-0.5 line-clamp-2 text-[13px]/[1.3] font-semibold">${esc(o.t)}${badges}</h4>
     <div class="text-[14.5px] font-bold">${fmtP(o.p)}</div>
-    <div class="text-xs text-mut">${esc(meta)}</div></div></div>`;
+    <div class="text-xs text-mut">${esc(meta)}</div>
+    <button type="button" data-cmp title="Dodaj do porównania ofert albo usuń z niego"
+      class="mt-0.5 cursor-pointer text-xs text-acc hover:underline">${cmpButton(o.id)}</button></div></div>`;
 }
 function renderMore(){
   const slice = filtered.slice(shown, shown + CHUNK);
@@ -932,7 +1039,9 @@ const io = new IntersectionObserver(es => {
 });
 $("#cards").addEventListener("click", e => {
   const card = e.target.closest(".card");
-  if(card) openDetail(card.dataset.id, false);
+  if(!card) return;
+  if(e.target.closest("[data-cmp]")) toggleCompare(card.dataset.id);
+  else openDetail(card.dataset.id, false);
 });
 
 /* ---------- szczegóły oferty ---------- */
@@ -1005,6 +1114,12 @@ function openDetail(id, fromMap){
      <div class="text-[22px] font-extrabold">${fmtP(o.p)}${o.ng ?
        ` <small class="text-[13px] font-normal text-mut">do negocjacji</small>` : ""}</div>
      <div class="my-3 grid grid-cols-2 gap-x-3.5 gap-y-2 rounded-[10px] bg-[#f7f8fa] p-3">${grid}</div>` +
+    `<button id="dreport" type="button" class="mb-1 block w-full cursor-pointer rounded-[9px] border border-acc
+       bg-acc-soft p-2.5 text-center font-semibold text-acc hover:bg-acc hover:text-white">
+       Raport o mieszkaniu i okolicy</button>
+     <button id="dcmp" type="button" data-id="${esc(o.id)}" class="mb-1 block w-full cursor-pointer rounded-[9px] border border-line
+       bg-white p-2 text-center text-[13px] font-semibold hover:bg-acc-soft">${
+       compareIds.includes(o.id) ? "✓ W porównaniu — usuń" : "+ Dodaj do porównania"}</button>` +
     hist +
     (o.rad > 0 ? `<div class="mt-2 text-xs text-mut">📍 Sprzedający podał lokalizację
        przybliżoną (±${fmtN(o.rad)} m) — pinezka wskazuje okolicę.</div>` : "") +
@@ -1018,6 +1133,9 @@ function openDetail(id, fromMap){
     e.target.classList.add("on");
   });
   if(o.h) renderPriceChart($("#pchart"), o.h);
+  // raport powstaje dopiero po kliknięciu (report.js) — liczy okolicę tylko dla tej oferty
+  $("#dreport").onclick = () => openReport(o.id);
+  $("#dcmp").onclick = () => toggleCompare(o.id);
   $("#detail").classList.add("open");
   $("#backdrop").classList.add("open");
 }

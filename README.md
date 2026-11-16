@@ -14,7 +14,8 @@ local SQLite database. Every run after that only reports:
 
 It can also export the active listings to CSV, or render them as a
 single-file **interactive map** with filters, where a listing posted on several
-portals can be shown once, with links to all of them.
+portals can be shown once, with links to all of them, and every offer has an
+on-demand **report** on the flat and its neighbourhood.
 
 ## Requirements
 
@@ -134,6 +135,106 @@ and leaves 23 337 unique listings, in about a second. Run without the OLX links,
 the same rules rediscover 95% of those 2 116 known pairs, with one pairing that
 differs from the link.
 
+## Flat report
+
+Every offer's detail panel has a **Raport o mieszkaniu i okolicy** button. It
+opens a full-screen report written for the person who would live there. The
+report is built in the browser, only when the button is pressed and only for
+that one offer, from data the page already carries; the one thing it fetches is
+the noise level at the flat's pin.
+
+It is laid out to be read fast. The top card holds the overall 0–10 score, a
+bar per scored section, six "at a glance" tiles (price against similar offers,
+travel time to your first destination, nearest stop, supermarket and park, the
+noise level) and the strongest points and warnings. Below it every section is
+folded to one line — its conclusion and its score — and opens on a click, so
+the whole report fits one screen until you ask for detail. A map stays next to
+the text the whole time: it shows how far you get on foot in the chosen time,
+and hovering a row draws the walking route to that place or the whole transit
+trip.
+
+| Section | What it answers |
+| --- | --- |
+| *Cena na tle rynku* | Price per m² against comparable active offers (same room count, area ±20%, within 1.5 km), the district median, time on the market, price history, and portals that disagree on the price. |
+| *Koszty zakupu i miesięczne* | A calculator: down payment, interest rate, loan period, PCC, other transaction costs and the monthly service charge (read from the description when the seller gives it). |
+| *Dojazdy do wybranych miejsc* | Door-to-door time to each chosen destination by public transport, with up to two transfers, next to walking and cycling time. |
+| *Przystanki i linie* | Nearest bus, tram and rail stops, the lines and daily departures within walking range. |
+| *Zakupy i codzienne sprawy*, *Zdrowie*, *Dzieci i edukacja*, *Zieleń, sport i rekreacja*, *Gastronomia i życie towarzyskie* | The nearest place of each kind (supermarket, pharmacy, clinic, nursery, school, park…), the walk to it, and how many are in range; a row opens to the five nearest. |
+| *Wybrane obiekty z mapy* | The nearest object of each kind the main map has a layer for — Lidl, Kaufland, Auchan, Good Lood, shopping centre, cinema, theatre, marketplace, zoo — on foot and, when far, by public transport. |
+| *Hałas i uciążliwości* | Road, rail and industrial noise at the pin, day and night, from the city's 2022 noise map, plus nightclubs, bars, tracks or the airport close by. |
+| *Budynek i mieszkanie* | What the build year usually means, and which features the description mentions, mentions as missing, or does not mention at all. |
+| *Podobne oferty w pobliżu* | The cheapest comparable offers; clicking one opens its report. |
+| *Przed oględzinami* | A checklist of questions chosen for this particular listing. |
+
+**Dostosuj** opens the settings:
+
+- a profile that sets how much each section weighs in the overall score
+  (universal, family with children, single/couple/student, senior);
+- the walking range (5–20 minutes);
+- the destinations travel is computed for — Bonarka, the main station and
+  Galeria Krakowska to start with. Type a few letters to add any named object
+  from the map's layers (a shopping centre, a cinema, a theatre, the airport…),
+  or add your own place: name it, press *wskaż na mapie* and click the spot;
+- which kinds of map objects the report looks up the nearest of;
+- which sections to show.
+
+Settings are kept in the browser's local storage. **Drukuj / PDF** prints the
+report alone, as it is on screen (opened sections stay open), with the map at
+the end. The defaults live in `src/map/html_map.py` (`REPORT_DESTINATIONS`,
+`REPORT_KINDS_OFF`).
+
+What the numbers mean:
+
+- Walking times follow the real network of streets, pavements and paths
+  (shortest route from the listing's pin, at 4.8 km/h), so a river, a railway
+  or a fenced estate counts. Where the network is missing, or the place is more
+  than 5 km away, the time is estimated from the straight-line distance plus
+  30% and marked with "≈". When the seller gave only an approximate location,
+  the report says so at the top — everything in it is then a rough guide.
+- Travel by public transport is door to door: the walk to the stop, the average
+  wait (half the interval between departures, at most 12 minutes), the ride time
+  from the timetable, 2 minutes of margin per transfer, and the walk to the
+  destination. It uses the most common route variant of each line and leaves
+  night lines out, so it is a typical daytime trip, not a timetable lookup.
+- A category scores 10 when the walk to its nearest place is within its "at
+  hand" distance (500 m for a supermarket, 300 m for a playground, …; see
+  `CATEGORIES` in `src/osm.py`) and falls linearly to 0 at three times that. A
+  section's score is the weighted average of its categories.
+- Prices are asking prices from this map, after duplicates are collapsed.
+- A flat outside the area the neighbourhood data was fetched for gets no
+  neighbourhood sections rather than misleading zeros.
+
+The report is a way to compare offers, not a valuation or a legal or technical
+opinion on the flat.
+
+## Comparing offers
+
+Two to four offers can be put side by side, with the same figures the flat
+report computes.
+
+- **Any offers, from the map.** Every card in the list and every offer's detail
+  panel has a *+ porównaj* button. The comparison button on the map (two
+  columns, with a counter) lists what has been chosen, lets you remove offers,
+  and has a switch — *wybieraj klikaniem w oferty na mapie* — that makes a click
+  on an offer add it instead of opening it. Chosen offers get an orange ring on
+  the map; the list survives a reload. *Porównaj* opens the comparison.
+- **Similar offers, from a report.** *Porównaj z podobnymi* in the report's
+  header compares the flat with comparable ones nearby. Which ones is set in the
+  report's *Podobne oferty w pobliżu* section: the three cheapest per m² are
+  ticked to start with, and up to three can be chosen.
+
+The comparison is one table: a column per offer (photo, title, links to the
+report and the listing), rows grouped into scores, price and flat, travel to
+your destinations, walks to the nearest stop, shop, clinic, school and park,
+the map objects you chose, noise, features from the description, and the top
+strengths and warnings. In every row where "better" has a meaning the best
+value has a green background, and each column says in how many rows it wins. A
+small map above the table shows where the offers are. Travel times and noise
+levels arrive a moment after the rest. Profile, walking range, destinations and
+the other settings are the report's — change them in its *Dostosuj* panel.
+*Raport* in a column opens that offer's report and closing it returns to the
+comparison; *Drukuj / PDF* prints the table.
+
 ## Included data
 
 This repo ships a real snapshot so you can look at the output without
@@ -182,7 +283,10 @@ midnight written as 24:xx+, a reference weekday with service in every archive,
 route shapes for all trips, and a plausible number of stops, lines and night
 lines. The nationwide rail feed gets the same treatment (platforms attached to
 their station, train vs replacement-bus routes, lines shared between operators,
-a calendar covering the coming weekdays), and the portal tests also cover the
+a calendar covering the coming weekdays). `test_osm.py` runs the report's
+OpenStreetMap queries (places, green areas, the walking network) for a slice of the city (skipped, not failed, when the
+Overpass servers are busy) and asks the city noise map for one point the way
+the page does. The portal tests also cover the
 fields only the duplicate matching reads: the Otodom link OLX keeps, the id at
 the end of an Otodom address, and seller, street and development names. A server that stops answering `304 Not Modified` is reported as a
 skipped test (the map still works, it just re-downloads ~30 MB each time). They need network access and take about
@@ -264,6 +368,32 @@ skipped is marked as failed, so a blocked runner never looks green.
   passenger terminal of Kraków Airport. Its position is hardcoded in
   `TRANSIT_POINTS` (`src/map/html_map.py`), so it needs no data source and is
   not affected by the stop filters or the zoom threshold.
+- The flat report's neighbourhood data comes from OpenStreetMap through the
+  Overpass API (`src/osm.py`): about 10 000 points in 29 categories and some
+  700 parks and forests with their outlines, for the rectangle around the
+  listings plus roughly 2.5 km. It is cached in `.cache/osm/` and refreshed at
+  most once every 30 days. The public Overpass servers are often busy, so the
+  download retries for up to five minutes per query and says what it is waiting
+  for; if it still fails, the previous copy is used, and without one the map is
+  generated normally and the report leaves those sections out. With `--offline`
+  only the cached copy is read. The data adds about 2 MB to the HTML file.
+- Walking routes use the network of streets, pavements and paths from the same
+  source: about 260 000 nodes for Kraków, another 7 MB in the HTML file. It is
+  downloaded in twelve tiles, because the whole city at once is over 100 MB of
+  response — too much for one request to a busy server. Each tile has its own
+  copy in `.cache/osm/siec/` (refreshed every 90 days), so an interrupted
+  download continues on the next run instead of starting over; one run spends
+  at most 15 minutes on it. The report works with whatever tiles are there and
+  falls back to straight-line estimates elsewhere. The shortest routes are
+  computed in the browser when a report is opened (about 0.1 s).
+- Ride times in the report come from the timetables: each route variant stored
+  in `.cache/gtfs/routes.js` now carries, for every stop, the minutes from the
+  start of the route.
+- Noise levels are not embedded. When a report is opened, the page asks the MSIP
+  Kraków noise-map server which noise zone the flat's pin falls in (six small
+  requests, as JSONP so they work from a local file). Without a network
+  connection that part of the report says it could not be loaded; the rest
+  works.
 - The 18 Kraków district boundaries come from the city's open data portal and
   live in `src/map/template/layers/districts.geojson`. They get their own
   *Granice dzielnic* section in the map's *Podkład i granice* panel (next to the

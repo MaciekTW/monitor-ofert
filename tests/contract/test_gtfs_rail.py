@@ -27,7 +27,7 @@ from tests.contract.helpers import fetch
 REQUIRED_COLUMNS = {
     "routes.txt": {"route_id", "route_short_name", "route_long_name", "route_type"},
     "trips.txt": {"trip_id", "route_id", "service_id", "direction_id", "shape_id", "trip_headsign"},
-    "stop_times.txt": {"trip_id", "stop_id", "stop_sequence", "pickup_type"},
+    "stop_times.txt": {"trip_id", "stop_id", "stop_sequence", "pickup_type", "departure_time"},
     "stops.txt": {"stop_id", "stop_name", "stop_lat", "stop_lon", "parent_station"},
     "shapes.txt": {"shape_id", "shape_pt_lat", "shape_pt_lon", "shape_pt_sequence"},
     "calendar_dates.txt": {"service_id", "date", "exception_type"},

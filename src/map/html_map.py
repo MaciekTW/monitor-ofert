@@ -6,7 +6,7 @@ z mapą (Leaflet), listą i filtrami aktywnych ofert zapisanych w bazie
 oraz drugą zakładką z historią rynku (liczba ofert, ceny i ich zmiany w czasie).
 
 Wygląd i logika strony są w katalogu template/ (szablon Jinja2 index.html
-oraz style.css, app.js, history.js i krakow_boundary.js wklejane do niego bez zmian;
+oraz style.css, app.js, history.js, report.js i krakow_boundary.js wklejane do niego bez zmian;
 dodatkowe warstwy punktów, np. lodziarnie, i granice dzielnic w template/layers/;
 przystanki komunikacji miejskiej z modułu gtfs).
 Zewnętrzne biblioteki
@@ -31,6 +31,7 @@ from markupsafe import Markup
 
 import dedup
 import gtfs
+import osm
 
 
 def log(msg: str = "") -> None:
@@ -241,6 +242,35 @@ TRANSIT_POINTS = [
 # (~10 km) — żeby objąć też przystanki tuż za granicą miasta
 RAIL_MARGIN = (0.09, 0.14)  # (szerokość, długość geograficzna)
 
+# Raport o mieszkaniu (template/report.js): dane o okolicy z OpenStreetMap (moduł osm)
+# dla prostokąta wokół ofert z marginesem ~2,5 km — tyle, żeby mieszkanie na skraju
+# miało w zasięgu spaceru także to, co leży już za ostatnią ofertą.
+OSM_MARGIN = (0.025, 0.035)
+# Miejsca, do których raport liczy dojazd dla każdego mieszkania (obok własnych miejsc
+# użytkownika, dodawanych w raporcie). Wpisane na sztywno, jak lotnisko.
+# Hałas w raporcie: strategiczna mapa akustyczna Krakowa 2022 (MSIP, ArcGIS MapServer —
+# ta sama, którą app.js rysuje jako podkład „Hałas”). Raport pyta o strefę, w której leży
+# pinezka mieszkania: zapytanie /<warstwa>/query o punkt zwraca przedział decybeli
+# w polach ISOV1–ISOV2. Warstwy: [źródło hałasu, L_DWN (cała doba), L_N (noc)].
+NOISE_SERVICE = (
+    "https://msip.um.krakow.pl/arcgis/rest/services/Mapa_halasu_2022/8_2_MH_2022_IMISJA_5/MapServer"
+)
+NOISE_LAYERS = [["drogowy", 1, 3], ["szynowy (tramwaje, kolej)", 5, 7], ["przemysłowy", 8, 9]]
+REPORT_PLACES = [
+    {"id": "place:rynek", "name": "Rynek Główny", "lat": 50.061700, "lon": 19.937300},
+    {"id": "place:dworzec", "name": "Dworzec Główny", "lat": 50.067700, "lon": 19.947500},
+]
+# Cele dojazdów zaznaczone w raporcie na starcie (zmienia się je w panelu „Dostosuj”):
+# miejsce z REPORT_PLACES albo punkt warstwy mapy jako "<id warstwy>:<numer punktu>".
+REPORT_DESTINATIONS = [
+    "mall-way-48306888:0",  # Bonarka City Center
+    "place:dworzec",
+    "mall-way-87527970:0",  # Galeria Krakowska
+]
+# Rodzaje obiektów z mapy (warstwy POI_LAYERS; wszystkie centra handlowe to jeden rodzaj
+# "mall"), dla których raport NIE szuka na starcie najbliższego — resztę pokazuje.
+REPORT_KINDS_OFF = ["nightclub"]
+
 # Granice dzielnic Krakowa: obrysy 18 dzielnic z miejskiego portalu danych
 # (template/layers/districts.geojson). Plik jest już w WGS84 — przeliczenie
 # z układu 2000 strefa 7 (EPSG:2178), uproszczenie obrysów (~6 m) i obcięcie
@@ -445,20 +475,23 @@ def line_order(line: str):
     return (0, int(line), "") if line.isdigit() else (1, 0, line)
 
 
-def rail_bounds(offers: list[dict]) -> tuple[float, float, float, float] | None:
-    """Prostokąt (lat min, lon min, lat max, lon max), z którego mapa bierze stacje
-    kolejowe: 1.–99. percentyl współrzędnych ofert (pojedyncza oferta z błędną
-    lokalizacją nie rozciąga go na pół kraju) z marginesem RAIL_MARGIN."""
+def offers_bounds(
+    offers: list[dict], margin: tuple[float, float]
+) -> tuple[float, float, float, float] | None:
+    """Prostokąt (lat min, lon min, lat max, lon max) wokół ofert, z którego mapa
+    bierze stacje kolejowe (margin = RAIL_MARGIN) i dane o okolicy (OSM_MARGIN):
+    1.–99. percentyl współrzędnych ofert (pojedyncza oferta z błędną lokalizacją
+    nie rozciąga go na pół kraju) powiększony o margin stopni szerokości i długości."""
     points = [(o["lat"], o["lon"]) for o in offers if o["lat"] is not None and o["lon"] is not None]
     if not points:
         return None
     lats, lons = sorted(p[0] for p in points), sorted(p[1] for p in points)
     low, high = len(points) // 100, len(points) - 1 - len(points) // 100
     return (
-        lats[low] - RAIL_MARGIN[0],
-        lons[low] - RAIL_MARGIN[1],
-        lats[high] + RAIL_MARGIN[0],
-        lons[high] + RAIL_MARGIN[1],
+        lats[low] - margin[0],
+        lons[low] - margin[1],
+        lats[high] + margin[0],
+        lons[high] + margin[1],
     )
 
 
@@ -705,6 +738,13 @@ def export_html(con: sqlite3.Connection, path: str, offline: bool = False) -> No
             "będą miały napis „API KEY REQUIRED”. Darmowy klucz: https://carto.com/basemaps/apikey"
         )
 
+    # lotnisko z panelu „Komunikacja” jest też celem dojazdu w raporcie o mieszkaniu
+    airports = [
+        {"id": "place:lotnisko", "name": spec["label"], "lat": lat, "lon": lon}
+        for spec in TRANSIT_POINTS
+        if spec["id"] == "airport"
+        for lat, lon, *_ in spec["pts"]
+    ]
     page = (
         make_env()
         .get_template("index.html")
@@ -714,7 +754,15 @@ def export_html(con: sqlite3.Connection, path: str, offline: bool = False) -> No
             hist=market_history(con),
             pois=poi_layers(),
             districts=district_layers(),
-            transit=transit_layers(offline, rail_bounds(offers)),
+            transit=transit_layers(offline, offers_bounds(offers, RAIL_MARGIN)),
+            osm=osm.load(offers_bounds(offers, OSM_MARGIN), offline),
+            walk=osm.load_walk(offers_bounds(offers, OSM_MARGIN), offline),
+            report={
+                "places": [*REPORT_PLACES, *airports],
+                "destinations": REPORT_DESTINATIONS,
+                "kindsOff": REPORT_KINDS_OFF,
+                "noise": {"url": NOISE_SERVICE, "layers": NOISE_LAYERS},
+            },
         )
     )
     with open(path, "w", encoding="utf-8") as f:
