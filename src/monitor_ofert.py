@@ -64,6 +64,8 @@ from urllib.parse import urlparse, parse_qsl, urlencode
 from dotenv import load_dotenv
 
 from map.html_map import export_html
+import server
+from server import serve
 from terminal_report import report
 
 # curl_cffi (jeśli jest zainstalowane) podszywa się pod prawdziwą przeglądarkę
@@ -1418,6 +1420,7 @@ def init_schema(con: sqlite3.Connection) -> None:
             value TEXT
         );
     """)
+    server.ensure_schema(con)  # zmiany użytkownika i dziennik zniknięć/powrotów
 
 
 def init_db(path: str) -> sqlite3.Connection:
@@ -1646,6 +1649,7 @@ def sync(con: sqlite3.Connection, records: list[tuple[dict, dict]], full_scan_so
             )
             if not was_active:
                 returned.append(o)
+                con.execute("INSERT INTO offer_events VALUES (?, ?, 'returned')", (o["uid"], now))
 
     removed = []
     if full_scan_sources and not first_run:
@@ -1674,6 +1678,7 @@ def sync(con: sqlite3.Connection, records: list[tuple[dict, dict]], full_scan_so
                 )
         for item in removed:
             con.execute("UPDATE offers SET active = 0 WHERE uid = ?", (item["uid"],))
+            con.execute("INSERT INTO offer_events VALUES (?, ?, 'removed')", (item["uid"], now))
 
     con.commit()
     return {
@@ -1979,6 +1984,13 @@ def parse_cli(argv: list[str] | None):
         default=0.6,
         help="pauza w sekundach między zapytaniami do portali",
     )
+    parser.add_argument(
+        "--serve",
+        action="store_true",
+        help="po wygenerowaniu mapy (--html) uruchom lokalny serwer: na stronie można wtedy "
+        "oznaczać oferty jako śledzone i poprawiać ich lokalizację (zapis w bazie)",
+    )
+    parser.add_argument("--port", type=int, default=8000, help="port lokalnego serwera (--serve)")
     parser.add_argument("--category-id", help="ręcznie: id kategorii (tylko OLX)")
     parser.add_argument("--city-id", help="ręcznie: id miasta (tylko OLX)")
     parser.add_argument("--region-id", help="ręcznie: id województwa (tylko OLX)")
@@ -1987,7 +1999,10 @@ def parse_cli(argv: list[str] | None):
         action="store_true",
         help="pozwól użyć bazy utworzonej dla innego adresu URL",
     )
-    return parser.parse_args(argv)
+    args = parser.parse_args(argv)
+    if args.serve and not args.html:
+        parser.error("--serve wymaga --html PLIK.html")
+    return args
 
 
 def select_sources(args) -> list[tuple[type, str]]:
@@ -2090,6 +2105,8 @@ def main(argv: list[str] | None = None) -> None:
             export_csv(con, args.export)
         if args.html:
             export_html(con, args.html, offline=True)
+        if args.serve:
+            serve(args.db, args.html, args.port)
         if not args.export and not args.html:
             log(
                 "Tryb --offline: nic nie pobrano. Dodaj --export PLIK.csv "
@@ -2126,6 +2143,8 @@ def main(argv: list[str] | None = None) -> None:
         export_csv(con, args.export)
     if args.html:
         export_html(con, args.html)
+    if args.serve:
+        serve(args.db, args.html, args.port)
 
 
 if __name__ == "__main__":

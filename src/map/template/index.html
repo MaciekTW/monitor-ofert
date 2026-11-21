@@ -17,6 +17,7 @@
  <nav id="tabs" class="flex gap-1 rounded-lg bg-page p-1">
   <button class="tab on" data-tab="map">Mapa ofert</button>
   <button class="tab" data-tab="hist">Historia rynku</button>
+  <button class="tab" data-tab="tracked">Śledzone <span id="trcount"></span></button>
  </nav>
  <div id="mapctl" class="contents">
  <div id="qrows" class="flex max-w-[820px] min-w-[180px] flex-1 flex-wrap items-center gap-1.5"
@@ -80,6 +81,8 @@
     <button class="mini" id="dnone">żadna</button></div>
    <div id="districts" class="max-h-42 overflow-y-auto rounded-md border border-line bg-[#fbfcfd] px-2 py-1.5"></div></div>
   <div class="mb-3.5 space-y-1">
+   <label class="chk"><input type="checkbox" id="onlytracked"> tylko śledzone</label>
+   <label class="chk"><input type="checkbox" id="showhidden"> pokaż ukryte</label>
    <label class="chk"><input type="checkbox" id="onlydrop"> tylko z obniżką ceny</label>
    <label class="chk"><input type="checkbox" id="onlygeo"> tylko z lokalizacją na mapie</label>
    <label class="chk"><input type="checkbox" id="bounds"> zawęź do widocznego obszaru mapy</label>
@@ -151,6 +154,36 @@
    <div class="overflow-x-auto"><table id="hdist" class="w-full text-[13px] tabular-nums"></table></div></section>
  </div>
 </main>
+<main id="tab-tracked" hidden class="desk:flex desk:min-h-0 desk:flex-1">
+ <div class="px-4 py-4 desk:min-w-0 desk:flex-1 desk:overflow-y-auto">
+  <div id="trtiles" class="mb-3 grid grid-cols-[repeat(auto-fit,minmax(150px,1fr))] gap-2"></div>
+  <div class="mb-3 flex flex-wrap items-center gap-2">
+   <div class="flex gap-1.5" id="trstate">
+    <button class="chip on" data-state="">wszystkie</button>
+    <button class="chip" data-state="active">aktywne</button>
+    <button class="chip" data-state="gone">zniknęły</button></div>
+   <select id="trstatus" class="field w-auto!"></select>
+   <select id="trsort" class="field w-auto!">
+    <option value="event">ostatnia zmiana</option>
+    <option value="drop">największa obniżka</option>
+    <option value="p-asc">cena ↑</option>
+    <option value="p-desc">cena ↓</option>
+    <option value="status">status</option>
+   </select>
+   <button id="trfeedopen" type="button" hidden class="ml-auto cursor-pointer rounded-lg border border-line bg-white px-3 py-1.5
+     text-[13px] font-semibold hover:bg-acc-soft">Historia zmian ‹</button>
+  </div>
+  <div id="trgrid" class="grid grid-cols-[repeat(auto-fill,minmax(270px,1fr))] gap-3"></div>
+ </div>
+ <aside id="trside" class="flex flex-col border-t border-line bg-white desk:w-90 desk:shrink-0 desk:border-t-0 desk:border-l">
+  <div class="flex items-center gap-2 border-b border-line px-3.5 py-2.5">
+   <div class="flex-1"><h2 class="hc-title">Historia zmian</h2>
+    <p class="text-xs text-mut">ceny, zniknięcia i powroty — od najnowszych</p></div>
+   <button id="trfeedclose" type="button" title="Zwiń panel" class="cursor-pointer rounded-md px-2 py-0.5 text-mut hover:bg-page hover:text-ink">zwiń ›</button>
+  </div>
+  <div id="trfeed" class="px-3.5 pb-3 desk:min-h-0 desk:flex-1 desk:overflow-y-auto"></div>
+ </aside>
+</main>
 <div id="backdrop" class="pointer-events-none fixed inset-0 z-1100 bg-[rgba(15,22,33,.35)] opacity-0 transition-opacity
   shown:pointer-events-auto shown:opacity-100"></div>
 <section id="detail" class="fixed top-0 right-0 z-1200 flex h-full w-[min(600px,100vw)] translate-x-[calc(100%+20px)] flex-col
@@ -169,6 +202,13 @@
 <script id="transit" type="application/json">{{ transit | tojson }}</script>
 <script id="osmdata" type="application/json">{{ osm | tojson }}</script>
 <script id="walkdata" type="application/json">{{ walk | tojson }}</script>
+<script>
+// śledzone oferty i poprawione lokalizacje: stan z chwili wygenerowania pliku,
+// a przy uruchomieniu z --serve — aktualny, prosto z bazy
+window.EDITS = {{ edits | tojson }};
+window.TRACKED = {{ tracked | tojson }};
+if(location.protocol !== "file:") document.write('<script src="edits.js"><\/script>');
+</script>
 <script id="reportcfg" type="application/json">{{ report | tojson }}</script>
 <script>{{ include_raw("krakow_boundary.js") }}</script>
 <script>
@@ -177,5 +217,7 @@
 {{ include_raw("history.js") }}</script>
 <script>
 {{ include_raw("report.js") }}</script>
+<script>
+{{ include_raw("tracked.js") }}</script>
 </body>
 </html>

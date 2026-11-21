@@ -2,6 +2,18 @@
 const META = JSON.parse(document.getElementById("meta").textContent);
 const OFFERS = JSON.parse(document.getElementById("data").textContent);
 const GEN = new Date(META.gen);
+/* ---------- zmiany użytkownika: śledzone oferty i poprawione lokalizacje ---------- */
+/* window.EDITS = {id oferty: [śledzona, lat, lon, ukryta, status, notatka]} pochodzi z tabeli user_edits w bazie.
+   Zapisywać można tylko wtedy, gdy stronę podaje lokalny serwer (--serve); plik otwarty
+   wprost z dysku pokazuje stan z chwili wygenerowania. Poprawiona lokalizacja zastępuje tę
+   z ogłoszenia (i znosi „przybliżoną”), a pierwotna zostaje w o.ll0 do przywrócenia. */
+const EDITABLE = location.protocol !== "file:";
+for(const o of OFFERS){
+  const e = (window.EDITS || {})[o.id];
+  if(!e) continue;
+  o.tr = !!e[0]; o.hid = !!e[3]; o.st = e[4]; o.nt = e[5];
+  if(e[1] != null){ o.ll0 = [o.lat, o.lon, o.rad]; o.lat = e[1]; o.lon = e[2]; o.rad = 0; }
+}
 const PORTAL = {olx: "OLX", otodom: "Otodom", gratka: "Gratka"};
 const $ = s => document.querySelector(s);
 const esc = s => (s == null ? "" : String(s))
@@ -498,7 +510,7 @@ function loadRoutes(){
   routesLoading ??= new Promise((resolve, reject) => {
     if(!TRANSIT_DATA.routes) return reject();
     const script = document.createElement("script");
-    script.src = TRANSIT_DATA.routes;
+    script.src = EDITABLE ? "routes.js" : TRANSIT_DATA.routes;  // z http:// nie wolno sięgać do file://
     script.onload = () => window.TRANSIT_ROUTES ? resolve(window.TRANSIT_ROUTES) : reject();
     script.onerror = () => { script.remove(); reject(); };
     document.head.append(script);
@@ -674,7 +686,7 @@ try {
 } catch { /* bez zapamiętanej listy */ }
 // krótki komunikat na dole ekranu, opcjonalnie z przyciskiem akcji; znika sam
 let toastTimer;
-function toast(text, action, run){
+function toast(text, action, run, sticky){
   let box = $("#toast");
   if(!box){
     document.body.insertAdjacentHTML("beforeend", `<div id="toast" hidden class="fixed bottom-5 left-1/2 z-1250 flex
@@ -686,7 +698,7 @@ function toast(text, action, run){
   if(action) box.querySelector("button").onclick = () => { box.hidden = true; run(); };
   box.hidden = false;
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => box.hidden = true, 4500);
+  if(!sticky) toastTimer = setTimeout(() => box.hidden = true, 4500);
 }
 const cmpButton = id => compareIds.includes(id)
   ? `<span class="font-semibold" style="color:${CMP_COLOR}">✓ w porównaniu</span>` : "+ porównaj";
@@ -713,10 +725,133 @@ function syncCompare(id){
   renderComparePanel();
 }
 function baseStyle(o){
-  const picked = compareIds.includes(o.id);
-  return {radius: picked ? 8 : 6, weight: picked ? 3 : 1, color: picked ? CMP_COLOR : "#fff",
-          fillColor:colorOf(o.pm), fillOpacity:.88};
+  const picked = compareIds.includes(o.id), ring = picked || o.tr;
+  return {radius: ring ? 8 : 6, weight: ring ? 3 : 1, color: picked ? CMP_COLOR : o.tr ? TRACK_COLOR : "#fff",
+          fillColor:colorOf(o.pm), fillOpacity: o.hid ? .3 : .88};
 }
+
+/* ---------- śledzone oferty i korekta lokalizacji ---------- */
+// zapis dotyczy wszystkich kopii ogłoszenia naraz — to jedno mieszkanie, niezależnie od portalu
+const TRACK_COLOR = "#7c3aed";
+function saveEdit(o, change){
+  if(!EDITABLE){
+    toast("Zmiany zapisuje lokalny serwer — uruchom mapę z opcją --serve.");
+    return Promise.reject();
+  }
+  return fetch("api/edit", {method: "POST", headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({uids: copies(o).map(x => x.id), ...change})})
+    .then(r => { if(!r.ok) throw new Error(r.status); })
+    .catch(e => { toast("Nie udało się zapisać zmiany — czy serwer mapy nadal działa?"); throw e; });
+}
+const trackButton = o => o.tr
+  ? `<span class="font-semibold" style="color:${TRACK_COLOR}">★ śledzona${o.st ? " · " + esc(o.st) : ""}</span>` : "☆ śledź";
+// śledzona oferta, która zniknęła z portali, nie ma już wpisu w OFFERS — jej dane
+// (z ostatniego skanu) przychodzą z listą śledzonych i trafiają do GONE (tracked.js)
+const GONE = new Map();
+const offerById = id => OFFERS.find(x => x.id === id) ?? GONE.get(id);
+function toggleTrack(id){
+  const o = offerById(id), tracked = !o.tr;
+  return saveEdit(o, {tracked}).then(() => {
+    for(const x of copies(o)){
+      x.tr = tracked;
+      const m = markers.get(x.id);
+      if(m && x.id !== selId) m.setStyle(baseStyle(x));
+      document.querySelectorAll(`.card[data-id="${x.id}"] [data-track]`).forEach(b => b.innerHTML = trackButton(x));
+    }
+    const inDetail = $("#dtrack");
+    if(inDetail?.dataset.id === id){ inDetail.innerHTML = trackLabel(o); $("#dnotes").innerHTML = notesHTML(o); }
+    loadTracked();  // licznik i zakładka „Śledzone” (tracked.js)
+  }, () => {});
+}
+const trackLabel = o => o.tr ? "★ Śledzona — przestań śledzić" : "☆ Śledź ofertę";
+// status i notatka śledzonej oferty — w szczegółach oferty i w zakładce „Śledzone” (tracked.js);
+// zapisują się po zmianie pola, a po zakończeniu śledzenia zostają w bazie na wypadek powrotu
+const STATUSES = ["do kontaktu", "umówione oględziny", "po oględzinach", "w negocjacjach", "rezygnacja"];
+const statusOptions = o => `<option value="">— bez statusu —</option>` +
+  [...new Set([...STATUSES, o.st].filter(Boolean))].map(s => `<option ${s === o.st ? "selected" : ""}>${esc(s)}</option>`).join("");
+const notesHTML = o => !o.tr ? "" : `<div class="mb-1 rounded-[9px] border border-line bg-[#f7f8fa] p-2.5">
+  <label class="block text-[11.5px] text-mut">Status<select data-status class="field mt-0.5 text-ink">${statusOptions(o)}</select></label>
+  <label class="mt-2 block text-[11.5px] text-mut">Notatka<textarea data-note rows="3" class="field mt-0.5 h-auto! text-ink"
+    placeholder="np. dzwoniłem, czynsz 900 zł, głośno od ulicy…">${esc(o.nt)}</textarea></label></div>`;
+function setNote(id, change){  // {status} albo {note}
+  const o = offerById(id);
+  return saveEdit(o, change).then(() => {
+    for(const x of copies(o)){
+      if("status" in change) x.st = change.status;
+      if("note" in change) x.nt = change.note;
+      document.querySelectorAll(`.card[data-id="${x.id}"] [data-track]`).forEach(b => b.innerHTML = trackButton(x));
+    }
+    loadTracked();
+  }, () => {});
+}
+/* ---------- ukrywanie ofert ---------- */
+// ukryta (odrzucona) oferta znika z listy i z mapy, dopóki nie zaznaczy się „pokaż ukryte”
+const hideButton = o => o.hid ? "przywróć ukrytą" : "ukryj";
+const hideLabel = o => o.hid ? "Przywróć ukrytą ofertę" : "Ukryj ofertę";
+function toggleHide(id){
+  const o = OFFERS.find(x => x.id === id), hidden = !o.hid;
+  return saveEdit(o, {hidden}).then(() => {
+    const all = copies(o);
+    for(const x of all) x.hid = hidden;
+    if($("#showhidden").checked){
+      // oferta zostaje na liście — zmienia się tylko jej wygląd
+      for(const x of all){
+        document.querySelectorAll(`.card[data-id="${x.id}"]`).forEach(c => c.outerHTML = cardHTML(x));
+        const m = markers.get(x.id);
+        if(m && x.id !== selId) m.setStyle(baseStyle(x));
+      }
+      const inDetail = $("#dhide");
+      if(inDetail?.dataset.id === id) inDetail.innerHTML = hideLabel(o);
+    } else if(hidden){
+      // usuwamy ją w miejscu, bez przewijania listy na początek
+      for(const x of all){
+        document.querySelectorAll(`.card[data-id="${x.id}"]`).forEach(c => { c.remove(); shown--; });
+        const m = markers.get(x.id);
+        if(m){ priceLayers.forEach(l => l.removeLayer(m)); markers.delete(x.id); }
+        if(x.id === selId){ selId = null; closeDetail(); }
+      }
+      filtered = filtered.filter(x => !all.includes(x));
+      $("#cnt").textContent = `${filtered.length} z ${dedupOn ? UNIQUE : OFFERS.length}`;
+      renderStats(); renderHisto();
+    } else apply();
+    hidden ? toast("Ukryto ofertę — wróci po zaznaczeniu „pokaż ukryte”.", "Cofnij", () => toggleHide(id))
+      : toast("Przywrócono ofertę.");
+  }, () => {});
+}
+// korekta lokalizacji: po wybraniu jej w szczegółach oferty najbliższe kliknięcie w mapę
+// (także w inną ofertę) ustawia pinezkę; null przywraca lokalizację z ogłoszenia
+let locPick = null;
+function stopLocPick(){
+  locPick = null;
+  map.getContainer().style.cursor = "";
+  $("#toast").hidden = true;
+}
+function startLocPick(o){
+  if(!EDITABLE) return saveEdit(o).catch(() => {});
+  closeDetail();
+  locPick = o;
+  map.getContainer().style.cursor = "crosshair";
+  toast("Kliknij na mapie miejsce, w którym naprawdę jest to mieszkanie.", "Anuluj", stopLocPick, true);
+}
+function setLocation(o, loc){
+  if(locPick) stopLocPick();
+  saveEdit(o, {loc}).then(() => {
+    for(const x of copies(o)){
+      if(loc){
+        x.ll0 ??= [x.lat, x.lon, x.rad];
+        [x.lat, x.lon, x.rad] = [...loc, 0];
+      } else if(x.ll0){
+        [x.lat, x.lon, x.rad] = x.ll0;
+        delete x.ll0;
+      }
+    }
+    apply();
+    openDetail(o.id, true);
+    toast(loc ? "Zapisano poprawioną lokalizację." : "Przywrócono lokalizację z ogłoszenia.");
+  }, () => {});
+}
+const pickedLoc = e => [+e.latlng.lat.toFixed(6), +e.latlng.lng.toFixed(6)];
+map.on("click", e => { if(locPick) setLocation(locPick, pickedLoc(e)); });
 mapPanel("Porównanie ofert",
   `<svg viewBox="0 0 24 24" class="size-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
     stroke-linejoin="round"><rect x="3" y="4" width="7" height="16" rx="1.5"/><rect x="14" y="4" width="7" height="16" rx="1.5"/></svg>`,
@@ -771,6 +906,7 @@ function rebuildMarkers(list){
     if(o.lat == null) continue;
     const m = L.circleMarker([o.lat, o.lon], baseStyle(o))
       .on("click", e => {
+        if(locPick) return setLocation(locPick, pickedLoc(e));
         if(!comparePick) return openDetail(o.id, true);
         L.DomEvent.stopPropagation(e);  // kliknięcie nie zamyka panelu z listą porównania
         toggleCompare(o.id);
@@ -927,6 +1063,8 @@ function currentFilter(){
     // oferta bez „pc” nigdy nie zmieniła ceny, więc odpada przy każdym oknie
     if(chgDays != null && (!o.pc || (GEN - new Date(o.pc)) > chgDays*864e5)) return false;
     if(!allD && !dsel.has(o.d || "(nie podano)")) return false;
+    if(o.hid && !$("#showhidden").checked) return false;
+    if($("#onlytracked").checked && !o.tr) return false;
     if($("#onlydrop").checked && !(o._drop > 0)) return false;
     if($("#onlygeo").checked && o.lat == null) return false;
     if(bounds && (o.lat == null || !bounds.contains([o.lat, o.lon]))) return false;
@@ -1016,12 +1154,16 @@ function cardHTML(o){
     o.pm ? fmtN(o.pm) + " zł/m²" : null,
     o.r || null, o.d || null].filter(Boolean).join(" · ");
   return `<div class="card flex cursor-pointer gap-2.5 border-b border-line px-3 py-2.5
-      hover:bg-[#f7f9fc] sel:bg-acc-soft" data-id="${o.id}">${img}<div>
+      hover:bg-[#f7f9fc] sel:bg-acc-soft ${o.hid ? "opacity-50" : ""}" data-id="${o.id}">${img}<div>
     <h4 class="mb-0.5 line-clamp-2 text-[13px]/[1.3] font-semibold">${esc(o.t)}${badges}</h4>
     <div class="text-[14.5px] font-bold">${fmtP(o.p)}</div>
     <div class="text-xs text-mut">${esc(meta)}</div>
     <button type="button" data-cmp title="Dodaj do porównania ofert albo usuń z niego"
-      class="mt-0.5 cursor-pointer text-xs text-acc hover:underline">${cmpButton(o.id)}</button></div></div>`;
+      class="mt-0.5 cursor-pointer text-xs text-acc hover:underline">${cmpButton(o.id)}</button>
+    <button type="button" data-track title="Dodaj do śledzonych ofert albo usuń z nich"
+      class="mt-0.5 ml-2 cursor-pointer text-xs text-acc hover:underline">${trackButton(o)}</button>
+    <button type="button" data-hide title="Ukryj ofertę na liście i na mapie albo przywróć ukrytą"
+      class="mt-0.5 ml-2 cursor-pointer text-xs text-mut hover:text-ink hover:underline">${hideButton(o)}</button></div></div>`;
 }
 function renderMore(){
   const slice = filtered.slice(shown, shown + CHUNK);
@@ -1041,12 +1183,14 @@ $("#cards").addEventListener("click", e => {
   const card = e.target.closest(".card");
   if(!card) return;
   if(e.target.closest("[data-cmp]")) toggleCompare(card.dataset.id);
+  else if(e.target.closest("[data-track]")) toggleTrack(card.dataset.id);
+  else if(e.target.closest("[data-hide]")) toggleHide(card.dataset.id);
   else openDetail(card.dataset.id, false);
 });
 
 /* ---------- szczegóły oferty ---------- */
 function openDetail(id, fromMap){
-  const o = OFFERS.find(x => x.id === id);
+  const o = offerById(id);
   if(!o) return;
   highlight(id);
   document.querySelectorAll(".card.sel").forEach(c => c.classList.remove("sel"));
@@ -1110,6 +1254,8 @@ function openDetail(id, fromMap){
   }
   if(priceChart){ priceChart.dispose(); priceChart = null; }
   $("#dbody").innerHTML = gal +
+    (o.gone ? `<div class="mt-3 rounded-[9px] bg-[#fdecec] px-3 py-2 text-[13px] text-bad">Ta oferta zniknęła z portalu
+       ${fmtDate(o.ev.findLast(e => e[1] === "removed")?.[0])} — poniżej dane z ostatniego skanu.</div>` : "") +
     `<h2 class="mt-3 mb-1 text-lg/[1.3] font-bold">${esc(o.t)}</h2>
      <div class="text-[22px] font-extrabold">${fmtP(o.p)}${o.ng ?
        ` <small class="text-[13px] font-normal text-mut">do negocjacji</small>` : ""}</div>
@@ -1119,10 +1265,19 @@ function openDetail(id, fromMap){
        Raport o mieszkaniu i okolicy</button>
      <button id="dcmp" type="button" data-id="${esc(o.id)}" class="mb-1 block w-full cursor-pointer rounded-[9px] border border-line
        bg-white p-2 text-center text-[13px] font-semibold hover:bg-acc-soft">${
-       compareIds.includes(o.id) ? "✓ W porównaniu — usuń" : "+ Dodaj do porównania"}</button>` +
+       compareIds.includes(o.id) ? "✓ W porównaniu — usuń" : "+ Dodaj do porównania"}</button>
+     <button id="dtrack" type="button" data-id="${esc(o.id)}" class="mb-1 block w-full cursor-pointer rounded-[9px] border border-line
+       bg-white p-2 text-center text-[13px] font-semibold hover:bg-acc-soft">${trackLabel(o)}</button>
+     <div id="dnotes">${notesHTML(o)}</div>
+     <button id="dhide" type="button" data-id="${esc(o.id)}" class="mb-1 block w-full cursor-pointer rounded-[9px] border border-line
+       bg-white p-2 text-center text-[13px] font-semibold text-mut hover:bg-acc-soft">${hideLabel(o)}</button>` +
     hist +
     (o.rad > 0 ? `<div class="mt-2 text-xs text-mut">📍 Sprzedający podał lokalizację
        przybliżoną (±${fmtN(o.rad)} m) — pinezka wskazuje okolicę.</div>` : "") +
+    `<div class="mt-2 text-xs text-mut">${o.ll0 ? "📍 Lokalizacja poprawiona ręcznie · " : ""}<button id="dloc" type="button"
+       class="cursor-pointer text-acc hover:underline">${o.lat == null ? "Wskaż lokalizację na mapie"
+         : o.ll0 ? "popraw ponownie" : "Popraw lokalizację na mapie"}</button>${o.ll0 ? ` · <button id="dlocreset" type="button"
+       class="cursor-pointer text-acc hover:underline">przywróć z ogłoszenia</button>` : ""}</div>` +
     (o.dsc ? `<div class="mt-3 text-[13.5px] whitespace-pre-line">${esc(o.dsc)}</div>` : "") +
     links;
   const th = $("#thumbs");
@@ -1136,6 +1291,14 @@ function openDetail(id, fromMap){
   // raport powstaje dopiero po kliknięciu (report.js) — liczy okolicę tylko dla tej oferty
   $("#dreport").onclick = () => openReport(o.id);
   $("#dcmp").onclick = () => toggleCompare(o.id);
+  $("#dtrack").onclick = () => toggleTrack(o.id);
+  $("#dhide").onclick = () => toggleHide(o.id);
+  $("#dnotes").onchange = e => setNote(o.id, "status" in e.target.dataset
+    ? {status: e.target.value || null} : {note: e.target.value.trim() || null});
+  $("#dloc").onclick = () => startLocPick(o);
+  if(o.ll0) $("#dlocreset").onclick = () => setLocation(o, null);
+  // oferty, której nie ma już na mapie, nie da się porównywać, ukrywać ani przesuwać
+  if(o.gone) [$("#dreport"), $("#dcmp"), $("#dhide"), $("#dloc").parentElement].forEach(el => el.remove());
   $("#detail").classList.add("open");
   $("#backdrop").classList.add("open");
 }
@@ -1183,12 +1346,16 @@ function renderPriceChart(el, h){
   $("#ptoggle").onclick = toggle;
 }
 function closeDetail(){
+  document.activeElement?.blur();  // pisana właśnie notatka zapisuje się przy opuszczeniu pola
   $("#detail").classList.remove("open");
   $("#backdrop").classList.remove("open");
 }
 $("#dclose").onclick = closeDetail;
 $("#backdrop").onclick = closeDetail;
-addEventListener("keydown", e => { if(e.key === "Escape") closeDetail(); });
+addEventListener("keydown", e => {
+  if(e.key !== "Escape") return;
+  if(locPick) stopLocPick(); else closeDetail();
+});
 
 /* ---------- zdarzenia ---------- */
 let deb;
@@ -1197,7 +1364,7 @@ const soon = () => { clearTimeout(deb); deb = setTimeout(() => apply(), 220); };
   .forEach(s => $(s).addEventListener("input", soon));
 $("#qrows").addEventListener("change", e => { if(e.target.tagName === "SELECT") apply(); });
 $("#qadd").onclick = addQueryRow;
-["#qdesc","#market","#seller","#fresh","#pchg","#sort","#onlydrop","#onlygeo"]
+["#qdesc","#market","#seller","#fresh","#pchg","#sort","#onlytracked","#showhidden","#onlydrop","#onlygeo"]
   .forEach(s => $(s).addEventListener("change", () => apply()));
 $("#bounds").addEventListener("change", () => apply(false));
 map.on("moveend", () => { if($("#bounds").checked) apply(false); });
@@ -1231,7 +1398,7 @@ $("#clear").onclick = () => {
     .forEach(s => $(s).value = "");
   document.querySelectorAll("#qrows .qrow:has(select)").forEach(r => r.remove());
   ["#market","#seller","#fresh","#pchg"].forEach(s => $(s).value = "");
-  ["#onlydrop","#onlygeo","#bounds"].forEach(s => $(s).checked = false);
+  ["#onlytracked","#showhidden","#onlydrop","#onlygeo","#bounds"].forEach(s => $(s).checked = false);
   $("#qdesc").checked = true;
   yearReset();
   document.querySelectorAll("#rooms .chip").forEach(b => b.classList.remove("on"));

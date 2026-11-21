@@ -53,6 +53,20 @@ erDiagram
     }
 ```
 
+`user_edits(uid PK, tracked, lat, lon, hidden, status, note)` holds what the
+user changes on the map when it runs with `--serve` (`src/server.py`): `tracked`
+is `1` for a tracked offer, `status` and `note` are its status label and
+free-text note (kept after untracking), `hidden` is `1` for an offer hidden from
+the list and the map, `lat`/`lon` is a hand-corrected location (`NULL` when not
+corrected). It
+is keyed by `offers.uid`, created on first use, and a row with nothing set is
+deleted. Scans never write to it.
+
+`offer_events(uid, ts, kind)` is the log behind the *Śledzone* tab: every scan
+adds a `removed` row for each offer that disappeared and a `returned` row for
+each one that came back (`ts` is the scan's timestamp). Price changes are not
+repeated here — they are in `price_history`.
+
 `meta` is a standalone key/value table with no relations. There are no
 explicit indexes or foreign-key constraints — the relation between
 `price_history` and `offers` is enforced only by the application.

@@ -32,6 +32,7 @@ from markupsafe import Markup
 import dedup
 import gtfs
 import osm
+import server
 
 
 def log(msg: str = "") -> None:
@@ -554,6 +555,54 @@ def transit_layers(offline: bool = False, bounds: tuple[float, float, float, flo
     return {"day": day.isoformat() if day else None, "routes": routes, "layers": layers, "points": points}
 
 
+OFFER_FIELDS = """uid, source, url, title, price, negotiable, area, price_per_m, rooms, floor, market,
+    build_year, district, business, created_at, first_seen, lat, lon, map_radius, raw"""
+
+
+def offer_item(row: tuple) -> tuple[dict, dict]:
+    """Wiersz tabeli offers (kolumny OFFER_FIELDS) → oferta w postaci, jaką dostaje strona,
+    oraz surowy JSON z portalu."""
+    (uid, source, url, title, price, negotiable, area, ppm, rooms, floor, market, build_year) = row[:12]
+    (district, business, created, first_seen, lat, lon, radius, raw) = row[12:]
+    try:
+        raw_offer = json.loads(raw) if raw else {}
+    except ValueError:
+        raw_offer = {}
+    if source in ("otodom", "gratka"):
+        # oba portale mają opis i zdjęcia dopiero na stronie oferty —
+        # skrypt dociąga je raz i chowa w surowym JSON-ie
+        detail = raw_offer.get("_ad") or raw_offer.get("_detail") or {}
+        photos = [u for u in (detail.get("images") or [])[:8] if isinstance(u, str)]
+        desc = strip_html(detail.get("description") or "")
+    else:
+        photos = photo_urls(raw_offer)
+        desc = strip_html(raw_offer.get("description") or "")
+    item = {
+        "id": uid,
+        "s": source,
+        "u": url,
+        "t": title,
+        "p": price,
+        "ng": negotiable,
+        "a": area,
+        "pm": ppm,
+        "r": rooms,
+        "f": floor,
+        "mk": market,
+        "by": build_year,
+        "d": district,
+        "b": business,
+        "c": created,
+        "fs": first_seen,
+        "lat": lat,
+        "lon": lon,
+        "rad": radius or 0,
+        "ph": photos,
+        "dsc": desc,
+    }
+    return item, raw_offer
+
+
 def market_history(con: sqlite3.Connection) -> dict:
     """Dane dla zakładki z historią rynku: lista skanów i kompaktowy opis
     każdej oferty (także wycofanych) z numerami skanów zamiast dat.
@@ -615,68 +664,10 @@ def export_html(con: sqlite3.Connection, path: str, offline: bool = False) -> No
 
     offers = []
     listings = []  # te same oferty w postaci dla dedup.find_duplicates
-    query = """SELECT uid, source, url, title, price, negotiable, area,
-                      price_per_m, rooms, floor, market, build_year, district, business,
-                      created_at, first_seen, lat, lon, map_radius, raw
-               FROM offers WHERE active = 1"""
-    for (
-        uid,
-        source,
-        url,
-        title,
-        price,
-        negotiable,
-        area,
-        ppm,
-        rooms,
-        floor,
-        market,
-        build_year,
-        district,
-        business,
-        created,
-        first_seen,
-        lat,
-        lon,
-        radius,
-        raw,
-    ) in con.execute(query):
-        try:
-            raw_offer = json.loads(raw) if raw else {}
-        except ValueError:
-            raw_offer = {}
-        if source in ("otodom", "gratka"):
-            # oba portale mają opis i zdjęcia dopiero na stronie oferty —
-            # skrypt dociąga je raz i chowa w surowym JSON-ie
-            detail = raw_offer.get("_ad") or raw_offer.get("_detail") or {}
-            photos = [u for u in (detail.get("images") or [])[:8] if isinstance(u, str)]
-            desc = strip_html(detail.get("description") or "")
-        else:
-            photos = photo_urls(raw_offer)
-            desc = strip_html(raw_offer.get("description") or "")
-        item = {
-            "id": uid,
-            "s": source,
-            "u": url,
-            "t": title,
-            "p": price,
-            "ng": negotiable,
-            "a": area,
-            "pm": ppm,
-            "r": rooms,
-            "f": floor,
-            "mk": market,
-            "by": build_year,
-            "d": district,
-            "b": business,
-            "c": created,
-            "fs": first_seen,
-            "lat": lat,
-            "lon": lon,
-            "rad": radius or 0,
-            "ph": photos,
-            "dsc": desc,
-        }
+    for row in con.execute(f"SELECT {OFFER_FIELDS} FROM offers WHERE active = 1"):
+        item, raw_offer = offer_item(row)
+        uid, source, url, title, price, _, area, _, rooms, floor, market, build_year = row[:12]
+        created, lat, lon, radius, desc = row[14], row[16], row[17], row[18], item["dsc"]
         hist = history.get(uid) or []
         if len(hist) > 1:
             item["h"] = hist
@@ -752,6 +743,8 @@ def export_html(con: sqlite3.Connection, path: str, offline: bool = False) -> No
             meta=meta,
             offers=offers,
             hist=market_history(con),
+            edits=server.load_edits(con),
+            tracked=server.tracked_report(con),
             pois=poi_layers(),
             districts=district_layers(),
             transit=transit_layers(offline, offers_bounds(offers, RAIL_MARGIN)),

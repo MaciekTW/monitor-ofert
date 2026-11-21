@@ -82,6 +82,9 @@ uv run src/monitor_ofert.py --db tanie.db \
 
 # no network at all — just export what's already in the database
 uv run src/monitor_ofert.py --offline --html mapa.html
+
+# generate the map and open it through the local server, so it can save your changes
+uv run src/monitor_ofert.py --offline --html mapa.html --serve
 ```
 
 ### Options
@@ -95,11 +98,66 @@ uv run src/monitor_ofert.py --offline --html mapa.html
 | `--export FILE.csv` | Write active listings to CSV |
 | `--html FILE.html` | Generate the standalone interactive map |
 | `--offline` | Don't query the portals (export only) |
+| `--serve` | After generating the map (`--html`), serve it at `http://127.0.0.1:8000/` so the page can save tracked offers and corrected locations |
+| `--port N` | Port for `--serve` (default `8000`) |
 | `--delay SECONDS` | Pause between requests (default `0.6`) |
 | `--category-id` / `--city-id` / `--region-id` | Manual OLX ids, if auto-detection fails |
 | `--force` | Allow reusing a database created for a different search |
 
 Note: the script's console output and `--help` text are in Polish.
+
+## Tracked offers and corrected locations
+
+Opened straight from disk, the map is read-only. Started with `--serve`, it is
+served by a small local server (Python's standard library, bound to `127.0.0.1`
+only) that writes your changes to the database:
+
+- **Tracked offers.** *☆ śledź* on a card, or *Śledź ofertę* in the detail
+  panel, marks an offer. Tracked offers get a violet ring on the map, and the
+  *tylko śledzone* filter shows only them. The **Śledzone** tab is the report
+  on all of them. At the top: counts (active, gone, price cuts and rises,
+  changes in the last 7 days). Below, one tile per offer: photo, state (active /
+  gone / came back), price with the change since its first recorded price, a
+  small step chart of the price over time, the latest event, the status and the
+  note. *Szczegóły* (or the photo) opens the offer's detail panel over the tab,
+  *Na mapie* jumps to it on the map. Tiles can be narrowed to active or gone
+  offers or to one status, and sorted by latest change, biggest price cut,
+  price or status. Offers that left the portals stay in the tab — greyed out,
+  with the data from the last scan in their detail panel and a link to the old
+  listing — until you untrack them with ✕.
+  *Historia zmian* is a panel on the right: one chronological feed of price
+  changes, disappearances and returns across all tracked offers. *Historia* on
+  a tile narrows it to that offer's full history; *zwiń* folds the panel away
+  (the page remembers that).
+- **Status and note.** A tracked offer has a status (*do kontaktu*, *umówione
+  oględziny*, *po oględzinach*, *w negocjacjach*, *rezygnacja*) and a free-text
+  note. Both are edited in the offer's detail panel; the status also right on
+  its tile in the *Śledzone* tab. They save when the field is left. The status shows on
+  the offer's card; untracking keeps both in the database, so they are back if
+  you track the offer again.
+- **Hidden offers.** *ukryj* on a card, or *Ukryj ofertę* in the detail panel,
+  takes a rejected offer off the list and the map (the toast has *Cofnij*).
+  *pokaż ukryte* in the filters brings hidden offers back, dimmed, with
+  *przywróć ukrytą*. Hiding does not untrack.
+- **Corrected location.** *Popraw lokalizację na mapie* in the detail panel
+  (or *Wskaż lokalizację na mapie* for an offer that has none), then a click on
+  the map, moves the pin. The corrected position counts as exact and is what
+  the flat report and the comparison use. *Przywróć z ogłoszenia* brings the
+  portal's location back; `Esc` cancels picking.
+
+All of them apply to every copy of a listing posted on several portals. They are kept
+in a separate `user_edits` table, so later scans never overwrite them, and are
+read fresh from the database on every page load. A map generated afterwards
+shows them even when opened from disk — it just cannot change them. Duplicate
+matching still uses the portals' own coordinates. An offer that disappears from
+the portals leaves the map like any other, but a tracked one stays in the
+*Śledzone* tab. Each portal's copy of a listing is a separate row there, since
+prices change per portal.
+
+Disappearances and returns are logged in the `offer_events` table from now on,
+for every offer. For scans made before that table existed, a disappearance is
+dated to the next scan of the portal after the offer was last seen, and earlier
+returns are not known.
 
 ## Duplicates across portals
 

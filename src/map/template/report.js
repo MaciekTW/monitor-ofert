@@ -730,9 +730,10 @@ function jsonp(url){
     document.head.append(script);
   });
 }
-const noiseCache = new Map();  // id oferty → obietnica wyniku
+const noiseCache = new Map();  // położenie pinezki → obietnica wyniku (pinezkę można poprawić ręcznie)
 function noiseAt(o){
-  if(!noiseCache.has(o.id)){
+  const key = `${o.lat},${o.lon}`;
+  if(!noiseCache.has(key)){
     const band = layer => jsonp(`${NOISE_SERVICE}/${layer}/query?geometry=${o.lon},${o.lat}&geometryType=esriGeometryPoint` +
       "&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=ISOV1,ISOV2&returnGeometry=false&f=json")
       .then(d => {
@@ -743,10 +744,10 @@ function noiseAt(o){
       });
     const all = Promise.all(NOISE_LAYERS.map(([name, day, night]) =>
       Promise.all([band(day), band(night)]).then(([d, n]) => ({name, day: d, night: n}))));
-    all.catch(() => noiseCache.delete(o.id));  // nieudane zapytanie można powtórzyć
-    noiseCache.set(o.id, all);
+    all.catch(() => noiseCache.delete(key));  // nieudane zapytanie można powtórzyć
+    noiseCache.set(key, all);
   }
-  return noiseCache.get(o.id);
+  return noiseCache.get(key);
 }
 const NOISE_SCORE = [[50, 9.5], [55, 8], [60, 6.5], [65, 4.5], [70, 2.5], [75, 1], [Infinity, 0]];
 const NOISE_WORD = [[55, "cicho"], [60, "umiarkowanie"], [65, "głośno — ruch słychać przy otwartym oknie"],

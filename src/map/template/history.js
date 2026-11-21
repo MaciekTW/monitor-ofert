@@ -246,13 +246,15 @@ const districtsAll = [...new Set(HOFF.map(o => o.d))].sort((a, b) => a.localeCom
 $("#hdistrict").insertAdjacentHTML("beforeend",
   districtsAll.map(d => `<option value="${esc(d)}">${esc(d)}</option>`).join(""));
 function showTab(name){
-  const hist = name === "hist";
-  $("#tab-map").hidden = hist;
-  $("#mapctl").hidden = hist;
+  const hist = name === "hist", tracked = name === "tracked", onMap = !hist && !tracked;
+  $("#tab-map").hidden = !onMap;
+  $("#mapctl").hidden = !onMap;
   $("#tab-hist").hidden = !hist;
+  $("#tab-tracked").hidden = !tracked;
   document.querySelectorAll("#tabs .tab").forEach(b => b.classList.toggle("on", b.dataset.tab === name));
-  window.history.replaceState(null, "", hist ? "#historia" : location.pathname + location.search);
+  window.history.replaceState(null, "", hist ? "#historia" : tracked ? "#sledzone" : location.pathname + location.search);
   if(hist){ closeDetail(); renderHistory(); }
+  else if(tracked){ closeDetail(); loadTracked(); }  // tracked.js
   else { map.invalidateSize(); renderHisto(); }
 }
 document.querySelectorAll("#tabs .tab").forEach(b => b.addEventListener("click", () => showTab(b.dataset.tab)));
@@ -265,4 +267,8 @@ $("#hdist").addEventListener("click", e => {
   distSort = {key: k, dir: distSort.key === k ? -distSort.dir : k === "d" ? 1 : -1};
   renderDistricts(histRows);
 });
-if(location.hash === "#historia") showTab("hist");
+// po wczytaniu wszystkich skryptów — zakładkę „Śledzone” rysuje tracked.js, dołączany później
+addEventListener("load", () => {
+  if(location.hash === "#historia") showTab("hist");
+  if(location.hash === "#sledzone") showTab("tracked");
+});
