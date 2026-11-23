@@ -182,10 +182,15 @@ def test_ad_district(ad):
 
 
 def test_ad_target_details(ad):
-    target = dig(ad, "target")
-    assert isinstance(target, dict)
+    """fetch_otodom_detail składa piętro, pokoje i rok budowy przez _oto_target:
+    ze starego pola target albo — gdy Otodom zwraca target = {} — z attributes."""
+    assert isinstance(ad.get("target", {}), dict), "target nie jest słownikiem"
+    target = m._oto_target(ad)
     for key in ("Floor_no", "Rooms_num"):
-        assert key in target, f"brak target.{key}; dostępne: {sorted(target)[:40]}"
+        assert key in target, (
+            f"brak {key} w target ani attributes; target: {sorted(ad.get('target') or {})[:40]}, "
+            f"attributes: {sorted(ad.get('attributes') or {})[:40]}"
+        )
     assert m._oto_floor(target["Floor_no"]) is not None, (
         f"_oto_floor nie rozumie target.Floor_no = {target['Floor_no']!r}"
     )
@@ -203,9 +208,12 @@ def test_ad_images(ad):
     assert_all(
         images,
         lambda img: (
-            urlparse(str(img.get("large") or img.get("medium") or img.get("small") or "")).scheme == "https"
+            urlparse(
+                str(img.get("url") or img.get("large") or img.get("medium") or img.get("small") or "")
+            ).scheme
+            == "https"
         ),
-        "images[].large/medium/small",
+        "images[].url/large/medium/small",
     )
 
 

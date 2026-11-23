@@ -719,16 +719,14 @@ def fetch_otodom_detail(offer_url: str, delay: float) -> dict | None:
         if isinstance(node, dict) and node.get("locationLevel") == "district":
             slim["district"] = node.get("name")
             break
-    target = ad.get("target") or {}
-    target_slim = {
-        k: target.get(k) for k in ("Rent", "Floor_no", "Rooms_num", "Build_year") if target.get(k) is not None
-    }
+    target_slim = _oto_target(ad)
     if target_slim:
         slim["target"] = target_slim
     images = []
     for img in (ad.get("images") or [])[:8]:
         if isinstance(img, dict):
-            link = img.get("large") or img.get("medium") or img.get("small")
+            # od listopada 2026 Otodom podaje jedno pole url zamiast large/medium/small
+            link = img.get("url") or img.get("large") or img.get("medium") or img.get("small")
             if link:
                 images.append(link)
     if images:
@@ -773,6 +771,31 @@ _OTO_MARKET = {
     "PRIMARY": "Pierwotny",
     "SECONDARY": "Wtórny",
 }
+
+
+_OTO_TARGET_KEYS = ("Rent", "Floor_no", "Rooms_num", "Build_year")
+
+
+def _oto_target(ad: dict) -> dict:
+    """Piętro, pokoje, rok budowy i czynsz ze strony oferty, w kształcie starego
+    pola target (tak trafiają do bazy i tak czyta je parse_offer_otodom).
+
+    Od listopada 2026 Otodom części ofert zwraca target = {} — te same dane są
+    wtedy w attributes (klucze małymi literami, wartości bez list), a czynsz
+    tylko w characteristics."""
+    target = ad.get("target") or {}
+    found = {k: target.get(k) for k in _OTO_TARGET_KEYS if target.get(k) is not None}
+    attrs = ad.get("attributes") or {}
+    chars = {c.get("key"): c.get("value") for c in ad.get("characteristics") or [] if isinstance(c, dict)}
+    for key in _OTO_TARGET_KEYS:
+        if key in found:
+            continue
+        value = attrs.get(key.lower())
+        if value in (None, ""):
+            value = chars.get(key.lower())
+        if value not in (None, ""):
+            found[key] = value
+    return found
 
 
 def _oto_floor(value) -> str | None:
